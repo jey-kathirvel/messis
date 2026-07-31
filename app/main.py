@@ -5,7 +5,7 @@ from secrets import compare_digest
 from urllib.parse import quote, urlsplit
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_, select
@@ -15,13 +15,14 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
 from app.database import Base, engine, get_db
-from app.models import AuditLog, CoconutTree, Farm, User
+from app.models import AuditLog, CoconutTree, Farm, HarvestCycle, User
 from app.security import hash_passcode, valid_passcode, verify_passcode
+from app.version import APP_VERSION, RELEASE_NAME
 
 BASE_DIR = Path(__file__).resolve().parent
 settings = get_settings()
 
-app = FastAPI(title="Messis AI", version="0.3.1")
+app = FastAPI(title="Messis AI", version=APP_VERSION)
 
 app.add_middleware(
     SessionMiddleware,
@@ -243,13 +244,93 @@ def authentication_error(
     )
 
 
+@app.get(
+    "/favicon.ico",
+    include_in_schema=False,
+)
+def favicon() -> FileResponse:
+    return FileResponse(
+        BASE_DIR / "static" / "favicon.svg",
+        media_type="image/svg+xml",
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@app.head(
+    "/favicon.ico",
+    include_in_schema=False,
+)
+def favicon_head() -> Response:
+    return Response(
+        status_code=200,
+        media_type="image/svg+xml",
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@app.head(
+    "/",
+    include_in_schema=False,
+)
+def login_head() -> Response:
+    return Response(
+        status_code=200,
+        headers={
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@app.exception_handler(404)
+def not_found_error(
+    request: Request,
+    exc: HTTPException,
+) -> HTMLResponse:
+    del exc
+
+    return templates.TemplateResponse(
+        request=request,
+        name="errors/404.html",
+        context={},
+        status_code=404,
+        headers={
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+@app.exception_handler(500)
+def internal_server_error(
+    request: Request,
+    exc: Exception,
+) -> HTMLResponse:
+    del exc
+
+    return templates.TemplateResponse(
+        request=request,
+        name="errors/500.html",
+        context={},
+        status_code=500,
+        headers={
+            "Cache-Control": "no-store",
+        },
+    )
+
+
 @app.get("/health", response_class=JSONResponse)
 def health() -> dict[str, str]:
     return {
         "status": "ok",
         "application": "Messis AI",
         "subtitle": "Smart Agriculture Management System",
-        "version": "0.3.1",
+        "version": APP_VERSION,
+        "release": RELEASE_NAME,
         "database": "connected",
         "authentication": "enabled",
     }
@@ -1626,6 +1707,7 @@ def print_farm_profile(
 )
 def duplicate_farm(
     farm_id: int,
+    request: Request,
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
@@ -1667,9 +1749,40 @@ def duplicate_farm(
         notes=source_farm.notes,
     )
 
-    db.add(duplicated_farm)
-    db.commit()
-    db.refresh(duplicated_farm)
+    try:
+        db.add(duplicated_farm)
+        db.flush()
+
+        audit(
+            db,
+            request,
+            "farm_duplicated",
+            user.id,
+            (
+                f"Source farm ID: {source_farm.id}; "
+                f"Source name: {source_farm.name}; "
+                f"Duplicated farm ID: {duplicated_farm.id}; "
+                f"Duplicated name: {duplicated_farm.name}; "
+                f"Trees: {duplicated_farm.total_trees}"
+            ),
+        )
+
+        db.commit()
+        db.refresh(duplicated_farm)
+    except SQLAlchemyError:
+        db.rollback()
+
+        return RedirectResponse(
+            url=(
+                f"/farms/{source_farm.id}"
+                "?error="
+                + quote(
+                    "Unable to duplicate the farm. "
+                    "Please try again."
+                )
+            ),
+            status_code=303,
+        )
 
     return RedirectResponse(
         url=f"/farms/{duplicated_farm.id}",
@@ -1700,6 +1813,719 @@ def farm_detail_page(
             "page_title": farm.name,
             "current_user": user,
             "farm": farm,
+        },
+    )
+
+
+
+# PATCH-HARVEST-001B: HARVEST CYCLE BACKEND
+
+HARVEST_STATUSES = {
+    "Planned",
+    "Due Soon",
+    "Due",
+    "Overdue",
+    "In Progress",
+    "Completed",
+    "Cancelled",
+}
+
+
+def harvest_cycle_status(
+    planned_date: date,
+    minimum_due_date: date,
+    maximum_due_date: date,
+    current_date: date | None = None,
+) -> str:
+    today = current_date or date.today()
+
+    if today < minimum_due_date:
+        if (minimum_due_date - today).days <= 7:
+            return "Due Soon"
+        return "Planned"
+
+    if minimum_due_date <= today < planned_date:
+        return "Due Soon"
+
+    if today == planned_date:
+        return "Due"
+
+    if planned_date < today <= maximum_due_date:
+        return "Due"
+
+    return "Overdue"
+
+
+def next_harvest_window(
+    previous_harvest_date: date,
+    interval_days: int = 47,
+) -> tuple[date, date, date]:
+    if interval_days < 45 or interval_days > 50:
+        raise ValueError(
+            "Harvest interval must be between 45 and 50 days."
+        )
+
+    minimum_due = previous_harvest_date + timedelta(days=45)
+    planned = previous_harvest_date + timedelta(
+        days=interval_days
+    )
+    maximum_due = previous_harvest_date + timedelta(days=50)
+
+    return minimum_due, planned, maximum_due
+
+
+def get_owned_harvest_cycle(
+    cycle_id: int,
+    user: User,
+    db: Session,
+) -> HarvestCycle:
+    cycle = db.scalar(
+        select(HarvestCycle).where(
+            HarvestCycle.id == cycle_id,
+            HarvestCycle.owner_id == user.id,
+        )
+    )
+
+    if cycle is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Harvest cycle not found.",
+        )
+
+    return cycle
+
+
+@app.get(
+    "/harvests",
+    response_class=JSONResponse,
+)
+def harvest_cycle_list(
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    cycles = db.scalars(
+        select(HarvestCycle)
+        .where(HarvestCycle.owner_id == user.id)
+        .order_by(
+            HarvestCycle.planned_harvest_date.asc(),
+            HarvestCycle.id.desc(),
+        )
+    ).all()
+
+    today = date.today()
+    changed = False
+
+    items = []
+
+    for cycle in cycles:
+        if cycle.status not in {
+            "Completed",
+            "Cancelled",
+            "In Progress",
+        }:
+            calculated_status = harvest_cycle_status(
+                planned_date=cycle.planned_harvest_date,
+                minimum_due_date=cycle.minimum_due_date,
+                maximum_due_date=cycle.maximum_due_date,
+                current_date=today,
+            )
+
+            if cycle.status != calculated_status:
+                cycle.status = calculated_status
+                changed = True
+
+        items.append(
+            {
+                "id": cycle.id,
+                "farm_id": cycle.farm_id,
+                "cycle_number": cycle.cycle_number,
+                "previous_harvest_date": (
+                    cycle.previous_harvest_date.isoformat()
+                    if cycle.previous_harvest_date
+                    else None
+                ),
+                "minimum_due_date": (
+                    cycle.minimum_due_date.isoformat()
+                ),
+                "planned_harvest_date": (
+                    cycle.planned_harvest_date.isoformat()
+                ),
+                "maximum_due_date": (
+                    cycle.maximum_due_date.isoformat()
+                ),
+                "actual_harvest_date": (
+                    cycle.actual_harvest_date.isoformat()
+                    if cycle.actual_harvest_date
+                    else None
+                ),
+                "harvest_interval_days": (
+                    cycle.harvest_interval_days
+                ),
+                "status": cycle.status,
+                "assigned_worker": cycle.assigned_worker,
+                "notes": cycle.notes,
+            }
+        )
+
+    if changed:
+        db.commit()
+
+    return {
+        "count": len(items),
+        "items": items,
+    }
+
+
+@app.post(
+    "/farms/{farm_id}/harvests",
+    response_class=JSONResponse,
+)
+def create_harvest_cycle(
+    farm_id: int,
+    request: Request,
+    previous_harvest_date: date = Form(...),
+    harvest_interval_days: int = Form(47),
+    assigned_worker: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farm = require_owned_farm(
+        db=db,
+        farm_id=farm_id,
+        owner_id=user.id,
+    )
+
+    if harvest_interval_days < 45 or harvest_interval_days > 50:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Harvest interval must be between "
+                "45 and 50 days."
+            ),
+        )
+
+    minimum_due, planned, maximum_due = next_harvest_window(
+        previous_harvest_date=previous_harvest_date,
+        interval_days=harvest_interval_days,
+    )
+
+    latest_cycle_number = db.scalar(
+        select(
+            func.coalesce(
+                func.max(HarvestCycle.cycle_number),
+                0,
+            )
+        ).where(
+            HarvestCycle.farm_id == farm.id,
+            HarvestCycle.owner_id == user.id,
+        )
+    ) or 0
+
+    existing_open_cycle = db.scalar(
+        select(HarvestCycle.id).where(
+            HarvestCycle.farm_id == farm.id,
+            HarvestCycle.owner_id == user.id,
+            HarvestCycle.status.notin_(
+                ["Completed", "Cancelled"]
+            ),
+        )
+    )
+
+    if existing_open_cycle is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "This farm already has an active "
+                "harvest cycle."
+            ),
+        )
+
+    cycle = HarvestCycle(
+        farm_id=farm.id,
+        owner_id=user.id,
+        cycle_number=int(latest_cycle_number) + 1,
+        previous_harvest_date=previous_harvest_date,
+        minimum_due_date=minimum_due,
+        planned_harvest_date=planned,
+        maximum_due_date=maximum_due,
+        harvest_interval_days=harvest_interval_days,
+        status=harvest_cycle_status(
+            planned_date=planned,
+            minimum_due_date=minimum_due,
+            maximum_due_date=maximum_due,
+        ),
+        assigned_worker=normalize_optional_text(
+            assigned_worker
+        ),
+        notes=normalize_optional_text(notes),
+    )
+
+    try:
+        db.add(cycle)
+        db.flush()
+
+        audit(
+            db,
+            request,
+            "harvest_cycle_created",
+            user.id,
+            (
+                f"Harvest cycle ID: {cycle.id}; "
+                f"Farm ID: {farm.id}; "
+                f"Cycle: {cycle.cycle_number}; "
+                f"Previous harvest: "
+                f"{previous_harvest_date}; "
+                f"Planned harvest: {planned}; "
+                f"Window: {minimum_due} to "
+                f"{maximum_due}"
+            ),
+        )
+
+        db.commit()
+        db.refresh(cycle)
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to create harvest cycle.",
+        )
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "id": cycle.id,
+            "farm_id": cycle.farm_id,
+            "cycle_number": cycle.cycle_number,
+            "previous_harvest_date": (
+                cycle.previous_harvest_date.isoformat()
+            ),
+            "minimum_due_date": (
+                cycle.minimum_due_date.isoformat()
+            ),
+            "planned_harvest_date": (
+                cycle.planned_harvest_date.isoformat()
+            ),
+            "maximum_due_date": (
+                cycle.maximum_due_date.isoformat()
+            ),
+            "harvest_interval_days": (
+                cycle.harvest_interval_days
+            ),
+            "status": cycle.status,
+            "assigned_worker": cycle.assigned_worker,
+            "notes": cycle.notes,
+        },
+    )
+
+
+@app.get(
+    "/harvests/{cycle_id}",
+    response_class=JSONResponse,
+)
+def harvest_cycle_detail(
+    cycle_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    cycle = get_owned_harvest_cycle(
+        cycle_id=cycle_id,
+        user=user,
+        db=db,
+    )
+
+    farm = require_owned_farm(
+        db=db,
+        farm_id=cycle.farm_id,
+        owner_id=user.id,
+    )
+
+    if cycle.status not in {
+        "Completed",
+        "Cancelled",
+        "In Progress",
+    }:
+        calculated_status = harvest_cycle_status(
+            planned_date=cycle.planned_harvest_date,
+            minimum_due_date=cycle.minimum_due_date,
+            maximum_due_date=cycle.maximum_due_date,
+        )
+
+        if cycle.status != calculated_status:
+            cycle.status = calculated_status
+            db.commit()
+
+    return {
+        "id": cycle.id,
+        "farm": {
+            "id": farm.id,
+            "name": farm.name,
+        },
+        "cycle_number": cycle.cycle_number,
+        "previous_harvest_date": (
+            cycle.previous_harvest_date.isoformat()
+            if cycle.previous_harvest_date
+            else None
+        ),
+        "minimum_due_date": (
+            cycle.minimum_due_date.isoformat()
+        ),
+        "planned_harvest_date": (
+            cycle.planned_harvest_date.isoformat()
+        ),
+        "maximum_due_date": (
+            cycle.maximum_due_date.isoformat()
+        ),
+        "actual_harvest_date": (
+            cycle.actual_harvest_date.isoformat()
+            if cycle.actual_harvest_date
+            else None
+        ),
+        "harvest_interval_days": (
+            cycle.harvest_interval_days
+        ),
+        "status": cycle.status,
+        "assigned_worker": cycle.assigned_worker,
+        "notes": cycle.notes,
+        "created_at": (
+            cycle.created_at.isoformat()
+            if cycle.created_at
+            else None
+        ),
+        "updated_at": (
+            cycle.updated_at.isoformat()
+            if cycle.updated_at
+            else None
+        ),
+    }
+
+
+
+# PATCH-HARVEST-001C: HARVEST CYCLE UI
+
+
+@app.get(
+    "/harvests/manage",
+    response_class=HTMLResponse,
+)
+def harvest_management_page(
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    cycles = db.scalars(
+        select(HarvestCycle)
+        .where(HarvestCycle.owner_id == user.id)
+        .order_by(
+            HarvestCycle.planned_harvest_date.asc(),
+            HarvestCycle.id.desc(),
+        )
+    ).all()
+
+    farm_names = {
+        farm.id: farm.name
+        for farm in farms
+    }
+
+    today = date.today()
+    changed = False
+    rows = []
+
+    for cycle in cycles:
+        if cycle.status not in {
+            "Completed",
+            "Cancelled",
+            "In Progress",
+        }:
+            calculated_status = harvest_cycle_status(
+                cycle.planned_harvest_date,
+                cycle.minimum_due_date,
+                cycle.maximum_due_date,
+                today,
+            )
+
+            if cycle.status != calculated_status:
+                cycle.status = calculated_status
+                changed = True
+
+        rows.append(
+            {
+                "cycle": cycle,
+                "farm_name": farm_names.get(
+                    cycle.farm_id,
+                    "Farm",
+                ),
+            }
+        )
+
+    if changed:
+        db.commit()
+
+    totals = {
+        "total": len(cycles),
+        "upcoming": sum(
+            cycle.status in {"Planned", "Due Soon"}
+            for cycle in cycles
+        ),
+        "due": sum(
+            cycle.status == "Due"
+            for cycle in cycles
+        ),
+        "overdue": sum(
+            cycle.status == "Overdue"
+            for cycle in cycles
+        ),
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="harvests/list.html",
+        context={
+            "current_user": user,
+            "farms": farms,
+            "cycles": rows,
+            "totals": totals,
+        },
+    )
+
+
+@app.get(
+    "/farms/{farm_id}/harvests/new",
+    response_class=HTMLResponse,
+)
+def harvest_cycle_create_page(
+    farm_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farm = require_owned_farm(
+        db=db,
+        farm_id=farm_id,
+        owner_id=user.id,
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="harvests/form.html",
+        context={
+            "current_user": user,
+            "farm": farm,
+            "error_message": None,
+            "form_data": {
+                "previous_harvest_date": "",
+                "harvest_interval_days": 47,
+                "assigned_worker": "",
+                "notes": "",
+            },
+        },
+    )
+
+
+@app.post(
+    "/farms/{farm_id}/harvests/new",
+    response_class=HTMLResponse,
+)
+def harvest_cycle_create_html(
+    farm_id: int,
+    request: Request,
+    previous_harvest_date: date = Form(...),
+    harvest_interval_days: int = Form(47),
+    assigned_worker: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farm = require_owned_farm(
+        db=db,
+        farm_id=farm_id,
+        owner_id=user.id,
+    )
+
+    form_data = {
+        "previous_harvest_date": (
+            previous_harvest_date.isoformat()
+        ),
+        "harvest_interval_days": (
+            harvest_interval_days
+        ),
+        "assigned_worker": assigned_worker,
+        "notes": notes,
+    }
+
+    if not 45 <= harvest_interval_days <= 50:
+        return templates.TemplateResponse(
+            request=request,
+            name="harvests/form.html",
+            context={
+                "current_user": user,
+                "farm": farm,
+                "error_message": (
+                    "Harvest interval must be between "
+                    "45 and 50 days."
+                ),
+                "form_data": form_data,
+            },
+            status_code=422,
+        )
+
+    open_cycle = db.scalar(
+        select(HarvestCycle.id).where(
+            HarvestCycle.owner_id == user.id,
+            HarvestCycle.farm_id == farm.id,
+            HarvestCycle.status.notin_(
+                ["Completed", "Cancelled"]
+            ),
+        )
+    )
+
+    if open_cycle is not None:
+        return templates.TemplateResponse(
+            request=request,
+            name="harvests/form.html",
+            context={
+                "current_user": user,
+                "farm": farm,
+                "error_message": (
+                    "This farm already has an active "
+                    "harvest cycle."
+                ),
+                "form_data": form_data,
+            },
+            status_code=409,
+        )
+
+    minimum_due, planned, maximum_due = (
+        next_harvest_window(
+            previous_harvest_date,
+            harvest_interval_days,
+        )
+    )
+
+    latest_number = db.scalar(
+        select(
+            func.coalesce(
+                func.max(HarvestCycle.cycle_number),
+                0,
+            )
+        ).where(
+            HarvestCycle.owner_id == user.id,
+            HarvestCycle.farm_id == farm.id,
+        )
+    ) or 0
+
+    cycle = HarvestCycle(
+        farm_id=farm.id,
+        owner_id=user.id,
+        cycle_number=int(latest_number) + 1,
+        previous_harvest_date=previous_harvest_date,
+        minimum_due_date=minimum_due,
+        planned_harvest_date=planned,
+        maximum_due_date=maximum_due,
+        harvest_interval_days=harvest_interval_days,
+        status=harvest_cycle_status(
+            planned,
+            minimum_due,
+            maximum_due,
+        ),
+        assigned_worker=normalize_optional_text(
+            assigned_worker
+        ),
+        notes=normalize_optional_text(notes),
+    )
+
+    try:
+        db.add(cycle)
+        db.flush()
+
+        audit(
+            db,
+            request,
+            "harvest_cycle_created",
+            user.id,
+            (
+                f"Harvest cycle ID: {cycle.id}; "
+                f"Farm ID: {farm.id}; "
+                f"Planned: {planned}"
+            ),
+        )
+
+        db.commit()
+        db.refresh(cycle)
+    except SQLAlchemyError:
+        db.rollback()
+
+        return templates.TemplateResponse(
+            request=request,
+            name="harvests/form.html",
+            context={
+                "current_user": user,
+                "farm": farm,
+                "error_message": (
+                    "Unable to create the harvest cycle."
+                ),
+                "form_data": form_data,
+            },
+            status_code=500,
+        )
+
+    return RedirectResponse(
+        url=f"/harvests/{cycle.id}/view",
+        status_code=303,
+    )
+
+
+@app.get(
+    "/harvests/{cycle_id}/view",
+    response_class=HTMLResponse,
+)
+def harvest_cycle_detail_page(
+    cycle_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    cycle = get_owned_harvest_cycle(
+        cycle_id=cycle_id,
+        user=user,
+        db=db,
+    )
+
+    farm = require_owned_farm(
+        db=db,
+        farm_id=cycle.farm_id,
+        owner_id=user.id,
+    )
+
+    if cycle.status not in {
+        "Completed",
+        "Cancelled",
+        "In Progress",
+    }:
+        status = harvest_cycle_status(
+            cycle.planned_harvest_date,
+            cycle.minimum_due_date,
+            cycle.maximum_due_date,
+        )
+
+        if cycle.status != status:
+            cycle.status = status
+            db.commit()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="harvests/detail.html",
+        context={
+            "current_user": user,
+            "farm": farm,
+            "cycle": cycle,
         },
     )
 

@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>Harvest Cycles · Messis AI</title>
+    <style>
+        :root {
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            color: #17351f;
+            background: #f4fbf5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(34, 197, 94, 0.14),
+                    transparent 34%
+                ),
+                #f4fbf5;
+        }
+
+        header {
+            padding: 20px clamp(18px, 5vw, 72px);
+            background: linear-gradient(135deg, #14532d, #15803d);
+            color: white;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: clamp(25px, 4vw, 40px);
+        }
+
+        header p {
+            margin: 7px 0 0;
+            color: #dcfce7;
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 9px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            font-weight: 700;
+        }
+
+        main {
+            width: min(1180px, calc(100% - 32px));
+            margin: 28px auto 60px;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+        }
+
+        .toolbar h2 {
+            margin: 0;
+        }
+
+        .farm-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            border: 0;
+            border-radius: 12px;
+            padding: 11px 16px;
+            font: inherit;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .button-primary {
+            color: white;
+            background: #15803d;
+        }
+
+        .button-muted {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .summary-card {
+            padding: 18px;
+            border-radius: 18px;
+            background: white;
+            border: 1px solid #dcfce7;
+            box-shadow: 0 12px 34px rgba(20, 83, 45, 0.07);
+        }
+
+        .summary-card strong {
+            display: block;
+            font-size: 29px;
+            color: #15803d;
+        }
+
+        .summary-card span {
+            color: #64748b;
+        }
+
+        .cycle-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .cycle-card {
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 14px 38px rgba(20, 83, 45, 0.07);
+        }
+
+        .cycle-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .cycle-head h3 {
+            margin: 0;
+        }
+
+        .cycle-head p {
+            margin: 5px 0 0;
+            color: #64748b;
+        }
+
+        .status {
+            border-radius: 999px;
+            padding: 7px 12px;
+            font-size: 13px;
+            font-weight: 900;
+            white-space: nowrap;
+            background: #e2e8f0;
+        }
+
+        .status-planned {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .status-due-soon {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-due {
+            background: #ffedd5;
+            color: #c2410c;
+        }
+
+        .status-overdue {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .status-completed {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .dates {
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .date-box {
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 13px;
+        }
+
+        .date-box small {
+            color: #64748b;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .date-box strong {
+            font-size: 15px;
+        }
+
+        .cycle-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 52px 20px;
+            border: 2px dashed #bbf7d0;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        @media (max-width: 820px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .dates {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cycle-head {
+                flex-direction: column;
+            }
+
+            .button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Harvest Cycles</h1>
+    <p>Plan coconut harvests within the recommended 45–50 day window.</p>
+
+    <nav>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/farms">Farms</a>
+        <a href="/harvests/manage">Harvests</a>
+    </nav>
+</header>
+
+<main>
+    <section class="toolbar">
+        <div>
+            <h2>Your harvest schedule</h2>
+            <p>
+                Every cycle is scoped to your own farms and automatically
+                classified by due status.
+            </p>
+        </div>
+
+        <div class="farm-actions">
+            {% for farm in farms %}
+                <a
+                    class="button button-primary"
+                    href="/farms/{{ farm.id }}/harvests/new"
+                >
+                    New cycle · {{ farm.name }}
+                </a>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="summary-grid">
+        <article class="summary-card">
+            <strong>{{ totals.total }}</strong>
+            <span>Total cycles</span>
+        </article>
+
+        <article class="summary-card">
+            <strong>{{ totals.upcoming }}</strong>
+            <span>Upcoming</span>
+        </article>
+
+        <article class="summary-card">
+            <strong>{{ totals.due }}</strong>
+            <span>Due now</span>
+        </article>
+
+        <article class="summary-card">
+            <strong>{{ totals.overdue }}</strong>
+            <span>Overdue</span>
+        </article>
+    </section>
+
+    {% if cycles %}
+        <section class="cycle-grid">
+            {% for item in cycles %}
+                <article class="cycle-card">
+                    <div class="cycle-head">
+                        <div>
+                            <h3>{{ item.farm_name }}</h3>
+                            <p>Harvest cycle #{{ item.cycle.cycle_number }}</p>
+                        </div>
+
+                        <span
+                            class="status status-{{ item.cycle.status|lower|replace(' ', '-') }}"
+                        >
+                            {{ item.cycle.status }}
+                        </span>
+                    </div>
+
+                    <div class="dates">
+                        <div class="date-box">
+                            <small>Earliest harvest</small>
+                            <strong>
+                                {{ item.cycle.minimum_due_date.strftime('%d %b %Y') }}
+                            </strong>
+                        </div>
+
+                        <div class="date-box">
+                            <small>Planned harvest</small>
+                            <strong>
+                                {{ item.cycle.planned_harvest_date.strftime('%d %b %Y') }}
+                            </strong>
+                        </div>
+
+                        <div class="date-box">
+                            <small>Latest harvest</small>
+                            <strong>
+                                {{ item.cycle.maximum_due_date.strftime('%d %b %Y') }}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="cycle-footer">
+                        <span>
+                            Interval:
+                            <strong>
+                                {{ item.cycle.harvest_interval_days }} days
+                            </strong>
+                        </span>
+
+                        <a
+                            class="button button-muted"
+                            href="/harvests/{{ item.cycle.id }}/view"
+                        >
+                            View details
+                        </a>
+                    </div>
+                </article>
+            {% endfor %}
+        </section>
+    {% else %}
+        <section class="empty">
+            <h2>No harvest cycles yet</h2>
+            <p>
+                Create the first 45–50 day harvest schedule for one of your
+                farms.
+            </p>
+        </section>
+    {% endif %}
+</main>
+</body>
+</html>

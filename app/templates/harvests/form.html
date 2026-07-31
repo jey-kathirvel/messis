@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>New Harvest Cycle · Messis AI</title>
+    <style>
+        :root {
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            color: #17351f;
+            background: #f4fbf5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px;
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(34, 197, 94, 0.14),
+                    transparent 35%
+                ),
+                #f4fbf5;
+        }
+
+        main {
+            width: min(720px, 100%);
+            margin: 20px auto;
+        }
+
+        .back {
+            display: inline-block;
+            color: #166534;
+            font-weight: 800;
+            text-decoration: none;
+            margin-bottom: 18px;
+        }
+
+        .panel {
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 24px;
+            padding: clamp(22px, 5vw, 42px);
+            box-shadow: 0 20px 60px rgba(20, 83, 45, 0.1);
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        .subtitle {
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 26px;
+        }
+
+        label {
+            display: block;
+            margin: 17px 0 7px;
+            font-weight: 800;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 13px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            font: inherit;
+            background: white;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .window {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .window div {
+            padding: 13px;
+            border-radius: 14px;
+            background: #f0fdf4;
+        }
+
+        .window small {
+            display: block;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+
+        .window strong {
+            color: #166534;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 18px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 24px;
+            border: 0;
+            border-radius: 14px;
+            padding: 14px 18px;
+            background: #15803d;
+            color: white;
+            font: inherit;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        @media (max-width: 620px) {
+            .window {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <a class="back" href="/harvests/manage">← Harvest cycles</a>
+
+    <section class="panel">
+        <h1>New harvest cycle</h1>
+        <p class="subtitle">
+            Farm: <strong>{{ farm.name }}</strong><br>
+            Select the previous harvest date and Messis AI will calculate the
+            next 45–50 day harvest window.
+        </p>
+
+        {% if error_message %}
+            <div class="error">{{ error_message }}</div>
+        {% endif %}
+
+        <form
+            method="post"
+            action="/farms/{{ farm.id }}/harvests/new"
+        >
+            <label for="previous_harvest_date">
+                Previous harvest date
+            </label>
+            <input
+                id="previous_harvest_date"
+                name="previous_harvest_date"
+                type="date"
+                value="{{ form_data.previous_harvest_date }}"
+                required
+            >
+
+            <label for="harvest_interval_days">
+                Preferred cycle
+            </label>
+            <select
+                id="harvest_interval_days"
+                name="harvest_interval_days"
+            >
+                {% for day in range(45, 51) %}
+                    <option
+                        value="{{ day }}"
+                        {% if day == form_data.harvest_interval_days|int %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ day }} days
+                    </option>
+                {% endfor %}
+            </select>
+
+            <div class="window">
+                <div>
+                    <small>Earliest</small>
+                    <strong id="minimum_date">—</strong>
+                </div>
+
+                <div>
+                    <small>Planned</small>
+                    <strong id="planned_date">—</strong>
+                </div>
+
+                <div>
+                    <small>Latest</small>
+                    <strong id="maximum_date">—</strong>
+                </div>
+            </div>
+
+            <label for="assigned_worker">
+                Assigned worker or team
+            </label>
+            <input
+                id="assigned_worker"
+                name="assigned_worker"
+                type="text"
+                maxlength="150"
+                value="{{ form_data.assigned_worker }}"
+                placeholder="Optional"
+            >
+
+            <label for="notes">Notes</label>
+            <textarea
+                id="notes"
+                name="notes"
+                maxlength="5000"
+                placeholder="Optional harvest preparation notes"
+            >{{ form_data.notes }}</textarea>
+
+            <button type="submit">Create harvest cycle</button>
+        </form>
+    </section>
+</main>
+
+<script>
+    const previousInput =
+        document.getElementById("previous_harvest_date");
+    const intervalInput =
+        document.getElementById("harvest_interval_days");
+
+    const minimumOutput =
+        document.getElementById("minimum_date");
+    const plannedOutput =
+        document.getElementById("planned_date");
+    const maximumOutput =
+        document.getElementById("maximum_date");
+
+    function addDays(dateValue, days) {
+        const date = new Date(dateValue + "T00:00:00");
+        date.setDate(date.getDate() + days);
+
+        return date.toLocaleDateString(
+            undefined,
+            {
+                day: "2-digit",
+                month: "short",
+                year: "numeric"
+            }
+        );
+    }
+
+    function refreshWindow() {
+        const previousDate = previousInput.value;
+
+        if (!previousDate) {
+            minimumOutput.textContent = "—";
+            plannedOutput.textContent = "—";
+            maximumOutput.textContent = "—";
+            return;
+        }
+
+        const interval = Number(intervalInput.value || 47);
+
+        minimumOutput.textContent = addDays(previousDate, 45);
+        plannedOutput.textContent = addDays(previousDate, interval);
+        maximumOutput.textContent = addDays(previousDate, 50);
+    }
+
+    previousInput.addEventListener("change", refreshWindow);
+    intervalInput.addEventListener("change", refreshWindow);
+    refreshWindow();
+</script>
+</body>
+</html>

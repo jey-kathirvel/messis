@@ -43,10 +43,12 @@ class Farm(Base):
     acreage: Mapped[str | None] = mapped_column(String(40))
     total_trees: Mapped[int] = mapped_column(Integer, default=0)
     notes: Mapped[str | None] = mapped_column(Text)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,
     )
+
 
     coconut_trees: Mapped[list["CoconutTree"]] = relationship(
         back_populates="farm",
@@ -356,3 +358,240 @@ class TreeActivity(Base):
             f"activity_type={self.activity_type!r} "
             f"activity_date={self.activity_date!r}>"
         )
+
+# PATCH-HARVEST-001A: HARVEST CYCLE FOUNDATION
+
+
+class HarvestCycle(Base):
+    __tablename__ = "harvest_cycles"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "farm_id",
+            "cycle_number",
+            name="uq_harvest_cycles_farm_cycle",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    farm_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "farms.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    cycle_number: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+    )
+
+    previous_harvest_date: Mapped[date | None] = (
+        mapped_column(Date)
+    )
+
+    planned_harvest_date: Mapped[date] = mapped_column(
+        Date,
+        nullable=False,
+        index=True,
+    )
+
+    minimum_due_date: Mapped[date] = mapped_column(
+        Date,
+        nullable=False,
+    )
+
+    maximum_due_date: Mapped[date] = mapped_column(
+        Date,
+        nullable=False,
+    )
+
+    actual_harvest_date: Mapped[date | None] = (
+        mapped_column(Date)
+    )
+
+    harvest_interval_days: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=47,
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="Planned",
+        index=True,
+    )
+
+    assigned_worker: Mapped[str | None] = mapped_column(
+        String(150),
+    )
+
+    notes: Mapped[str | None] = mapped_column(
+        Text,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+# PATCH-HARVEST-002A: HARVEST RECORDING FOUNDATION
+
+
+class HarvestRecord(Base):
+    __tablename__ = "harvest_records"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    farm_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "farms.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    harvest_cycle_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "harvest_cycles.id",
+            ondelete="SET NULL",
+        ),
+        index=True,
+    )
+
+    harvest_date: Mapped[date] = mapped_column(
+        Date,
+        nullable=False,
+        index=True,
+    )
+
+    trees_harvested: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    mature_coconuts: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    tender_coconuts: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    damaged_coconuts: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    total_coconuts: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    estimated_weight_kg: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 2),
+    )
+
+    labour_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+
+    labour_cost: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    climbing_cost: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    transport_cost: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    other_cost: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    total_harvest_cost: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    buyer_or_destination: Mapped[str | None] = mapped_column(
+        String(180),
+    )
+
+    notes: Mapped[str | None] = mapped_column(
+        Text,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
