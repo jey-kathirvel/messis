@@ -131,6 +131,22 @@
             line-height: 1.45;
         }
 
+        .alert-success {
+            border-color: #bbf7d0;
+            color: #166534;
+            background: #f0fdf4;
+        }
+
+        .secondary-action {
+            display: block;
+            margin-top: 16px;
+            color: #176c32;
+            font-size: 14px;
+            font-weight: 800;
+            text-align: center;
+            text-decoration: none;
+        }
+
         .field {
             margin-bottom: 18px;
         }
@@ -257,6 +273,12 @@
             </div>
             {% endif %}
 
+            {% if success_message %}
+            <div class="alert alert-success" role="status">
+                {{ success_message }}
+            </div>
+            {% endif %}
+
             <form
                 id="login-form"
                 method="post"
@@ -270,7 +292,7 @@
                         id="user_id"
                         name="user_id"
                         type="text"
-                        value="OWNER001"
+                        value=""
                         maxlength="50"
                         autocomplete="username"
                         autocapitalize="characters"
@@ -300,6 +322,10 @@
                     Access Messis
                 </button>
             </form>
+
+            <a class="secondary-action" href="/auth/set-passcode">
+                Set passcode
+            </a>
 
             <p class="hint">
                 Your session is protected and automatically expires.

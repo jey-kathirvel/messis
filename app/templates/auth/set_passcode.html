@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Set passcode | Messis AI</title>
+    <style>
+        * { box-sizing: border-box; }
+        html, body { min-height: 100%; margin: 0; }
+        body {
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; padding: 24px;
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            color: #17351f;
+            background: linear-gradient(135deg, #eef9ed, #f8fff6 45%, #e9f8ef);
+        }
+        .page { width: 100%; max-width: 470px; }
+        .brand { margin-bottom: 20px; text-align: center; }
+        .brand h1 { margin: 0; font-size: 30px; }
+        .brand p { margin: 7px 0 0; color: #52705a; font-size: 14px; }
+        .card {
+            padding: 30px; border: 1px solid rgba(31, 111, 55, .14);
+            border-radius: 28px; background: rgba(255,255,255,.96);
+            box-shadow: 0 26px 65px rgba(35,91,51,.15);
+        }
+        h2 { margin: 0; font-size: 22px; }
+        .subtitle { margin: 7px 0 24px; color: #667b6b; font-size: 14px; }
+        .alert {
+            margin-bottom: 20px; padding: 13px 15px; border: 1px solid #fecaca;
+            border-radius: 14px; color: #991b1b; background: #fff1f2; font-size: 14px;
+        }
+        .field { margin-bottom: 17px; }
+        label { display: block; margin-bottom: 8px; color: #294d32; font-size: 13px; font-weight: 700; }
+        input {
+            width: 100%; height: 50px; padding: 0 15px; border: 1px solid #cfe0d2;
+            border-radius: 14px; outline: none; color: #17351f; background: #fbfffb;
+            font-size: 16px;
+        }
+        input:focus { border-color: #2f9345; box-shadow: 0 0 0 4px rgba(47,147,69,.13); }
+        .passcode { letter-spacing: 8px; font-weight: 800; text-align: center; }
+        button {
+            width: 100%; height: 54px; margin-top: 4px; border: 0; border-radius: 15px;
+            cursor: pointer; color: #fff; background: linear-gradient(135deg, #176c32, #35a34b);
+            font-size: 16px; font-weight: 800;
+        }
+        .back { display: block; margin-top: 17px; color: #176c32; font-size: 14px; font-weight: 700; text-align: center; text-decoration: none; }
+        @media (max-width: 520px) { body { align-items: flex-start; padding: 28px 16px; } .card { padding: 24px 20px; } }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <section class="brand">
+            <h1>Messis AI</h1>
+            <p>Create your secure account</p>
+        </section>
+        <section class="card">
+            <h2>Set passcode</h2>
+            <p class="subtitle">Enter your username, mobile number, and a six-digit passcode.</p>
+            {% if error_message %}<div class="alert" role="alert">{{ error_message }}</div>{% endif %}
+            <form id="set-passcode-form" method="post" action="/auth/set-passcode" autocomplete="on">
+                <div class="field">
+                    <label for="username">Username</label>
+                    <input id="username" name="username" type="text" maxlength="50" value="{{ form_values.get('username', '') }}" autocomplete="username" required>
+                </div>
+                <div class="field">
+                    <label for="mobile_number">Mobile number</label>
+                    <input id="mobile_number" name="mobile_number" type="tel" inputmode="numeric" pattern="[0-9]{10,15}" maxlength="15" value="{{ form_values.get('mobile_number', '') }}" autocomplete="tel" required>
+                </div>
+                <div class="field">
+                    <label for="registration_code">Registration code</label>
+                    <input id="registration_code" name="registration_code" type="password" maxlength="128" autocomplete="one-time-code" required>
+                </div>
+                <div class="field">
+                    <label for="new_passcode">New 6-digit passcode</label>
+                    <input class="passcode" id="new_passcode" name="passcode" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" required>
+                </div>
+                <div class="field">
+                    <label for="confirm_passcode">Confirm passcode</label>
+                    <input class="passcode" id="confirm_passcode" name="confirm_passcode" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" required>
+                </div>
+                <button type="submit">Create account</button>
+            </form>
+            <a class="back" href="/">Back to sign in</a>
+        </section>
+    </main>
+    <script>
+        document.querySelectorAll('.passcode').forEach(function (input) {
+            input.addEventListener('input', function () {
+                this.value = this.value.replace(/\D/g, '').slice(0, 6);
+            });
+        });
+        document.getElementById('mobile_number').addEventListener('input', function () {
+            this.value = this.value.replace(/\D/g, '').slice(0, 15);
+        });
+        document.getElementById('set-passcode-form').addEventListener('submit', function (event) {
+            const first = document.getElementById('new_passcode');
+            const second = document.getElementById('confirm_passcode');
+            if (first.value !== second.value) {
+                event.preventDefault();
+                second.setCustomValidity('Passcodes do not match.');
+                second.reportValidity();
+            } else {
+                second.setCustomValidity('');
+            }
+        });
+    </script>
+</body>
+</html>
