@@ -1,10 +1,11 @@
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from urllib.parse import quote
+from secrets import compare_digest
+from urllib.parse import quote, urlsplit
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_, select
@@ -15,7 +16,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import get_settings
 from app.database import Base, engine, get_db
 from app.models import AuditLog, CoconutTree, Farm, User
-from app.security import valid_passcode, verify_passcode
+from app.security import hash_passcode, valid_passcode, verify_passcode
 
 BASE_DIR = Path(__file__).resolve().parent
 settings = get_settings()
@@ -38,6 +39,74 @@ app.mount(
 )
 
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+SAFE_HTTP_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
+
+
+def normalize_origin(value: str) -> str | None:
+    try:
+        parsed = urlsplit(value.strip())
+    except ValueError:
+        return None
+
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+
+    return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"
+
+
+def csrf_request_allowed(
+    method: str,
+    scheme: str,
+    host: str,
+    headers,
+) -> bool:
+    if method.upper() in SAFE_HTTP_METHODS:
+        return True
+
+    if settings.app_env != "production":
+        return True
+
+    fetch_site = headers.get("sec-fetch-site", "").lower()
+    if fetch_site == "cross-site":
+        return False
+
+    expected_origins = {
+        f"{scheme.lower()}://{host.lower()}",
+        *(
+            origin
+            for item in settings.csrf_trusted_origins.split(",")
+            if (origin := normalize_origin(item))
+        ),
+    }
+
+    origin = headers.get("origin")
+    if origin:
+        return normalize_origin(origin) in expected_origins
+
+    referer = headers.get("referer")
+    if referer:
+        return normalize_origin(referer) in expected_origins
+
+    # Custom headers require a browser CORS preflight and are suitable for
+    # trusted CLI/API clients that do not send Origin or Referer.
+    return headers.get("x-messis-csrf") == "1"
+
+
+@app.middleware("http")
+async def enforce_csrf(request: Request, call_next):
+    if not csrf_request_allowed(
+        request.method,
+        request.url.scheme,
+        request.headers.get("host", ""),
+        request.headers,
+    ):
+        return PlainTextResponse(
+            "Cross-site request blocked.",
+            status_code=403,
+        )
+
+    return await call_next(request)
 
 
 @app.on_event("startup")
@@ -200,7 +269,132 @@ def login_page(request: Request):
         context={
             "page_title": "Secure Login",
             "error_message": request.query_params.get("error"),
+            "success_message": request.query_params.get("success"),
         },
+    )
+
+
+@app.get("/auth/set-passcode", response_class=HTMLResponse)
+def set_passcode_page(request: Request):
+    if request.session.get("user_id"):
+        return RedirectResponse("/dashboard", status_code=303)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="auth/set_passcode.html",
+        context={
+            "error_message": request.query_params.get("error"),
+            "form_values": {},
+        },
+    )
+
+
+@app.post("/auth/set-passcode", response_class=HTMLResponse)
+def set_passcode(
+    request: Request,
+    username: str = Form(...),
+    mobile_number: str = Form(...),
+    passcode: str = Form(...),
+    confirm_passcode: str = Form(...),
+    registration_code: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    normalized_username = username.strip()
+    normalized_mobile = "".join(mobile_number.split())
+    client_key = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "unknown")
+    )
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(seconds=settings.signup_window_seconds)
+    recent_attempt_count = db.scalar(
+        select(func.count(AuditLog.id)).where(
+            AuditLog.event_type == "account_registration_rejected",
+            AuditLog.ip_address == client_key,
+            AuditLog.created_at >= window_start,
+        )
+    ) or 0
+    form_values = {
+        "username": normalized_username,
+        "mobile_number": normalized_mobile,
+    }
+
+    error_message = None
+    error_status = 400
+    if recent_attempt_count >= settings.signup_max_attempts:
+        error_message = "Too many registration attempts. Try again later."
+        error_status = 429
+    elif not settings.signup_access_code:
+        error_message = "Account registration is temporarily unavailable."
+        error_status = 503
+    elif not compare_digest(registration_code, settings.signup_access_code):
+        audit(db, request, "account_registration_rejected", detail="Invalid registration code")
+        db.commit()
+        error_message = "Invalid registration code."
+    elif not normalized_username:
+        error_message = "Username is required."
+    elif len(normalized_username) > 50:
+        error_message = "Username cannot exceed 50 characters."
+    elif not normalized_mobile.isdigit() or not 10 <= len(normalized_mobile) <= 15:
+        error_message = "Mobile number must contain 10 to 15 digits."
+    elif not valid_passcode(passcode):
+        error_message = "Passcode must contain exactly six digits."
+    elif passcode != confirm_passcode:
+        error_message = "Passcodes do not match."
+    elif db.scalar(
+        select(User.id).where(
+            or_(
+                User.user_id == normalized_username,
+                User.mobile_number == normalized_username,
+                User.user_id == normalized_mobile,
+                User.mobile_number == normalized_mobile,
+            )
+        )
+    ):
+        error_message = "Username or mobile number is already registered."
+
+    if error_message:
+        return templates.TemplateResponse(
+            request=request,
+            name="auth/set_passcode.html",
+            context={
+                "error_message": error_message,
+                "form_values": form_values,
+            },
+            status_code=error_status,
+        )
+
+    user = User(
+        user_id=normalized_username,
+        mobile_number=normalized_mobile,
+        display_name=normalized_username,
+        passcode_hash=hash_passcode(passcode),
+        role="owner",
+        is_active=True,
+    )
+    db.add(user)
+
+    try:
+        db.flush()
+        audit(db, request, "account_created", user.id)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return templates.TemplateResponse(
+            request=request,
+            name="auth/set_passcode.html",
+            context={
+                "error_message": (
+                    "Username or mobile number is already registered."
+                ),
+                "form_values": form_values,
+            },
+            status_code=409,
+        )
+
+    return RedirectResponse(
+        "/?success=" + quote("Passcode set. You can now sign in."),
+        status_code=303,
     )
 
 
