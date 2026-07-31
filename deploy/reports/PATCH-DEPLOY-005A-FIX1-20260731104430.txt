@@ -1,0 +1,658 @@
+============================================
+ PATCH-DEPLOY-005A-FIX1
+ PROXY_HTTP VALIDATION AND ROLLBACK FIX
+============================================
+
+===== PREREQUISITE VALIDATION =====
+Syntax OK
+PREREQUISITES: PASSED
+
+===== ENABLE REQUIRED APACHE MODULES =====
+Module proxy already enabled
+Considering dependency proxy for proxy_http:
+Module proxy already enabled
+Module proxy_http already enabled
+Module headers already enabled
+Module rewrite already enabled
+Considering dependency mime for ssl:
+Module mime already enabled
+Considering dependency socache_shmcb for ssl:
+Module socache_shmcb already enabled
+Module ssl already enabled
+Syntax OK
+APACHE MODULE ENABLEMENT: PASSED
+
+===== ROBUST APACHE MODULE INVENTORY =====
+Loaded Modules:
+ core_module (static)
+ so_module (static)
+ watchdog_module (static)
+ http_module (static)
+ log_config_module (static)
+ logio_module (static)
+ version_module (static)
+ unixd_module (static)
+ access_compat_module (shared)
+ alias_module (shared)
+ auth_basic_module (shared)
+ authn_core_module (shared)
+ authn_file_module (shared)
+ authz_core_module (shared)
+ authz_host_module (shared)
+ authz_user_module (shared)
+ autoindex_module (shared)
+ deflate_module (shared)
+ dir_module (shared)
+ env_module (shared)
+ expires_module (shared)
+ filter_module (shared)
+ headers_module (shared)
+ mime_module (shared)
+ mpm_prefork_module (shared)
+ negotiation_module (shared)
+ php_module (shared)
+ proxy_module (shared)
+ proxy_http_module (shared)
+ reqtimeout_module (shared)
+ rewrite_module (shared)
+ setenvif_module (shared)
+ socache_shmcb_module (shared)
+ ssl_module (shared)
+ status_module (shared)
+PROXY_MODULE: PASSED
+PROXY_HTTP_MODULE: PASSED
+HEADERS_MODULE: PASSED
+REWRITE_MODULE: PASSED
+SSL_MODULE: PASSED
+
+===== MODULE SYMLINK VALIDATION =====
+/etc/apache2/mods-available/proxy.load
+/etc/apache2/mods-available/proxy_http.load
+MODULE SYMLINKS: PASSED
+
+===== APACHE REVERSE PROXY CONFIGURATION =====
+SSL VHOST BACKEND TARGET: PASSED
+REVERSE PROXY CONFIGURATION: PASSED
+
+===== BACKEND DIRECT VALIDATION =====
+BACKEND_STATUS=200
+BACKEND DIRECT VALIDATION: PASSED
+
+===== APACHE PROXY FUNCTIONAL VALIDATION =====
+PROXY_STATUS=200
+HTTP/1.1 200 OK
+Date: Fri, 31 Jul 2026 10:44:30 GMT
+Server: uvicorn
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+content-length: 2206
+content-type: text/html; charset=utf-8
+Vary: Accept-Encoding
+
+APACHE PROXY FUNCTIONAL VALIDATION: PASSED
+
+===== DASHBOARD AUTHENTICATION VALIDATION =====
+DASHBOARD_STATUS=303
+DASHBOARD AUTHENTICATION: PASSED
+
+===== CREATE SAFE ROLLBACK SCRIPT =====
+LATEST_BACKUP_DIR=/opt/messis/deploy/backups/PATCH-DEPLOY-005
+ROLLBACK SCRIPT CREATED: PASSED
+
+===== CONTENT SECURITY POLICY STATUS =====
+CONTENT_SECURITY_POLICY=DEFERRED
+CSP was not automatically enabled because Messis uses frontend scripts
+that must be inventoried before enforcing a safe policy.
+
+===== DISK USAGE STATUS =====
+ROOT_DISK_USAGE_PERCENT=91
+WARNING: Root disk cleanup is required.
+
+===== REUSABLE SCRIPT VALIDATION =====
+Certificate will not expire
+MESSIS HEALTH CHECK: PASSED
+Certificate will not expire
+MESSIS PRODUCTION SMOKE TEST: PASSED
+REUSABLE SCRIPTS: PASSED
+
+===== FINAL SERVICE RESTART =====
+curl: (7) Failed to connect to 127.0.0.1 port 8080 after 0 ms: Couldn't connect to server
+FINAL_STATUS=200
+FINAL SERVICE RESTART: PASSED
+
+===== FINAL APACHE MODULE VALIDATION =====
+FINAL PROXY MODULE VALIDATION: PASSED
+
+============================================
+ PATCH-DEPLOY-005A PROXY_MODULE: PASSED
+ PATCH-DEPLOY-005A PROXY_HTTP_MODULE: PASSED
+ PATCH-DEPLOY-005A REVERSE_PROXY: PASSED
+ PATCH-DEPLOY-005A BACKEND: PASSED
+ PATCH-DEPLOY-005A HTTPS: PASSED
+ PATCH-DEPLOY-005A DASHBOARD: PASSED
+ PATCH-DEPLOY-005A ROLLBACK_SCRIPT: PASSED
+ PATCH-DEPLOY-005A CSP: DEFERRED
+ PATCH-DEPLOY-005A DISK_USAGE=91%
+ PATCH-DEPLOY-005A GIT: DEFERRED
+ PATCH-DEPLOY-005A REPORT=/opt/messis/deploy/reports/PATCH-DEPLOY-005A-FIX1-20260731104430.txt
+ PATCH-DEPLOY-005A-FIX1: PASSED
+============================================
+[?2004h(.venv) ]0;root@srv1733383: /opt/messisroot@srv1733383:/opt/messis# cd /opt/messis || exit 1
+source .venv/bin/activate
+export PYTHONPATH=/opt/messis
+
+set -euo pipefail
+set +H
+
+PATCH_ID="PATCH-DEPLOY-006"
+APP_ROOT="/opt/messis"
+DEPLOY_DIR="${APP_ROOT}/deploy"
+REPORT_DIR="${DEPLOY_DIR}/reports"
+TIMESTAMP="$(date +%Y%m%d%H%M%S)"
+REPORT_FILE="${REPORT_DIR}/${PATCH_ID}-${TIMESTAMP}.txt"
+INVENTORY_FILE="${REPORT_DIR}/${PATCH_ID}-${TIMESTAMP}-inventory.txt"
+
+mkdir -p "${REPORT_DIR}"
+
+exec > >(tee "${REPORT_FILE}") 2>&1
+
+bytes_to_human() {
+    numfmt \
+        --to=iec-i \
+        --suffix=B \
+        "${1:-0}" \
+        2>/dev/null \
+        || echo "${1:-0} bytes"
+}
+
+directory_bytes() {
+    local directory="$1"
+
+    if [[ -d "${directory}" ]]; then
+        du \
+            --bytes \
+            --summarize \
+            "${directory}" \
+            2>/dev/null \
+            | awk '{print $1}'
+    else
+        echo "0"
+    fi
+}
+
+root_available_bytes() {
+    df \
+        --block-size=1 \
+        --output=avail \
+        / \
+        | tail -n 1 \
+        | tr -d ' '
+}root_used_percent() {    df \        --output=pcent \        / \        | tail -n 1 \        | tr -dc '0-9'}echo "============================================"echo " ${PATCH_ID} - SAFE DISK CLEANUP"echo "============================================"echoecho "Cleanup time: $(date --iso-8601=seconds)"echo "Application root: ${APP_ROOT}"echoecho "===== PREREQUISITE VALIDATION ====="systemctl is-active --quiet messis.servicesystemctl is-active --quiet apache2systemctl is-active --quiet postgresqltest -d "${APP_ROOT}"test -d "${APP_ROOT}/app"test -x "${APP_ROOT}/.venv/bin/python"echo "PREREQUISITES: PASSED"echoecho "===== PRE-CLEANUP DISK STATUS ====="BEFORE_AVAILABLE_BYTES="$(root_available_bytes)"BEFORE_USED_PERCENT="$(root_used_percent)"echo "ROOT_USED_PERCENT_BEFORE=${BEFORE_USED_PERCENT}"echo "ROOT_AVAILABLE_BEFORE=$(bytes_to_human "${BEFORE_AVAILABLE_BYTES}")"df -hT /echoecho "===== LARGE DIRECTORY INVENTORY ====="{    echo "Messis AI Disk Inventory"    echo "Generated: $(date --iso-8601=seconds)"    echo    du \        -x \        -h \        --max-depth=1 \        / \        2>/dev/null \        | sort -h    echo    echo "===== /var INVENTORY ====="    du \        -x \        -h \        --max-depth=2 \        /var \        2>/dev/null \        | sort -h \        | tail -n 50    echo    echo "===== /opt INVENTORY ====="    du \        -x \        -h \        --max-depth=2 \        /opt \        2>/dev/null \        | sort -h \        | tail -n 50    echo    echo "===== /var/www INVENTORY ====="    if [[ -d /var/www ]]; then        du \            -x \            -h \            --max-depth=2 \            /var/www \            2>/dev/null \            | sort -h \            | tail -n 50    fi    echo    echo "===== LARGE FILES ABOVE 250 MB ====="    find / \        -xdev \        -type f \        -size +250M \        -printf '%s %p\n' \        2>/dev/null \        | sort -n \        | tail -n 100 \        | while read -r size path; do            printf '%12s  %s\n' \                "$(bytes_to_human "${size}")" \                "${path}"        done} | tee "${INVENTORY_FILE}"echo "DISK INVENTORY: PASSED"echoecho "===== PROTECTED PATH VALIDATION ====="PROTECTED_PATHS=(    "/opt/messis/app"    "/opt/messis/.venv"    "/opt/messis/templates"    "/opt/messis/static"    "/var/lib/postgresql"    "/etc/apache2"    "/etc/systemd/system/messis.service"    "/etc/letsencrypt")for protected_path in "${PROTECTED_PATHS[@]}"; do    if [[ -e "${protected_path}" ]]; then        echo "PROTECTED=${protected_path}"    fidoneecho "PROTECTED PATH VALIDATION: PASSED"echoecho "===== CLEAN APT PACKAGE CACHE ====="APT_CACHE_BEFORE="$(directory_bytes /var/cache/apt)"apt-get cleanapt-get autoclean -yAPT_CACHE_AFTER="$(directory_bytes /var/cache/apt)"APT_CACHE_FREED=$((APT_CACHE_BEFORE - APT_CACHE_AFTER))if [[ "${APT_CACHE_FREED}" -lt 0 ]]; then    APT_CACHE_FREED=0fiecho "APT_CACHE_BEFORE=$(bytes_to_human "${APT_CACHE_BEFORE}")"echo "APT_CACHE_AFTER=$(bytes_to_human "${APT_CACHE_AFTER}")"echo "APT_CACHE_FREED=$(bytes_to_human "${APT_CACHE_FREED}")"echo "APT CACHE CLEANUP: PASSED"echoecho "===== CLEAN UNUSED PACKAGE FILES ====="AUTOREMOVE_LOG="/tmp/messis-autoremove-${TIMESTAMP}.txt"apt-get \    autoremove \    --purge \    -y \    | tee "${AUTOREMOVE_LOG}"echo "UNUSED PACKAGE CLEANUP: PASSED"echoecho "===== JOURNAL LOG CLEANUP ====="JOURNAL_BEFORE="$(    journalctl \        --disk-usage \        2>/dev/null \        || true)"echo "JOURNAL_BEFORE=${JOURNAL_BEFORE}"journalctl \    --vacuum-time=14d \    || truejournalctl \    --vacuum-size=300M \    || trueJOURNAL_AFTER="$(    journalctl \        --disk-usage \        2>/dev/null \        || true)"echo "JOURNAL_AFTER=${JOURNAL_AFTER}"echo "JOURNAL CLEANUP: PASSED"echoecho "===== APACHE LOG CLEANUP ====="APACHE_LOG_BYTES_BEFORE="$(directory_bytes /var/log/apache2)"find /var/log/apache2 \    -maxdepth 1 \    -type f \    \( \        -name '*.gz' \        -o -name '*.log.[0-9]' \        -o -name '*.log.[0-9][0-9]' \        -o -name '*access.log.*' \        -o -name '*error.log.*' \    \) \    -mtime +7 \    -print \    -delete \    2>/dev/null \    || truefind /var/log/apache2 \    -maxdepth 1 \    -type f \    -name '*.log' \    -size +250M \    -print \    -exec truncate -s 0 {} \; \    2>/dev/null \    || trueAPACHE_LOG_BYTES_AFTER="$(directory_bytes /var/log/apache2)"APACHE_LOG_FREED=$((APACHE_LOG_BYTES_BEFORE - APACHE_LOG_BYTES_AFTER))if [[ "${APACHE_LOG_FREED}" -lt 0 ]]; then    APACHE_LOG_FREED=0fiecho "APACHE_LOG_BEFORE=$(bytes_to_human "${APACHE_LOG_BYTES_BEFORE}")"echo "APACHE_LOG_AFTER=$(bytes_to_human "${APACHE_LOG_BYTES_AFTER}")"echo "APACHE_LOG_FREED=$(bytes_to_human "${APACHE_LOG_FREED}")"echo "APACHE LOG CLEANUP: PASSED"echoecho "===== ROTATED SYSTEM LOG CLEANUP ====="SYSTEM_LOG_BYTES_BEFORE="$(directory_bytes /var/log)"find /var/log \    -xdev \    -type f \    \( \        -name '*.gz' \        -o -name '*.old' \        -o -name '*.1' \        -o -name '*.2' \        -o -name '*.3' \        -o -name '*.4' \        -o -name '*.5' \    \) \    -mtime +14 \    -print \    -delete \    2>/dev/null \    || trueSYSTEM_LOG_BYTES_AFTER="$(directory_bytes /var/log)"SYSTEM_LOG_FREED=$((SYSTEM_LOG_BYTES_BEFORE - SYSTEM_LOG_BYTES_AFTER))if [[ "${SYSTEM_LOG_FREED}" -lt 0 ]]; then    SYSTEM_LOG_FREED=0fiecho "SYSTEM_LOG_BEFORE=$(bytes_to_human "${SYSTEM_LOG_BYTES_BEFORE}")"echo "SYSTEM_LOG_AFTER=$(bytes_to_human "${SYSTEM_LOG_BYTES_AFTER}")"echo "SYSTEM_LOG_FREED=$(bytes_to_human "${SYSTEM_LOG_FREED}")"echo "ROTATED SYSTEM LOG CLEANUP: PASSED"echoecho "===== TEMPORARY FILE CLEANUP ====="TMP_BYTES_BEFORE="$(directory_bytes /tmp)"VAR_TMP_BYTES_BEFORE="$(directory_bytes /var/tmp)"find /tmp \    -xdev \    -mindepth 1 \    -mtime +7 \    ! -path '/tmp/systemd-private-*' \    -print \    -delete \    2>/dev/null \    || truefind /var/tmp \    -xdev \    -mindepth 1 \    -mtime +14 \    -print \    -delete \    2>/dev/null \    || trueTMP_BYTES_AFTER="$(directory_bytes /tmp)"VAR_TMP_BYTES_AFTER="$(directory_bytes /var/tmp)"TMP_FREED=$(    (        TMP_BYTES_BEFORE        + VAR_TMP_BYTES_BEFORE        - TMP_BYTES_AFTER        - VAR_TMP_BYTES_AFTER    ))if [[ "${TMP_FREED}" -lt 0 ]]; then    TMP_FREED=0fiecho "TMP_FREED=$(bytes_to_human "${TMP_FREED}")"echo "TEMPORARY FILE CLEANUP: PASSED"echoecho "===== PYTHON CACHE CLEANUP ====="PYTHON_CACHE_BEFORE="$(    find /opt /var/www \        -xdev \        -type d \        -name '__pycache__' \        -print0 \        2>/dev/null \        | du \            --bytes \            --files0-from=- \            --summarize \            2>/dev/null \        | awk '{sum += $1} END {print sum + 0}')"find /opt /var/www \    -xdev \    -type d \    -name '__pycache__' \    -prune \    -print \    -exec rm -rf {} + \    2>/dev/null \    || truefind /opt /var/www \    -xdev \    -type f \    \( \        -name '*.pyc' \        -o -name '*.pyo' \    \) \    -print \    -delete \    2>/dev/null \    || trueecho "PYTHON_CACHE_FREED=$(bytes_to_human "${PYTHON_CACHE_BEFORE}")"echo "PYTHON CACHE CLEANUP: PASSED"echoecho "===== NODE PACKAGE CACHE CLEANUP ====="NODE_CACHE_BEFORE=0for node_cache in \    /root/.npm \    /root/.cache/yarn \    /root/.pnpm-store \    /home/*/.npm \    /home/*/.cache/yarn \    /home/*/.pnpm-storedo    for expanded_cache in ${node_cache}; do        if [[ -d "${expanded_cache}" ]]; then            CACHE_SIZE="$(directory_bytes "${expanded_cache}")"            NODE_CACHE_BEFORE=$((NODE_CACHE_BEFORE + CACHE_SIZE))            rm -rf \                "${expanded_cache}/_cacache" \                "${expanded_cache}/_logs" \                "${expanded_cache}/v3/files" \                2>/dev/null \                || true        fi    donedoneecho "NODE_CACHE_POTENTIAL_FREED=$(bytes_to_human "${NODE_CACHE_BEFORE}")"echo "NODE PACKAGE CACHE CLEANUP: PASSED"echoecho "===== MESSIS DEPLOYMENT HISTORY CLEANUP ====="MESSIS_REPORT_BYTES_BEFORE="$(directory_bytes "${REPORT_DIR}")"MESSIS_BACKUP_BYTES_BEFORE="$(directory_bytes "${DEPLOY_DIR}/backups")"find "${REPORT_DIR}" \    -maxdepth 1 \    -type f \    -mtime +30 \    ! -name '*summary.txt' \    -print \    -delete \    2>/dev/null \    || trueif [[ -d "${DEPLOY_DIR}/backups" ]]; then    find "${DEPLOY_DIR}/backups" \        -mindepth 1 \        -maxdepth 1 \        -type d \        -mtime +30 \        -print \        -exec rm -rf {} + \        2>/dev/null \        || truefiMESSIS_REPORT_BYTES_AFTER="$(directory_bytes "${REPORT_DIR}")"MESSIS_BACKUP_BYTES_AFTER="$(directory_bytes "${DEPLOY_DIR}/backups")"MESSIS_HISTORY_FREED=$(    (        MESSIS_REPORT_BYTES_BEFORE        + MESSIS_BACKUP_BYTES_BEFORE        - MESSIS_REPORT_BYTES_AFTER        - MESSIS_BACKUP_BYTES_AFTER    ))if [[ "${MESSIS_HISTORY_FREED}" -lt 0 ]]; then    MESSIS_HISTORY_FREED=0fiecho "MESSIS_HISTORY_FREED=$(bytes_to_human "${MESSIS_HISTORY_FREED}")"echo "MESSIS DEPLOYMENT HISTORY CLEANUP: PASSED"echoecho "===== CRASH DUMP CLEANUP ====="CRASH_BYTES_BEFORE="$(directory_bytes /var/crash)"if [[ -d /var/crash ]]; then    find /var/crash \        -xdev \        -type f \        -mtime +7 \        -print \        -delete \        2>/dev/null \        || truefiCRASH_BYTES_AFTER="$(directory_bytes /var/crash)"CRASH_FREED=$((CRASH_BYTES_BEFORE - CRASH_BYTES_AFTER))if [[ "${CRASH_FREED}" -lt 0 ]]; then    CRASH_FREED=0fiecho "CRASH_DUMP_FREED=$(bytes_to_human "${CRASH_FREED}")"echo "CRASH DUMP CLEANUP: PASSED"echoecho "===== DOCKER CACHE AUDIT ====="if command -v docker >/dev/null 2>&1; then    docker system df || true    DANGLING_IMAGE_COUNT="$(        docker images \            --filter dangling=true \            --quiet \            2>/dev/null \            | sort -u \            | wc -l    )"    STOPPED_CONTAINER_COUNT="$(        docker ps \            --all \            --filter status=exited \            --filter status=created \            --quiet \            2>/dev/null \            | sort -u \            | wc -l    )"    echo "DANGLING_IMAGE_COUNT=${DANGLING_IMAGE_COUNT}"    echo "STOPPED_CONTAINER_COUNT=${STOPPED_CONTAINER_COUNT}"    if [[ "${DANGLING_IMAGE_COUNT}" -gt 0 ]]; then        docker image prune -f    fi    if [[ "${STOPPED_CONTAINER_COUNT}" -gt 0 ]]; then        docker container prune -f    fi    docker builder prune \        --force \        --filter 'until=168h' \        2>/dev/null \        || true    echo "DOCKER UNUSED CACHE CLEANUP: PASSED"else    echo "DOCKER_STATUS=NOT_INSTALLED"fiechoecho "===== SAFE ARCHIVE INVENTORY ====="ARCHIVE_INVENTORY="${REPORT_DIR}/${PATCH_ID}-${TIMESTAMP}-archives.txt"find /opt /var/www /root \    -xdev \    -type f \    \( \        -iname '*.tar' \        -o -iname '*.tar.gz' \        -o -iname '*.tgz' \        -o -iname '*.zip' \        -o -iname '*.7z' \        -o -iname '*.rar' \        -o -iname '*.bak' \        -o -iname '*.backup' \    \) \    -printf '%s %TY-%Tm-%Td %TH:%TM %p\n' \    2>/dev/null \    | sort -n \    | while read -r size date time path; do        printf '%12s  %s %s  %s\n' \            "$(bytes_to_human "${size}")" \            "${date}" \            "${time}" \            "${path}"    done \    | tee "${ARCHIVE_INVENTORY}"echo "ARCHIVES WERE INVENTORIED BUT NOT AUTOMATICALLY DELETED."echo "SAFE ARCHIVE INVENTORY: PASSED"echoecho "===== POST-CLEANUP SERVICE VALIDATION ====="systemctl restart messis.servicesystemctl restart apache2READY="false"for attempt in $(seq 1 30); do    if systemctl is-active --quiet messis.service \        && systemctl is-active --quiet apache2 \        && curl \            --silent \            --show-error \            --output /dev/null \            --max-time 5 \            "http://127.0.0.1:8080/"; then        READY="true"        break    fi    sleep 1done[[ "${READY}" == "true" ]]PUBLIC_STATUS="$(    curl \        --silent \        --show-error \        --output /dev/null \        --write-out '%{http_code}' \        --max-time 20 \        "https://messis.ads-ai.in/")"echo "PUBLIC_STATUS=${PUBLIC_STATUS}"case "${PUBLIC_STATUS}" in    200|301|302|303|307|308)        ;;    *)        echo "ERROR: Production endpoint validation failed."        exit 1        ;;esac"${DEPLOY_DIR}/health_check.sh"echo "POST-CLEANUP SERVICE VALIDATION: PASSED"echoecho "===== POST-CLEANUP DISK STATUS ====="AFTER_AVAILABLE_BYTES="$(root_available_bytes)"AFTER_USED_PERCENT="$(root_used_percent)"TOTAL_FREED_BYTES=$((AFTER_AVAILABLE_BYTES - BEFORE_AVAILABLE_BYTES))if [[ "${TOTAL_FREED_BYTES}" -lt 0 ]]; then    TOTAL_FREED_BYTES=0fiecho "ROOT_USED_PERCENT_BEFORE=${BEFORE_USED_PERCENT}"echo "ROOT_USED_PERCENT_AFTER=${AFTER_USED_PERCENT}"echo "ROOT_AVAILABLE_BEFORE=$(bytes_to_human "${BEFORE_AVAILABLE_BYTES}")"echo "ROOT_AVAILABLE_AFTER=$(bytes_to_human "${AFTER_AVAILABLE_BYTES}")"echo "TOTAL_SPACE_RECOVERED=$(bytes_to_human "${TOTAL_FREED_BYTES}")"df -hT /echoecho "===== REMAINING LARGE FILES ====="find / \    -xdev \    -type f \    -size +500M \    -printf '%s %p\n' \    2>/dev/null \    | sort -n \    | tail -n 50 \    | while read -r size path; do        printf '%12s  %s\n' \            "$(bytes_to_human "${size}")" \            "${path}"    done[7mecho[27m[7mecho "===== FINAL RESULT ====="[27m[7mif [[ "${AFTER_USED_PERCENT}" -ge 95 ]]; then[27m[7m    echo "ERROR: Root disk usage remains critically high at ${AFTER_USED_PERCENT}%."[27m[7m    exit 1[27m[7melif [[ "${AFTER_USED_PERCENT}" -ge 85 ]]; then[27m[7m    echo "WARNING: Root disk usage remains high at ${AFTER_USED_PERCENT}%."[27m[7m    echo "Review the generated archive and large-file inventories."[27m[7melse[27m[7m    echo "ROOT DISK USAGE: HEALTHY"[27m[7mfi[27m[7mchown messis:messis \[27m[7m    "${REPORT_FILE}" \[27m[7m    "${INVENTORY_FILE}" \[27m[7m    "${ARCHIVE_INVENTORY}" \[27m[7m    2>/dev/null \[27m[7m    || true[27m[7mchmod 0640 \[27m[7m    "${REPORT_FILE}" \[27m[7m    "${INVENTORY_FILE}" \[27m[7m    "${ARCHIVE_INVENTORY}" \[27m[7m    2>/dev/null \[27m[7m    || true[27m[7mecho[27m[7mecho "============================================"[27m[7mecho " PATCH-DEPLOY-006 SERVICES: PASSED"[27m[7mecho " PATCH-DEPLOY-006 APT_CACHE: PASSED"[27m[7mecho " PATCH-DEPLOY-006 UNUSED_PACKAGES: PASSED"[27m[7mecho " PATCH-DEPLOY-006 JOURNAL: PASSED"[27m[7mecho " PATCH-DEPLOY-006 APACHE_LOGS: PASSED"[27m[7mecho " PATCH-DEPLOY-006 SYSTEM_LOGS: PASSED"[27m[7mecho " PATCH-DEPLOY-006 TEMP_FILES: PASSED"[27m[7mecho " PATCH-DEPLOY-006 PYTHON_CACHE: PASSED"[27m[7mecho " PATCH-DEPLOY-006 NODE_CACHE: PASSED"[27m[7mecho " PATCH-DEPLOY-006 DEPLOY_HISTORY: PASSED"[27m[7mecho " PATCH-DEPLOY-006 CRASH_DUMPS: PASSED"[27m[7mecho " PATCH-DEPLOY-006 ARCHIVES: INVENTORIED_ONLY"[27m[7mecho " PATCH-DEPLOY-006 BEFORE=${BEFORE_USED_PERCENT}%"[27m[7mecho " PATCH-DEPLOY-006 AFTER=${AFTER_USED_PERCENT}%"[27m[7mecho " PATCH-DEPLOY-006 RECOVERED=$(bytes_to_human "${TOTAL_FREED_BYTES}")"[27m[7mecho " PATCH-DEPLOY-006 REPORT=${REPORT_FILE}"[27m[7mecho " PATCH-DEPLOY-006 INVENTORY=${INVENTORY_FILE}"[27m[7mecho " PATCH-DEPLOY-006 ARCHIVE_INVENTORY=${ARCHIVE_INVENTORY}"[27m[7mecho " PATCH-DEPLOY-006 GIT: DEFERRED"[27m[7mecho " PATCH-DEPLOY-006: PASSED"[27m[7mecho "============================================"[27mechoecho "===== FINAL RESULT ====="if [[ "${AFTER_USED_PERCENT}" -ge 95 ]]; then    echo "ERROR: Root disk usage remains critically high at ${AFTER_USED_PERCENT}%."    exit 1elif [[ "${AFTER_USED_PERCENT}" -ge 85 ]]; then    echo "WARNING: Root disk usage remains high at ${AFTER_USED_PERCENT}%."    echo "Review the generated archive and large-file inventories."else    echo "ROOT DISK USAGE: HEALTHY"fichown messis:messis \    "${REPORT_FILE}" \    "${INVENTORY_FILE}" \    "${ARCHIVE_INVENTORY}" \    2>/dev/null \    || truechmod 0640 \    "${REPORT_FILE}" \    "${INVENTORY_FILE}" \    "${ARCHIVE_INVENTORY}" \    2>/dev/null \    || trueechoecho "============================================"echo " PATCH-DEPLOY-006 SERVICES: PASSED"echo " PATCH-DEPLOY-006 APT_CACHE: PASSED"echo " PATCH-DEPLOY-006 UNUSED_PACKAGES: PASSED"echo " PATCH-DEPLOY-006 JOURNAL: PASSED"echo " PATCH-DEPLOY-006 APACHE_LOGS: PASSED"echo " PATCH-DEPLOY-006 SYSTEM_LOGS: PASSED"echo " PATCH-DEPLOY-006 TEMP_FILES: PASSED"echo " PATCH-DEPLOY-006 PYTHON_CACHE: PASSED"echo " PATCH-DEPLOY-006 NODE_CACHE: PASSED"echo " PATCH-DEPLOY-006 DEPLOY_HISTORY: PASSED"echo " PATCH-DEPLOY-006 CRASH_DUMPS: PASSED"echo " PATCH-DEPLOY-006 ARCHIVES: INVENTORIED_ONLY"echo " PATCH-DEPLOY-006 BEFORE=${BEFORE_USED_PERCENT}%"echo " PATCH-DEPLOY-006 AFTER=${AFTER_USED_PERCENT}%"echo " PATCH-DEPLOY-006 RECOVERED=$(bytes_to_human "${TOTAL_FREED_BYTES}")"echo " PATCH-DEPLOY-006 REPORT=${REPORT_FILE}"echo " PATCH-DEPLOY-006 INVENTORY=${INVENTORY_FILE}"echo " PATCH-DEPLOY-006 ARCHIVE_INVENTORY=${ARCHIVE_INVENTORY}"echo " PATCH-DEPLOY-006 GIT: DEFERRED"echo " PATCH-DEPLOY-006: PASSED"echo "============================================"
+[?2004l============================================
+ PATCH-DEPLOY-006 - SAFE DISK CLEANUP
+============================================
+
+Cleanup time: 2026-07-31T10:47:33+00:00
+Application root: /opt/messis
+
+===== PREREQUISITE VALIDATION =====
+PREREQUISITES: PASSED
+
+===== PRE-CLEANUP DISK STATUS =====
+ROOT_USED_PERCENT_BEFORE=91
+ROOT_AVAILABLE_BEFORE=9.2GiB
+Filesystem     Type  Size  Used Avail Use% Mounted on
+/dev/sda1      ext4   96G   87G  9.2G  91% /
+
+===== LARGE DIRECTORY INVENTORY =====
+Messis AI Disk Inventory
+Generated: 2026-07-31T10:47:33+00:00
+
+4.0K	/bin.usr-is-merged
+4.0K	/home
+4.0K	/lib.usr-is-merged
+4.0K	/media
+4.0K	/mnt
+4.0K	/sbin.usr-is-merged
+4.0K	/srv
+8.0K	/snap
+16K	/lost+found
+9.0M	/etc
+28M	/tmp
+3.0G	/opt
+3.3G	/usr
+3.9G	/root
+77G	/var
+87G	/
+
+===== /var INVENTORY =====
+36K	/var/lib/PackageKit
+40K	/var/lib/php
+44K	/var/lib/apache2
+52K	/var/backups/akshatroyalstay-v2
+68K	/var/lib/swcatalog
+96K	/var/tmp
+116K	/var/log/postgresql
+144K	/var/log/unattended-upgrades
+196K	/var/backups/ads-ai
+204K	/var/log/apt
+236K	/var/lib/cloud
+272K	/var/lib/ucf
+384K	/var/lib/snapd
+756K	/var/lib/systemd
+864K	/var/lib/letsencrypt
+1.1M	/var/www/cases.akshatroyalstay.in
+1.6M	/var/cache/apparmor
+2.0M	/var/lib/fwupd
+2.1M	/var/cache/man
+2.2M	/var/www/ads-ai.in
+3.6M	/var/log/apache2
+3.7M	/var/backups
+3.8M	/var/lib/command-not-found
+4.1M	/var/cache/snapd
+4.4M	/var/log/letsencrypt
+5.0M	/var/cache/debconf
+5.0M	/var/www/dev.ads-ai.in
+6.5M	/var/lib/ubuntu-advantage
+7.5M	/var/log/sysstat
+7.8M	/var/cache/swcatalog
+14M	/var/www/akshatroyalstay-v2
+15M	/var/cache/fwupd
+28M	/var/www/gst.akshatroyalstay.in
+46M	/var/lib/dpkg
+79M	/var/log/journal
+101M	/var/www/online-ars
+114M	/var/cache/apt
+117M	/var/log
+139M	/var/lib/postgresql
+149M	/var/cache
+188M	/var/www/html
+191M	/var/lib/apt
+252M	/var/lib/mysql
+346M	/var/www/dolibarr-develop
+528M	/var/lib/docker
+561M	/var/www/vbridge-ai-lab
+1.3G	/var/www
+75G	/var/lib/containerd
+76G	/var/lib
+77G	/var
+
+===== /opt INVENTORY =====
+1.1M	/opt/deals-ads/lib
+1.2M	/opt/jey-vault/.git
+1.3M	/opt/ads-credit-debit/.git
+1.6M	/opt/ads-credit-debit/logs
+2.1M	/opt/ads-erp-phase2/backups
+2.2M	/opt/apisentry/app
+3.3M	/opt/apisentry/.git
+4.5M	/opt/messis/app
+4.9M	/opt/jey-vault/storage
+5.2M	/opt/deals-ads/.git
+12M	/opt/frappe_docker/.git
+13M	/opt/ads-credit-debit/uploads
+13M	/opt/frappe_docker
+19M	/opt/ads-erp-phase2/.git
+23M	/opt/ads-credit-debit/node_modules
+26M	/opt/api-studio/.git
+32M	/opt/apisentry/storage
+35M	/opt/crm/.git
+37M	/opt/ads-erp/.git
+38M	/opt/deals-ads/dist
+47M	/opt/leaf-store/.git
+57M	/opt/ads-erp/.venv
+84M	/opt/sprintiq/venv
+86M	/opt/sprintiq
+87M	/opt/leaf-store/venv
+91M	/opt/ads-erp/venv
+98M	/opt/api-studio/app
+98M	/opt/crm/venv
+102M	/opt/ads-erp-phase2/venv
+109M	/opt/apisentry/venv
+115M	/opt/jey-vault/venv
+116M	/opt/api-studio/venv
+119M	/opt/messis/.venv
+122M	/opt/jey-vault
+124M	/opt/messis
+125M	/opt/ads-credit-debit/venv
+126M	/opt/api-studio/AdminLTE-3.2.0
+126M	/opt/crm/app
+128M	/opt/ads-erp/app
+130M	/opt/ads-erp-phase2/app
+134M	/opt/leaf-store
+147M	/opt/apisentry
+164M	/opt/ads-credit-debit
+252M	/opt/ads-erp-phase2
+259M	/opt/crm
+313M	/opt/ads-erp
+364M	/opt/api-studio
+1015M	/opt/deals-ads/node_modules
+1.1G	/opt/deals-ads
+3.0G	/opt
+
+===== /var/www INVENTORY =====
+60K	/var/www/html/tests
+88K	/var/www/online-ars/templates
+100K	/var/www/html/translations
+104K	/var/www/html/Adapter
+108K	/var/www/cases.akshatroyalstay.in/incidents
+160K	/var/www/online-ars/app
+220K	/var/www/html/Core
+292K	/var/www/html/override
+364K	/var/www/html/pdf
+420K	/var/www/vbridge-ai-lab/.git
+456K	/var/www/dolibarr-develop/scripts
+532K	/var/www/html/config
+752K	/var/www/cases.akshatroyalstay.in/.git
+860K	/var/www/html/docs
+940K	/var/www/html/localization
+1016K	/var/www/ads-ai.in/vendor
+1016K	/var/www/dev.ads-ai.in/vendor
+1.1M	/var/www/ads-ai.in/assets
+1.1M	/var/www/cases.akshatroyalstay.in
+1.1M	/var/www/dev.ads-ai.in/assets
+1.1M	/var/www/html/mails
+2.2M	/var/www/ads-ai.in
+2.7M	/var/www/dev.ads-ai.in/.git
+3.1M	/var/www/dolibarr-develop/documents
+4.8M	/var/www/html/controllers
+5.0M	/var/www/dev.ads-ai.in
+5.7M	/var/www/html/classes
+6.5M	/var/www/html/cache
+6.8M	/var/www/akshatroyalstay-v2/assets
+6.8M	/var/www/html/themes
+7.1M	/var/www/akshatroyalstay-v2/.git
+9.5M	/var/www/online-ars/static
+11M	/var/www/gst.akshatroyalstay.in/.git
+12M	/var/www/html/js
+12M	/var/www/online-ars/.git
+14M	/var/www/akshatroyalstay-v2
+17M	/var/www/gst.akshatroyalstay.in/vendor
+22M	/var/www/html/admin285nhtwsn
+28M	/var/www/gst.akshatroyalstay.in
+38M	/var/www/html/img
+44M	/var/www/html/modules
+45M	/var/www/html/tools
+80M	/var/www/online-ars/.venv
+101M	/var/www/online-ars
+188M	/var/www/html
+341M	/var/www/dolibarr-develop/htdocs
+346M	/var/www/dolibarr-develop
+561M	/var/www/vbridge-ai-lab
+561M	/var/www/vbridge-ai-lab/app
+1.3G	/var/www
+
+===== LARGE FILES ABOVE 250 MB =====
+      265MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/45c253b0d365a9b35c8f01d06732ef6035d04d076443af8cf2ab2f9fd298fb5a
+      265MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/d34ba38eff0c39467a1c05336eac5eae5bed60df3af2f265282e4862f2a972d8
+      271MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/6a3ba67f610c771fc50db7830d3c4e8e0d7faf5c5e05556ec59036c3b75427f9
+      277MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/19d3b4f8db64a12f7bd2346fcca4b85bdde3bba7416547263040bf43657dcf5a
+      288MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/16ea32888a1d7ed42073fc78da5957711f43686ba4ee8b18ca1de7e936d1578e
+      327MiB  /var/lib/docker/buildkit/containerd-overlayfs/metadata_v2.db
+      529MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/9a8c574420c00d094c841e1b63150ab3acd23aa4070dffd759704b4ae543d7e5
+      540MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/7790071d71a310c720aade8e28fd52f686c0ec00f6474abff58ce4e90607645e
+      551MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/daff2bfbd09e7f923a77b66c654bdd7edb9f7c09a1e9c79a045719e657740415
+DISK INVENTORY: PASSED
+
+===== PROTECTED PATH VALIDATION =====
+PROTECTED=/opt/messis/app
+PROTECTED=/opt/messis/.venv
+PROTECTED=/var/lib/postgresql
+PROTECTED=/etc/apache2
+PROTECTED=/etc/systemd/system/messis.service
+PROTECTED=/etc/letsencrypt
+PROTECTED PATH VALIDATION: PASSED
+
+===== CLEAN APT PACKAGE CACHE =====
+Reading package lists...
+Building dependency tree...
+Reading state information...
+APT_CACHE_BEFORE=114MiB
+APT_CACHE_AFTER=108MiB
+APT_CACHE_FREED=5.6MiB
+APT CACHE CLEANUP: PASSED
+
+===== CLEAN UNUSED PACKAGE FILES =====
+Reading package lists...
+Building dependency tree...
+Reading state information...
+0 upgraded, 0 newly installed, 0 to remove and 17 not upgraded.
+UNUSED PACKAGE CLEANUP: PASSED
+
+===== JOURNAL LOG CLEANUP =====
+JOURNAL_BEFORE=Archived and active journals take up 70.9M in the file system.
+Vacuuming done, freed 0B of archived journals from /run/log/journal.
+Vacuuming done, freed 0B of archived journals from /var/log/journal/2d5beb0da535496e921d960c473043d7.
+Vacuuming done, freed 0B of archived journals from /var/log/journal.
+Vacuuming done, freed 0B of archived journals from /var/log/journal/2d5beb0da535496e921d960c473043d7.
+Vacuuming done, freed 0B of archived journals from /var/log/journal.
+Vacuuming done, freed 0B of archived journals from /run/log/journal.
+JOURNAL_AFTER=Archived and active journals take up 70.9M in the file system.
+JOURNAL CLEANUP: PASSED
+
+===== APACHE LOG CLEANUP =====
+/var/log/apache2/ads-ai.in-error.log.7.gz
+/var/log/apache2/invoice_access.log.9.gz
+/var/log/apache2/invoice_error.log.4.gz
+/var/log/apache2/erp_error.log.2.gz
+/var/log/apache2/gst_error.log.4.gz
+/var/log/apache2/erp_access.log.9.gz
+/var/log/apache2/invoice_access.log.8.gz
+/var/log/apache2/gst_error.log.8.gz
+/var/log/apache2/apisentry-access.log.8.gz
+/var/log/apache2/expenseiq-access.log.2.gz
+/var/log/apache2/api-studio-error.log.3.gz
+/var/log/apache2/api-studio-access.log.6.gz
+/var/log/apache2/sprintiq_access.log.11.gz
+/var/log/apache2/apisentry-access.log.10.gz
+/var/log/apache2/credit_access.log.11.gz
+/var/log/apache2/apisentry-error.log.1
+/var/log/apache2/akshat-preview-access.log.12.gz
+/var/log/apache2/jey-access.log.9.gz
+/var/log/apache2/cases_error.log.2.gz
+/var/log/apache2/test.ads-ai.in-access.log.12.gz
+/var/log/apache2/invoice_access.log.12.gz
+/var/log/apache2/cases_access.log.14.gz
+/var/log/apache2/online-ars-access.log.9.gz
+/var/log/apache2/akshatroyalstay-access.log.9.gz
+/var/log/apache2/ads-ai.in-access.log.12.gz
+/var/log/apache2/credit_access.log.12.gz
+/var/log/apache2/sprintiq_access.log.13.gz
+/var/log/apache2/api-studio-access.log.10.gz
+/var/log/apache2/test.ads-ai.in-access.log.11.gz
+/var/log/apache2/gst_error.log.6.gz
+/var/log/apache2/gst_access.log.12.gz
+/var/log/apache2/online-ars-access.log.13.gz
+/var/log/apache2/gst_access.log.10.gz
+/var/log/apache2/access.log.12.gz
+/var/log/apache2/ads-ai.in-access.log.11.gz
+/var/log/apache2/gst_error.log.3.gz
+/var/log/apache2/error.log.10.gz
+/var/log/apache2/cases_error.log.4.gz
+/var/log/apache2/akshat-preview-access.log.11.gz
+/var/log/apache2/ads-ai.in-access.log.13.gz
+/var/log/apache2/ads-ai.in-error.log.13.gz
+/var/log/apache2/credit_access.log.10.gz
+/var/log/apache2/ads-ai.in-error.log.14.gz
+/var/log/apache2/online-ars-error.log.1
+/var/log/apache2/erp_error.log.6.gz
+/var/log/apache2/expenseiq-access.log.3.gz
+/var/log/apache2/apisentry-access.log.9.gz
+/var/log/apache2/sprintiq_access.log.9.gz
+/var/log/apache2/invoice_error.log.7.gz
+/var/log/apache2/other_vhosts_access.log.11.gz
+/var/log/apache2/akshatroyalstay-access.log.10.gz
+/var/log/apache2/sprintiq_access.log.14.gz
+/var/log/apache2/dev.ads-ai.in-access.log.11.gz
+/var/log/apache2/gst_error.log.2.gz
+/var/log/apache2/cases_access.log.11.gz
+/var/log/apache2/api-studio-access.log.13.gz
+/var/log/apache2/gst_access.log.13.gz
+/var/log/apache2/access.log.9.gz
+/var/log/apache2/test.ads-ai.in-access.log.9.gz
+/var/log/apache2/cases_error.log.3.gz
+/var/log/apache2/ads-ai.in-access.log.9.gz
+/var/log/apache2/apisentry-access.log.11.gz
+/var/log/apache2/erp_access.log.14.gz
+/var/log/apache2/api-studio-error.log.4.gz
+/var/log/apache2/sprintiq_access.log.12.gz
+/var/log/apache2/sprintiq_access.log.8.gz
+/var/log/apache2/invoice_error.log.6.gz
+/var/log/apache2/cases_access.log.9.gz
+/var/log/apache2/test.ads-ai.in-access.log.8.gz
+/var/log/apache2/jey-access.log.14.gz
+/var/log/apache2/test.ads-ai.in-access.log.14.gz
+/var/log/apache2/gst_access.log.8.gz
+/var/log/apache2/erp_access.log.11.gz
+/var/log/apache2/test.ads-ai.in-access.log.7.gz
+/var/log/apache2/akshatroyalstay-error.log.4.gz
+/var/log/apache2/ads-ai.in-access.log.10.gz
+/var/log/apache2/akshatroyalstay-access.log.12.gz
+/var/log/apache2/jey-access.log.12.gz
+/var/log/apache2/gst_access.log.7.gz
+/var/log/apache2/api-studio-access.log.11.gz
+/var/log/apache2/gst_access.log.14.gz
+/var/log/apache2/gst_access.log.6.gz
+/var/log/apache2/jey-access.log.8.gz
+/var/log/apache2/dev.ads-ai.in-access.log.13.gz
+/var/log/apache2/cases_error.log.7.gz
+/var/log/apache2/dev.ads-ai.in-error.log.1
+/var/log/apache2/ads-ai.in-error.log.9.gz
+/var/log/apache2/ads-ai.in-error.log.12.gz
+/var/log/apache2/error.log.9.gz
+/var/log/apache2/akshatroyalstay-access.log.11.gz
+/var/log/apache2/test.ads-ai.in-access.log.13.gz
+/var/log/apache2/gst_error.log.1
+/var/log/apache2/invoice_error.log.1
+/var/log/apache2/cases_access.log.12.gz
+/var/log/apache2/ads-ai.in-access.log.14.gz
+/var/log/apache2/invoice_access.log.14.gz
+/var/log/apache2/dev.ads-ai.in-access.log.12.gz
+/var/log/apache2/jey-access.log.10.gz
+/var/log/apache2/api-studio-access.log.9.gz
+/var/log/apache2/dev.ads-ai.in-access.log.10.gz
+/var/log/apache2/dev.ads-ai.in-access.log.14.gz
+/var/log/apache2/erp_error.log.4.gz
+/var/log/apache2/other_vhosts_access.log.14.gz
+/var/log/apache2/cases_access.log.13.gz
+/var/log/apache2/error.log.14.gz
+/var/log/apache2/access.log.13.gz
+/var/log/apache2/test.ads-ai.in-access.log.10.gz
+/var/log/apache2/sprintiq_access.log.10.gz
+/var/log/apache2/dev.ads-ai.in-error.log.2.gz
+/var/log/apache2/online-ars-access.log.14.gz
+/var/log/apache2/erp_access.log.10.gz
+/var/log/apache2/other_vhosts_access.log.12.gz
+/var/log/apache2/gst_error.log.7.gz
+/var/log/apache2/invoice_error.log.2.gz
+/var/log/apache2/other_vhosts_access.log.9.gz
+/var/log/apache2/akshatroyalstay-error.log.5.gz
+/var/log/apache2/error.log.12.gz
+/var/log/apache2/invoice_access.log.11.gz
+/var/log/apache2/cases_error.log.5.gz
+/var/log/apache2/sprintiq_access.log.7.gz
+/var/log/apache2/akshat-preview-access.log.9.gz
+/var/log/apache2/invoice_error.log.3.gz
+/var/log/apache2/access.log.14.gz
+/var/log/apache2/akshat-preview-access.log.10.gz
+/var/log/apache2/akshat-preview-access.log.13.gz
+/var/log/apache2/invoice_access.log.13.gz
+/var/log/apache2/invoice_access.log.10.gz
+/var/log/apache2/cases_error.log.6.gz
+/var/log/apache2/invoice_error.log.5.gz
+/var/log/apache2/gst_access.log.9.gz
+/var/log/apache2/online-ars-access.log.12.gz
+/var/log/apache2/access.log.11.gz
+/var/log/apache2/error.log.13.gz
+/var/log/apache2/gst_error.log.5.gz
+/var/log/apache2/api-studio-access.log.8.gz
+/var/log/apache2/cases_error.log.8.gz
+/var/log/apache2/leaf-store-error.log.1
+/var/log/apache2/api-studio-error.log.2.gz
+/var/log/apache2/ads-ai.in-error.log.5.gz
+/var/log/apache2/error.log.11.gz
+/var/log/apache2/online-ars-access.log.10.gz
+/var/log/apache2/api-studio-access.log.14.gz
+/var/log/apache2/access.log.10.gz
+/var/log/apache2/apisentry-error.log.2.gz
+/var/log/apache2/credit_access.log.14.gz
+/var/log/apache2/gst_access.log.11.gz
+/var/log/apache2/api-studio-access.log.12.gz
+/var/log/apache2/cases_access.log.10.gz
+/var/log/apache2/ads-ai.in-error.log.8.gz
+/var/log/apache2/credit_access.log.13.gz
+/var/log/apache2/jey-access.log.11.gz
+/var/log/apache2/dev.ads-ai.in-access.log.9.gz
+/var/log/apache2/credit_access.log.9.gz
+/var/log/apache2/jey-access.log.13.gz
+/var/log/apache2/erp_error.log.3.gz
+/var/log/apache2/api-studio-access.log.7.gz
+/var/log/apache2/other_vhosts_access.log.10.gz
+/var/log/apache2/erp_access.log.12.gz
+/var/log/apache2/ads-ai.in-error.log.4.gz
+/var/log/apache2/online-ars-access.log.11.gz
+/var/log/apache2/jey-error.log.1
+/var/log/apache2/erp_error.log.5.gz
+/var/log/apache2/other_vhosts_access.log.13.gz
+/var/log/apache2/ads-ai.in-error.log.10.gz
+/var/log/apache2/ads-ai.in-error.log.6.gz
+/var/log/apache2/credit_error.log.1
+/var/log/apache2/ads-ai.in-error.log.11.gz
+/var/log/apache2/expenseiq-access.log.1
+/var/log/apache2/erp_access.log.13.gz
+APACHE_LOG_BEFORE=2.4MiB
+APACHE_LOG_AFTER=2.2MiB
+APACHE_LOG_FREED=232KiB
+APACHE LOG CLEANUP: PASSED
+
+===== ROTATED SYSTEM LOG CLEANUP =====
+/var/log/syslog.4.gz
+/var/log/unattended-upgrades/unattended-upgrades-dpkg.log.1.gz
+/var/log/unattended-upgrades/unattended-upgrades.log.1.gz
+/var/log/dmesg.1.gz
+/var/log/auth.log.3.gz
+/var/log/nginx/error.log.2.gz
+/var/log/dmesg.2.gz
+/var/log/auth.log.4.gz
+/var/log/apt/history.log.1.gz
+/var/log/apt/term.log.1.gz
+/var/log/syslog.3.gz
+/var/log/btmp.1
+/var/log/kern.log.3.gz
+/var/log/kern.log.4.gz
+/var/log/postgresql/postgresql-16-main.log.4.gz
+/var/log/postgresql/postgresql-16-main.log.3.gz
+/var/log/postgresql/postgresql-16-main.log.6.gz
+/var/log/postgresql/postgresql-16-main.log.5.gz
+/var/log/letsencrypt/letsencrypt.log.6.gz
+/var/log/letsencrypt/letsencrypt.log.8.gz
+/var/log/letsencrypt/letsencrypt.log.4.gz
+/var/log/letsencrypt/letsencrypt.log.7.gz
+/var/log/letsencrypt/letsencrypt.log.3.gz
+/var/log/letsencrypt/letsencrypt.log.5.gz
+/var/log/alternatives.log.1
+/var/log/dpkg.log.1
+SYSTEM_LOG_BEFORE=188MiB
+SYSTEM_LOG_AFTER=177MiB
+SYSTEM_LOG_FREED=12MiB
+ROTATED SYSTEM LOG CLEANUP: PASSED
+
+===== TEMPORARY FILE CLEANUP =====
+/tmp/.X11-unix
+/tmp/.ICE-unix
+/tmp/deals-associate-vps.tar.gz
+/tmp/.XIM-unix
+/tmp/deals-persistent-images-vps.tar.gz
+/tmp/.font-unix
+/tmp/deals-image-fit-vps.tar.gz
+/tmp/leaf-admin-login-public.html
+/tmp/deals-images-vps.tar.gz
+/tmp/leaf-admin-login-local.html
+/tmp/deals-admin-vps.tar.gz
+/tmp/snap-private-tmp
+TMP_BYTES_BEFORE: command not found
++: command not found
+-: command not found
+-: command not found

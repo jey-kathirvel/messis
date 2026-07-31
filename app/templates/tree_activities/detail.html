@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {{ activity.title }} | Tree Activity | Messis AI
+    </title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen bg-slate-100 text-slate-900">
+    <header
+        class="border-b border-emerald-800
+               bg-gradient-to-r from-emerald-900
+               via-emerald-800 to-green-700 text-white"
+    >
+        <div class="mx-auto max-w-6xl px-5 py-8">
+            <div
+                class="flex flex-col gap-5 md:flex-row
+                       md:items-start md:justify-between"
+            >
+                <div>
+                    <p
+                        class="text-xs font-black uppercase
+                               tracking-[0.22em]
+                               text-emerald-200"
+                    >
+                        Messis AI · Tree Activity
+                    </p>
+
+                    <h1
+                        class="mt-3 text-3xl font-black
+                               sm:text-4xl"
+                    >
+                        {{ activity.title }}
+                    </h1>
+
+                    <p class="mt-2 text-emerald-100">
+                        {{ tree.tree_code }} · {{ farm.name }}
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap gap-3">
+                    <a
+                        href="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities"
+                        class="rounded-xl border border-white/30
+                               bg-white/10 px-5 py-3 text-sm
+                               font-bold text-white
+                               hover:bg-white/20"
+                    >
+                        Back to Activities
+                    </a>
+
+                    <a
+                        href="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities/{{ activity.id }}/edit"
+                        class="rounded-xl bg-white px-5 py-3
+                               text-sm font-black text-emerald-800
+                               hover:bg-emerald-50"
+                    >
+                        Edit Activity
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl space-y-6 px-5 py-8">
+        {% if is_overdue %}
+            <section
+                class="rounded-2xl border border-red-200
+                       bg-red-50 px-5 py-4"
+            >
+                <p class="font-black text-red-800">
+                    Follow-up overdue
+                </p>
+
+                <p class="mt-1 text-sm text-red-700">
+                    The next due date for this activity has passed.
+                </p>
+            </section>
+        {% endif %}
+
+        <section
+            class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+            <article
+                class="rounded-2xl border border-slate-200
+                       bg-white p-5 shadow-sm"
+            >
+                <p
+                    class="text-xs font-bold uppercase
+                           tracking-wider text-slate-500"
+                >
+                    Activity Type
+                </p>
+
+                <span
+                    class="mt-3 inline-flex rounded-full
+                           px-3 py-1 text-sm font-black
+                           {{ tree_activity_type_style(
+                               activity.activity_type
+                           ) }}"
+                >
+                    {{ tree_activity_type_label(
+                        activity.activity_type
+                    ) }}
+                </span>
+            </article>
+
+            <article
+                class="rounded-2xl border border-slate-200
+                       bg-white p-5 shadow-sm"
+            >
+                <p
+                    class="text-xs font-bold uppercase
+                           tracking-wider text-slate-500"
+                >
+                    Status
+                </p>
+
+                <span
+                    class="mt-3 inline-flex rounded-full
+                           border px-3 py-1 text-sm font-black
+                           {{ tree_activity_status_style(
+                               activity.status
+                           ) }}"
+                >
+                    {{ tree_activity_status_label(
+                        activity.status
+                    ) }}
+                </span>
+            </article>
+
+            <article
+                class="rounded-2xl border border-slate-200
+                       bg-white p-5 shadow-sm"
+            >
+                <p
+                    class="text-xs font-bold uppercase
+                           tracking-wider text-slate-500"
+                >
+                    Activity Date
+                </p>
+
+                <p
+                    class="mt-3 text-lg font-black
+                           text-slate-950"
+                >
+                    {{ activity.activity_date }}
+                </p>
+            </article>
+
+            <article
+                class="rounded-2xl border
+                       {% if is_overdue %}
+                           border-red-200 bg-red-50
+                       {% else %}
+                           border-slate-200 bg-white
+                       {% endif %}
+                       p-5 shadow-sm"
+            >
+                <p
+                    class="text-xs font-bold uppercase
+                           tracking-wider
+                           {% if is_overdue %}
+                               text-red-600
+                           {% else %}
+                               text-slate-500
+                           {% endif %}"
+                >
+                    Next Due Date
+                </p>
+
+                <p
+                    class="mt-3 text-lg font-black
+                           {% if is_overdue %}
+                               text-red-800
+                           {% else %}
+                               text-slate-950
+                           {% endif %}"
+                >
+                    {{ activity.next_due_date or "Not scheduled" }}
+                </p>
+            </article>
+        </section>
+
+
+        <!-- PATCH-005B.5: ACTIVITY STATUS ACTIONS -->
+        {% set status_actions = tree_activity_status_actions(
+            activity
+        ) %}
+
+        {% if status_actions %}
+            <section
+                class="rounded-2xl border border-slate-200
+                       bg-white p-6 shadow-sm"
+            >
+                <div
+                    class="flex flex-col gap-4 lg:flex-row
+                           lg:items-center lg:justify-between"
+                >
+                    <div>
+                        <p
+                            class="text-xs font-black uppercase
+                                   tracking-wider text-emerald-700"
+                        >
+                            Status Workflow
+                        </p>
+
+                        <h2
+                            class="mt-2 text-xl font-black
+                                   text-slate-950"
+                        >
+                            Update Activity Status
+                        </h2>
+
+                        <p
+                            class="mt-2 text-sm text-slate-500"
+                        >
+                            Current status:
+                            <strong>
+                                {{ tree_activity_status_label(
+                                    activity.status
+                                ) }}
+                            </strong>
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        {% for action in status_actions %}
+                            <form
+                                method="post"
+                                action="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities/{{ activity.id }}/status"
+                            >
+                                <input
+                                    type="hidden"
+                                    name="status"
+                                    value="{{ action.status }}"
+                                >
+
+                                <input
+                                    type="hidden"
+                                    name="redirect_to"
+                                    value="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities/{{ activity.id }}"
+                                >
+
+                                <button
+                                    type="submit"
+                                    class="rounded-xl px-5 py-3
+                                           text-sm font-black text-white
+                                           {{ action.css_class }}"
+                                >
+                                    {{ action.label }}
+                                </button>
+                            </form>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+
+        <section
+            class="rounded-3xl border border-slate-200
+                   bg-white p-6 shadow-sm sm:p-8"
+        >
+            <div>
+                <p
+                    class="text-xs font-black uppercase
+                           tracking-wider text-emerald-700"
+                >
+                    Activity Details
+                </p>
+
+                <h2
+                    class="mt-2 text-2xl font-black
+                           text-slate-950"
+                >
+                    {{ activity.title }}
+                </h2>
+
+                {% if activity.description %}
+                    <p
+                        class="mt-4 max-w-4xl whitespace-pre-line
+                               text-sm leading-7 text-slate-600"
+                    >
+                        {{ activity.description }}
+                    </p>
+                {% endif %}
+            </div>
+
+            <dl
+                class="mt-8 grid gap-6 border-t
+                       border-slate-200 pt-8
+                       sm:grid-cols-2 lg:grid-cols-4"
+            >
+                <div>
+                    <dt
+                        class="text-xs font-bold uppercase
+                               tracking-wider text-slate-400"
+                    >
+                        Quantity
+                    </dt>
+
+                    <dd
+                        class="mt-2 text-base font-black
+                               text-slate-900"
+                    >
+                        {% if activity.quantity is not none %}
+                            {{ activity.quantity }}
+                            {{ activity.unit or "" }}
+                        {% else %}
+                            Not recorded
+                        {% endif %}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt
+                        class="text-xs font-bold uppercase
+                               tracking-wider text-slate-400"
+                    >
+                        Cost
+                    </dt>
+
+                    <dd
+                        class="mt-2 text-base font-black
+                               text-slate-900"
+                    >
+                        {% if activity.cost is not none %}
+                            ₹{{ "%.2f" | format(activity.cost) }}
+                        {% else %}
+                            Not recorded
+                        {% endif %}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt
+                        class="text-xs font-bold uppercase
+                               tracking-wider text-slate-400"
+                    >
+                        Performed By
+                    </dt>
+
+                    <dd
+                        class="mt-2 text-base font-black
+                               text-slate-900"
+                    >
+                        {{ activity.performed_by or "Not recorded" }}
+                    </dd>
+                </div>
+
+                <div>
+                    <dt
+                        class="text-xs font-bold uppercase
+                               tracking-wider text-slate-400"
+                    >
+                        Activity ID
+                    </dt>
+
+                    <dd
+                        class="mt-2 text-base font-black
+                               text-slate-900"
+                    >
+                        #{{ activity.id }}
+                    </dd>
+                </div>
+            </dl>
+
+            {% if activity.notes %}
+                <div
+                    class="mt-8 rounded-2xl border
+                           border-amber-200 bg-amber-50 p-5"
+                >
+                    <p
+                        class="text-xs font-black uppercase
+                               tracking-wider text-amber-700"
+                    >
+                        Notes
+                    </p>
+
+                    <p
+                        class="mt-3 whitespace-pre-line
+                               text-sm leading-7 text-amber-900"
+                    >
+                        {{ activity.notes }}
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+
+        <section
+            class="rounded-2xl border border-red-200
+                   bg-white p-6 shadow-sm"
+        >
+            <div
+                class="flex flex-col gap-4 sm:flex-row
+                       sm:items-center sm:justify-between"
+            >
+                <div>
+                    <h2
+                        class="text-lg font-black text-slate-950"
+                    >
+                        Delete Activity
+                    </h2>
+
+                    <p class="mt-1 text-sm text-slate-500">
+                        This permanently removes the activity record.
+                    </p>
+                </div>
+
+                <form
+                    method="post"
+                    action="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities/{{ activity.id }}/delete"
+                    onsubmit="return confirm('Delete this activity permanently?');"
+                >
+                    <button
+                        type="submit"
+                        class="rounded-xl bg-red-600 px-5 py-3
+                               text-sm font-black text-white
+                               hover:bg-red-700"
+                    >
+                        Delete Activity
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

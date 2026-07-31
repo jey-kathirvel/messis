@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {% if form_mode == "edit" %}
+            Edit Tree Activity
+        {% else %}
+            Add Tree Activity
+        {% endif %}
+        | Messis AI
+    </title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen bg-slate-100 text-slate-900">
+    <header
+        class="border-b border-emerald-800
+               bg-gradient-to-r from-emerald-900
+               to-green-700 text-white"
+    >
+        <div class="mx-auto max-w-5xl px-5 py-8">
+            <p
+                class="text-xs font-black uppercase
+                       tracking-[0.22em] text-emerald-200"
+            >
+                Messis AI · {{ tree.tree_code }}
+            </p>
+
+            <h1
+                class="mt-3 text-3xl font-black"
+            >
+                {% if form_mode == "edit" %}
+                    Edit Tree Activity
+                {% else %}
+                    Add Tree Activity
+                {% endif %}
+            </h1>
+
+            <p class="mt-2 text-emerald-100">
+                {{ farm.name }}
+            </p>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-5xl px-5 py-8">
+        {% if form_error %}
+            <div
+                class="mb-6 rounded-2xl border border-red-200
+                       bg-red-50 px-5 py-4 font-semibold
+                       text-red-700"
+            >
+                {{ form_error }}
+            </div>
+        {% endif %}
+
+        <form
+            method="post"
+            action="{{ form_action }}"
+            class="overflow-hidden rounded-3xl
+                   border border-slate-200 bg-white shadow-lg"
+        >
+            <div class="space-y-8 p-6 sm:p-8">
+                <section>
+                    <h2
+                        class="text-xl font-black text-slate-950"
+                    >
+                        Activity Information
+                    </h2>
+
+                    <div
+                        class="mt-5 grid gap-5 md:grid-cols-2"
+                    >
+                        <div>
+                            <label
+                                for="activity_type"
+                                class="text-sm font-bold
+                                       text-slate-700"
+                            >
+                                Activity Type *
+                            </label>
+
+                            <select
+                                id="activity_type"
+                                name="activity_type"
+                                required
+                                class="mt-2 w-full rounded-xl
+                                       border border-slate-300
+                                       bg-white px-4 py-3"
+                            >
+                                {% for item in activity_types %}
+                                    <option
+                                        value="{{ item }}"
+                                        {% if form_values.activity_type == item %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ tree_activity_type_label(item) }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label
+                                for="status"
+                                class="text-sm font-bold
+                                       text-slate-700"
+                            >
+                                Status *
+                            </label>
+
+                            <select
+                                id="status"
+                                name="status"
+                                required
+                                class="mt-2 w-full rounded-xl
+                                       border border-slate-300
+                                       bg-white px-4 py-3"
+                            >
+                                {% for item in activity_statuses %}
+                                    <option
+                                        value="{{ item }}"
+                                        {% if form_values.status == item %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ tree_activity_status_label(item) }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label
+                                for="activity_date"
+                                class="text-sm font-bold
+                                       text-slate-700"
+                            >
+                                Activity Date *
+                            </label>
+
+                            <input
+                                id="activity_date"
+                                name="activity_date"
+                                type="date"
+                                required
+                                value="{{ form_values.activity_date }}"
+                                class="mt-2 w-full rounded-xl
+                                       border border-slate-300
+                                       px-4 py-3"
+                            >
+                        </div>
+
+                        <div>
+                            <label
+                                for="next_due_date"
+                                class="text-sm font-bold
+                                       text-slate-700"
+                            >
+                                Next Due Date
+                            </label>
+
+                            <input
+                                id="next_due_date"
+                                name="next_due_date"
+                                type="date"
+                                value="{{ form_values.next_due_date }}"
+                                class="mt-2 w-full rounded-xl
+                                       border border-slate-300
+                                       px-4 py-3"
+                            >
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label
+                                for="title"
+                                class="text-sm font-bold
+                                       text-slate-700"
+                            >
+                                Activity Title *
+                            </label>
+
+                            <input
+                                id="title"
+                                name="title"
+                                type="text"
+                                required
+                                maxlength="150"
+                                value="{{ form_values.title }}"
+                                placeholder="Example: Morning irrigation"
+                                class="mt-2 w-full rounded-xl
+                                       border border-slate-300
+                                       px-4 py-3"
+                            >
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label
+                                for="description"
+                                class="text-sm font-bold
+                                       text-slate-700"
+                            >
+                                Description
+                            </label>
+
+                            <textarea
+                                id="description"
+                                name="description"
+                                rows="4"
+                                maxlength="5000"
+                                placeholder="Describe the work performed"
+                                class="mt-2 w-full rounded-xl
+                                       border border-slate-300
+                                       px-4 py-3"
+                            >{{ form_values.description }}</textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <section
+                    class="border-t border-slate-200 pt-8"
+                >
+                    <h2
+                        class="text-xl font-black text-slate-950"
+                    >
+                        Quantity and Cost
+                    </h2>
+
+                    <div
+                        class="mt-5 grid gap-5 md:grid-cols-3"
+                    >
+                        <div>
+                            <label
+                                for="quantity"
+                                class="text-sm font-bold
+                                       text-slate-700"
+                            >
+                                Quantity
+                            </label>
+
+                            <input
+                                id="quantity"
+                                name="quantity"
+                                type="number"
+                                min="0"
+                                step="0.001"
+                                value="{{ form_values.quantity }}"
+                                class="mt-2 w-full rounded-xl
+                                       border border-slate-300
+                                       px-4 py-3"
+                            >
+                        </div>
+
+                        <div>
+                            <label
+                                for="unit"
+                                class="text-sm font-bold
+                                       text-slate-700"
+                            >
+                                Unit
+                            </label>
+
+                            <input
+                                id="unit"
+                                name="unit"
+                                type="text"
+                                maxlength="30"
+                                value="{{ form_values.unit }}"
+                                placeholder="litres, kg, trees"
+                                class="mt-2 w-full rounded-xl
+                                       border border-slate-300
+                                       px-4 py-3"
+                            >
+                        </div>
+
+                        <div>
+                            <label
+                                for="cost"
+                                class="text-sm font-bold
+                                       text-slate-700"
+                            >
+                                Cost (₹)
+                            </label>
+
+                            <input
+                                id="cost"
+                                name="cost"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value="{{ form_values.cost }}"
+                                class="mt-2 w-full rounded-xl
+                                       border border-slate-300
+                                       px-4 py-3"
+                            >
+                        </div>
+                    </div>
+                </section>
+
+                <section
+                    class="border-t border-slate-200 pt-8"
+                >
+                    <h2
+                        class="text-xl font-black text-slate-950"
+                    >
+                        Work Details
+                    </h2>
+
+                    <div class="mt-5 grid gap-5">
+                        <div>
+                            <label
+                                for="performed_by"
+                                class="text-sm font-bold
+                                       text-slate-700"
+                            >
+                                Performed By
+                            </label>
+
+                            <input
+                                id="performed_by"
+                                name="performed_by"
+                                type="text"
+                                maxlength="120"
+                                value="{{ form_values.performed_by }}"
+                                placeholder="Worker or supervisor name"
+                                class="mt-2 w-full rounded-xl
+                                       border border-slate-300
+                                       px-4 py-3"
+                            >
+                        </div>
+
+                        <div>
+                            <label
+                                for="notes"
+                                class="text-sm font-bold
+                                       text-slate-700"
+                            >
+                                Notes
+                            </label>
+
+                            <textarea
+                                id="notes"
+                                name="notes"
+                                rows="4"
+                                maxlength="5000"
+                                placeholder="Add observations or follow-up notes"
+                                class="mt-2 w-full rounded-xl
+                                       border border-slate-300
+                                       px-4 py-3"
+                            >{{ form_values.notes }}</textarea>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <footer
+                class="flex flex-col-reverse gap-3
+                       border-t border-slate-200
+                       bg-slate-50 px-6 py-5
+                       sm:flex-row sm:justify-end"
+            >
+                <a
+                    href="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities"
+                    class="rounded-xl border border-slate-300
+                           bg-white px-6 py-3 text-center
+                           text-sm font-bold text-slate-700
+                           hover:bg-slate-100"
+                >
+                    Cancel
+                </a>
+
+                <button
+                    type="submit"
+                    class="rounded-xl bg-emerald-600
+                           px-6 py-3 text-sm font-black
+                           text-white hover:bg-emerald-700"
+                >
+                    {% if form_mode == "edit" %}
+                        Update Activity
+                    {% else %}
+                        Save Activity
+                    {% endif %}
+                </button>
+            </footer>
+        </form>
+    </main>
+</body>
+</html>

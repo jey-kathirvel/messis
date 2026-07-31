@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>{{ tree.tree_code }} | Messis AI</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(16, 185, 129, 0.14),
+                    transparent 30rem
+                ),
+                #f8fafc;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-slate-800">
+    <header
+        class="border-b border-slate-200 bg-white/90 backdrop-blur"
+    >
+        <div
+            class="mx-auto flex max-w-6xl items-center justify-between
+                   gap-4 px-4 py-4 sm:px-6 lg:px-8"
+        >
+            <div>
+                <a
+                    href="/farms/{{ farm.id }}/trees"
+                    class="text-sm font-semibold text-emerald-700
+                           hover:text-emerald-900"
+                >
+                    ← Coconut Trees
+                </a>
+
+                <h1
+                    class="mt-1 text-2xl font-bold tracking-tight
+                           text-slate-950"
+                >
+                    {{ tree.tree_code }}
+                </h1>
+
+                <p class="mt-1 text-sm text-slate-500">
+                    {{ tree.tree_name or "Unnamed coconut tree" }}
+                </p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <a
+                    href="/farms/{{ farm.id }}/trees/{{ tree.id }}/edit"
+                    class="inline-flex items-center justify-center
+                           rounded-xl border border-slate-300 bg-white
+                           px-4 py-2 text-sm font-bold text-slate-700
+                           transition hover:bg-slate-100"
+                >
+                    Edit Tree
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        {% if request.query_params.get("delete_error") %}
+            <div
+                class="mb-6 rounded-xl border border-red-200 bg-red-50
+                       px-4 py-3 text-sm font-semibold text-red-700"
+            >
+                {{ request.query_params.get("delete_error") }}
+            </div>
+        {% endif %}
+
+        <section
+            class="overflow-hidden rounded-2xl border border-slate-200
+                   bg-white shadow-sm"
+        >
+            <div
+                class="flex flex-col gap-6 bg-gradient-to-r
+                       from-emerald-700 to-emerald-500 px-6 py-8
+                       text-white sm:flex-row sm:items-center
+                       sm:justify-between"
+            >
+                <div class="flex items-center gap-5">
+                    <div
+                        class="flex h-20 w-20 shrink-0 items-center
+                               justify-center rounded-2xl bg-white/15
+                               text-4xl ring-1 ring-white/20"
+                    >
+                        🌴
+                    </div>
+
+                    <div>
+                        <p
+                            class="text-sm font-semibold uppercase
+                                   tracking-wider text-emerald-100"
+                        >
+                            Coconut Tree
+                        </p>
+
+                        <h2 class="mt-1 text-3xl font-bold">
+                            {{ tree.tree_code }}
+                        </h2>
+
+                        <p class="mt-1 text-sm text-emerald-50">
+                            {{ farm.name }}
+                            {% if farm.location %}
+                                · {{ farm.location }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-3">
+                    {% if tree.health_status == "Healthy" %}
+                        <span
+                            class="rounded-full bg-white px-4 py-2
+                                   text-sm font-bold text-emerald-700"
+                        >
+                            Healthy
+                        </span>
+                    {% elif tree.health_status == "Needs Attention" %}
+                        <span
+                            class="rounded-full bg-amber-100 px-4 py-2
+                                   text-sm font-bold text-amber-800"
+                        >
+                            Needs Attention
+                        </span>
+                    {% elif tree.health_status == "Diseased" %}
+                        <span
+                            class="rounded-full bg-red-100 px-4 py-2
+                                   text-sm font-bold text-red-700"
+                        >
+                            Diseased
+                        </span>
+                    {% else %}
+                        <span
+                            class="rounded-full bg-slate-100 px-4 py-2
+                                   text-sm font-bold text-slate-700"
+                        >
+                            {{ tree.health_status }}
+                        </span>
+                    {% endif %}
+
+                    {% if tree.is_active %}
+                        <span
+                            class="rounded-full bg-emerald-950/30 px-4 py-2
+                                   text-sm font-bold text-white ring-1
+                                   ring-white/30"
+                        >
+                            Active
+                        </span>
+                    {% else %}
+                        <span
+                            class="rounded-full bg-slate-900/30 px-4 py-2
+                                   text-sm font-bold text-white ring-1
+                                   ring-white/30"
+                        >
+                            Inactive
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="grid gap-0 lg:grid-cols-3">
+                <section
+                    class="border-b border-slate-200 p-6
+                           lg:col-span-2 lg:border-b-0 lg:border-r"
+                >
+                    <h3 class="text-lg font-bold text-slate-950">
+                        Tree Information
+                    </h3>
+
+                    <dl
+                        class="mt-5 grid gap-x-8 gap-y-6
+                               sm:grid-cols-2"
+                    >
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-400"
+                            >
+                                Tree Name
+                            </dt>
+
+                            <dd class="mt-2 text-sm font-semibold text-slate-800">
+                                {{ tree.tree_name or "Not recorded" }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-400"
+                            >
+                                Variety
+                            </dt>
+
+                            <dd class="mt-2">
+                                <span
+                                    class="rounded-full bg-blue-50
+                                           px-3 py-1 text-sm font-bold
+                                           text-blue-700"
+                                >
+                                    {{ tree.variety }}
+                                </span>
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-400"
+                            >
+                                Planting Date
+                            </dt>
+
+                            <dd class="mt-2 text-sm font-semibold text-slate-800">
+                                {% if tree.planting_date %}
+                                    {{ tree.planting_date.strftime(
+                                        "%d %b %Y"
+                                    ) }}
+                                {% else %}
+                                    Not recorded
+                                {% endif %}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-400"
+                            >
+                                Tree Age
+                            </dt>
+
+                            <dd class="mt-2 text-sm font-semibold text-slate-800">
+                                {% if tree_age %}
+                                    {% if tree_age.years > 0 %}
+                                        {{ tree_age.years }}
+                                        {% if tree_age.years == 1 %}
+                                            year
+                                        {% else %}
+                                            years
+                                        {% endif %}
+                                    {% endif %}
+
+                                    {% if tree_age.months > 0 %}
+                                        {% if tree_age.years > 0 %} {% endif %}
+                                        {{ tree_age.months }}
+                                        {% if tree_age.months == 1 %}
+                                            month
+                                        {% else %}
+                                            months
+                                        {% endif %}
+                                    {% endif %}
+
+                                    {% if tree_age.total_months == 0 %}
+                                        Less than one month
+                                    {% endif %}
+                                {% else %}
+                                    Not available
+                                {% endif %}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-400"
+                            >
+                                QR Code ID
+                            </dt>
+
+                            <dd
+                                class="mt-2 break-all text-sm font-semibold
+                                       text-slate-800"
+                            >
+                                {{ tree.qr_code_id or "Not assigned" }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-400"
+                            >
+                                Health Status
+                            </dt>
+
+                            <dd class="mt-2 text-sm font-semibold text-slate-800">
+                                {{ tree.health_status }}
+                            </dd>
+                        </div>
+                    </dl>
+
+                    <div class="mt-8 border-t border-slate-200 pt-6">
+                        <h3 class="text-lg font-bold text-slate-950">
+                            Farm Position
+                        </h3>
+
+                        <dl
+                            class="mt-5 grid gap-x-8 gap-y-6
+                                   sm:grid-cols-3"
+                        >
+                            <div>
+                                <dt
+                                    class="text-xs font-bold uppercase
+                                           tracking-wider text-slate-400"
+                                >
+                                    Block
+                                </dt>
+
+                                <dd
+                                    class="mt-2 text-sm font-semibold
+                                           text-slate-800"
+                                >
+                                    {{ tree.block_name or "Not recorded" }}
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt
+                                    class="text-xs font-bold uppercase
+                                           tracking-wider text-slate-400"
+                                >
+                                    Row
+                                </dt>
+
+                                <dd
+                                    class="mt-2 text-sm font-semibold
+                                           text-slate-800"
+                                >
+                                    {{ tree.row_number or "Not recorded" }}
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt
+                                    class="text-xs font-bold uppercase
+                                           tracking-wider text-slate-400"
+                                >
+                                    Position
+                                </dt>
+
+                                <dd
+                                    class="mt-2 text-sm font-semibold
+                                           text-slate-800"
+                                >
+                                    {{ tree.position_number or "Not recorded" }}
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <div class="mt-8 border-t border-slate-200 pt-6">
+                        <h3 class="text-lg font-bold text-slate-950">
+                            Measurements
+                        </h3>
+
+                        <dl
+                            class="mt-5 grid gap-x-8 gap-y-6
+                                   sm:grid-cols-3"
+                        >
+                            <div
+                                class="rounded-xl border border-slate-200
+                                       bg-slate-50 p-4"
+                            >
+                                <dt class="text-sm font-medium text-slate-500">
+                                    Height
+                                </dt>
+
+                                <dd class="mt-2 text-2xl font-bold text-slate-900">
+                                    {% if tree.height_m is not none %}
+                                        {{ tree.height_m }} m
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </dd>
+                            </div>
+
+                            <div
+                                class="rounded-xl border border-slate-200
+                                       bg-slate-50 p-4"
+                            >
+                                <dt class="text-sm font-medium text-slate-500">
+                                    Canopy Diameter
+                                </dt>
+
+                                <dd class="mt-2 text-2xl font-bold text-slate-900">
+                                    {% if tree.canopy_diameter_m is not none %}
+                                        {{ tree.canopy_diameter_m }} m
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </dd>
+                            </div>
+
+                            <div
+                                class="rounded-xl border border-slate-200
+                                       bg-slate-50 p-4"
+                            >
+                                <dt class="text-sm font-medium text-slate-500">
+                                    Trunk Girth
+                                </dt>
+
+                                <dd class="mt-2 text-2xl font-bold text-slate-900">
+                                    {% if tree.trunk_girth_cm is not none %}
+                                        {{ tree.trunk_girth_cm }} cm
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <div class="mt-8 border-t border-slate-200 pt-6">
+                        <h3 class="text-lg font-bold text-slate-950">
+                            Remarks
+                        </h3>
+
+                        <div
+                            class="mt-4 whitespace-pre-wrap rounded-xl
+                                   border border-slate-200 bg-slate-50
+                                   p-4 text-sm leading-6 text-slate-700"
+                        >{{ tree.remarks or "No remarks recorded." }}</div>
+                    </div>
+                </section>
+
+                <aside class="p-6">
+                    <h3 class="text-lg font-bold text-slate-950">
+                        Record Details
+                    </h3>
+
+                    <dl class="mt-5 space-y-5">
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-400"
+                            >
+                                Farm
+                            </dt>
+
+                            <dd class="mt-2 text-sm font-semibold text-slate-800">
+                                {{ farm.name }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-400"
+                            >
+                                Record ID
+                            </dt>
+
+                            <dd class="mt-2 text-sm font-semibold text-slate-800">
+                                #{{ tree.id }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-400"
+                            >
+                                Created
+                            </dt>
+
+                            <dd class="mt-2 text-sm font-semibold text-slate-800">
+                                {% if tree.created_at %}
+                                    {{ tree.created_at.strftime(
+                                        "%d %b %Y, %I:%M %p"
+                                    ) }}
+                                {% else %}
+                                    Not available
+                                {% endif %}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-400"
+                            >
+                                Last Updated
+                            </dt>
+
+                            <dd class="mt-2 text-sm font-semibold text-slate-800">
+                                {% if tree.updated_at %}
+                                    {{ tree.updated_at.strftime(
+                                        "%d %b %Y, %I:%M %p"
+                                    ) }}
+                                {% else %}
+                                    Not available
+                                {% endif %}
+                            </dd>
+                        </div>
+                    </dl>
+
+                    <div class="mt-8 space-y-3">
+                        <a
+                            href="/farms/{{ farm.id }}/trees/{{ tree.id }}/edit"
+                            class="flex w-full items-center justify-center
+                                   rounded-xl bg-emerald-600 px-4 py-3
+                                   text-sm font-bold text-white shadow-sm
+                                   transition hover:bg-emerald-700"
+                        >
+                            Edit Coconut Tree
+                        </a>
+
+                        <a
+                            href="/farms/{{ farm.id }}/trees"
+                            class="flex w-full items-center justify-center
+                                   rounded-xl border border-slate-300
+                                   bg-white px-4 py-3 text-sm font-bold
+                                   text-slate-700 transition
+                                   hover:bg-slate-100"
+                        >
+                            Back to Tree List
+                        </a>
+                    </div>
+
+                    <div
+                        class="mt-8 rounded-xl border border-red-200
+                               bg-red-50 p-4"
+                    >
+                        <h4 class="text-sm font-bold text-red-800">
+                            Delete Coconut Tree
+                        </h4>
+
+                        <p class="mt-2 text-sm leading-6 text-red-700">
+                            This permanently deletes the tree record.
+                            Enter
+                            <span class="font-bold">
+                                {{ tree.tree_code }}
+                            </span>
+                            to confirm.
+                        </p>
+
+                        <form
+                            method="post"
+                            action="/farms/{{ farm.id }}/trees/{{ tree.id }}/delete"
+                            class="mt-4 space-y-3"
+                            onsubmit="return confirm('Permanently delete this coconut tree?');"
+                        >
+                            <label
+                                for="confirmation"
+                                class="sr-only"
+                            >
+                                Tree code confirmation
+                            </label>
+
+                            <input
+                                id="confirmation"
+                                name="confirmation"
+                                type="text"
+                                required
+                                autocomplete="off"
+                                placeholder="{{ tree.tree_code }}"
+                                class="w-full rounded-xl border
+                                       border-red-300 bg-white px-4 py-3
+                                       text-sm outline-none
+                                       focus:border-red-500"
+                            >
+
+                            <button
+                                type="submit"
+                                class="flex w-full items-center
+                                       justify-center rounded-xl
+                                       bg-red-600 px-4 py-3 text-sm
+                                       font-bold text-white transition
+                                       hover:bg-red-700"
+                            >
+                                Permanently Delete Tree
+                            </button>
+                        </form>
+                    </div>
+                </aside>
+            </div>
+        </section>
+            {% set tree_age = coconut_tree_age_details(tree) %}
+{% set health = coconut_tree_health_score(tree) %}
+{% set care_plan = coconut_tree_care_recommendations(tree) %}
+
+<section
+    class="mb-6 rounded-2xl border border-slate-200
+           bg-white p-6 shadow-sm"
+>
+    <div
+        class="flex flex-col gap-3 sm:flex-row
+               sm:items-center sm:justify-between"
+    >
+        <div>
+            <p
+                class="text-xs font-bold uppercase
+                       tracking-wider text-emerald-700"
+            >
+                Care Recommendations
+            </p>
+
+            <h2
+                class="mt-2 text-xl font-black
+                       text-slate-950"
+            >
+                Recommended Next Actions
+            </h2>
+
+            <p class="mt-2 text-sm text-slate-500">
+                Generated from the current tree health status.
+            </p>
+        </div>
+
+        <div
+            class="rounded-xl bg-slate-100
+                   px-4 py-3 text-center"
+        >
+            <p
+                class="text-2xl font-black text-slate-900"
+            >
+                {{ care_plan.count }}
+            </p>
+
+            <p
+                class="text-xs font-bold uppercase
+                       tracking-wider text-slate-500"
+            >
+                Actions
+            </p>
+        </div>
+    </div>
+
+    <div class="mt-6 grid gap-4 lg:grid-cols-3">
+        {% for recommendation in care_plan.recommendations %}
+            {% set priority_style = coconut_tree_priority_style(
+                recommendation.priority
+            ) %}
+
+            <article
+                class="rounded-2xl border bg-white p-5
+                       {{ priority_style.border }}"
+            >
+                <div
+                    class="flex items-start justify-between gap-3"
+                >
+                    <div
+                        class="flex h-10 w-10 shrink-0
+                               items-center justify-center
+                               rounded-xl bg-slate-50"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            class="h-5 w-5 {{ priority_style.icon }}"
+                            aria-hidden="true"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M9 12.75 11.25 15 15 9.75"
+                            />
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M21 12a9 9 0 1 1-18 0
+                                   9 9 0 0 1 18 0Z"
+                            />
+                        </svg>
+                    </div>
+
+                    <span
+                        class="rounded-full px-3 py-1
+                               text-[10px] font-black uppercase
+                               tracking-wider
+                               {{ priority_style.badge }}"
+                    >
+                        {{ recommendation.priority }}
+                    </span>
+                </div>
+
+                <h3
+                    class="mt-4 text-base font-bold
+                           text-slate-900"
+                >
+                    {{ recommendation.title }}
+                </h3>
+
+                <p
+                    class="mt-2 text-sm leading-6
+                           text-slate-500"
+                >
+                    {{ recommendation.description }}
+                </p>
+            </article>
+        {% endfor %}
+    </div>
+
+    <p
+        class="mt-5 text-xs leading-5 text-slate-400"
+    >
+        These recommendations support farm monitoring and
+        do not replace professional agricultural advice.
+    </p>
+</section>
+
+<section
+    class="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+>
+    <div class="flex items-center justify-between">
+        <div>
+            <p
+                class="text-xs font-bold uppercase tracking-wider text-slate-500"
+            >
+                Tree Health Score
+            </p>
+
+            <h2
+                class="mt-2 text-4xl font-black text-slate-900"
+            >
+                {{ health.score }}/100
+            </h2>
+
+            <p
+                class="mt-2 text-sm font-semibold"
+            >
+                {{ health.label }}
+            </p>
+        </div>
+
+        <div
+            class="relative h-28 w-28"
+        >
+            <svg
+                viewBox="0 0 120 120"
+                class="h-28 w-28 -rotate-90"
+            >
+                <circle
+                    cx="60"
+                    cy="60"
+                    r="48"
+                    stroke="#e5e7eb"
+                    stroke-width="10"
+                    fill="none"
+                />
+
+                <circle
+                    cx="60"
+                    cy="60"
+                    r="48"
+                    stroke="currentColor"
+                    stroke-width="10"
+                    fill="none"
+                    stroke-linecap="round"
+                    stroke-dasharray="301.6"
+                    stroke-dashoffset="{{ 301.6 - (301.6 * health.score / 100) }}"
+                />
+            </svg>
+        </div>
+    </div>
+</section>
+
+        <section
+            class="mt-6 rounded-2xl border border-slate-200
+                   bg-white p-6 shadow-sm"
+        >
+            <div
+                class="flex flex-col gap-5 sm:flex-row
+                       sm:items-center sm:justify-between"
+            >
+                <div>
+                    <p
+                        class="text-xs font-bold uppercase
+                               tracking-wider text-emerald-700"
+                    >
+                        Tree Age & Maturity
+                    </p>
+
+                    <h2
+                        class="mt-2 text-2xl font-black
+                               text-slate-950"
+                    >
+                        {{ tree_age.label }}
+                    </h2>
+
+                    <p class="mt-2 text-sm text-slate-500">
+                        Current growth stage:
+                        <span
+                            class="font-bold text-slate-800"
+                        >
+                            {{ coconut_tree_maturity_status(tree) }}
+                        </span>
+                    </p>
+
+                    {% if tree_age.planting_date %}
+                        <p
+                            class="mt-1 text-sm text-slate-500"
+                        >
+                            Planted on
+                            <span
+                                class="font-semibold text-slate-700"
+                            >
+                                {{ tree_age.planting_date }}
+                            </span>
+                        </p>
+                    {% endif %}
+                </div>
+
+                <div
+                    class="grid grid-cols-3 gap-3 text-center"
+                >
+                    <div
+                        class="rounded-xl bg-emerald-50
+                               px-4 py-3"
+                    >
+                        <p
+                            class="text-2xl font-black
+                                   text-emerald-700"
+                        >
+                            {{ tree_age.years if tree_age.years is not none else "—" }}
+                        </p>
+
+                        <p
+                            class="mt-1 text-xs font-bold uppercase
+                                   tracking-wider text-emerald-600"
+                        >
+                            Years
+                        </p>
+                    </div>
+
+                    <div
+                        class="rounded-xl bg-amber-50
+                               px-4 py-3"
+                    >
+                        <p
+                            class="text-2xl font-black
+                                   text-amber-700"
+                        >
+                            {{ tree_age.months if tree_age.months is not none else "—" }}
+                        </p>
+
+                        <p
+                            class="mt-1 text-xs font-bold uppercase
+                                   tracking-wider text-amber-600"
+                        >
+                            Months
+                        </p>
+                    </div>
+
+                    <div
+                        class="rounded-xl bg-sky-50
+                               px-4 py-3"
+                    >
+                        <p
+                            class="text-2xl font-black
+                                   text-sky-700"
+                        >
+                            {{ tree_age.days if tree_age.days is not none else "—" }}
+                        </p>
+
+                        <p
+                            class="mt-1 text-xs font-bold uppercase
+                                   tracking-wider text-sky-600"
+                        >
+                            Days
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        
+<!-- PATCH-005B.4: TREE ACTIVITY SUMMARY CARD -->
+{% set activity_summary = tree_activity_summary(
+    db,
+    farm.id,
+    tree.id
+) %}
+
+<section
+    class="mb-6 rounded-2xl border border-slate-200
+           bg-white p-6 shadow-sm"
+>
+    <div
+        class="flex flex-col gap-4 sm:flex-row
+               sm:items-center sm:justify-between"
+    >
+        <div>
+            <p
+                class="text-xs font-black uppercase
+                       tracking-wider text-emerald-700"
+            >
+                Activity Summary
+            </p>
+
+            <h2
+                class="mt-2 text-xl font-black
+                       text-slate-950"
+            >
+                Tree Operations Overview
+            </h2>
+        </div>
+
+        <a
+            href="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities"
+            class="rounded-xl bg-emerald-600 px-5 py-3
+                   text-center text-sm font-black text-white
+                   hover:bg-emerald-700"
+        >
+            View All Activities
+        </a>
+    </div>
+
+    <div
+        class="mt-6 grid gap-4
+               sm:grid-cols-2 lg:grid-cols-5"
+    >
+        <div class="rounded-xl bg-slate-50 p-4">
+            <p
+                class="text-xs font-bold uppercase
+                       tracking-wider text-slate-500"
+            >
+                Total
+            </p>
+
+            <p
+                class="mt-2 text-2xl font-black
+                       text-slate-950"
+            >
+                {{ activity_summary.total_count }}
+            </p>
+        </div>
+
+        <div class="rounded-xl bg-emerald-50 p-4">
+            <p
+                class="text-xs font-bold uppercase
+                       tracking-wider text-emerald-700"
+            >
+                Completed
+            </p>
+
+            <p
+                class="mt-2 text-2xl font-black
+                       text-emerald-900"
+            >
+                {{ activity_summary.completed_count }}
+            </p>
+        </div>
+
+        <div class="rounded-xl bg-sky-50 p-4">
+            <p
+                class="text-xs font-bold uppercase
+                       tracking-wider text-sky-700"
+            >
+                Planned
+            </p>
+
+            <p
+                class="mt-2 text-2xl font-black
+                       text-sky-900"
+            >
+                {{ activity_summary.planned_count }}
+            </p>
+        </div>
+
+        <div
+            class="rounded-xl p-4
+                   {% if activity_summary.overdue_count %}
+                       bg-red-50
+                   {% else %}
+                       bg-slate-50
+                   {% endif %}"
+        >
+            <p
+                class="text-xs font-bold uppercase
+                       tracking-wider
+                       {% if activity_summary.overdue_count %}
+                           text-red-700
+                       {% else %}
+                           text-slate-500
+                       {% endif %}"
+            >
+                Overdue
+            </p>
+
+            <p
+                class="mt-2 text-2xl font-black
+                       {% if activity_summary.overdue_count %}
+                           text-red-900
+                       {% else %}
+                           text-slate-950
+                       {% endif %}"
+            >
+                {{ activity_summary.overdue_count }}
+            </p>
+        </div>
+
+        <div class="rounded-xl bg-amber-50 p-4">
+            <p
+                class="text-xs font-bold uppercase
+                       tracking-wider text-amber-700"
+            >
+                Total Cost
+            </p>
+
+            <p
+                class="mt-2 text-2xl font-black
+                       text-amber-900"
+            >
+                ₹{{ "%.2f" | format(
+                    activity_summary.total_cost
+                ) }}
+            </p>
+        </div>
+    </div>
+
+    {% if activity_summary.next_due_activity %}
+        <div
+            class="mt-5 rounded-xl border border-sky-200
+                   bg-sky-50 p-4"
+        >
+            <p
+                class="text-xs font-black uppercase
+                       tracking-wider text-sky-700"
+            >
+                Next Scheduled Follow-up
+            </p>
+
+            <div
+                class="mt-2 flex flex-col gap-3
+                       sm:flex-row sm:items-center
+                       sm:justify-between"
+            >
+                <div>
+                    <p class="font-black text-sky-950">
+                        {{ activity_summary.next_due_activity.title }}
+                    </p>
+
+                    <p class="mt-1 text-sm text-sky-700">
+                        Due on
+                        {{ activity_summary.next_due_activity.next_due_date }}
+                    </p>
+                </div>
+
+                <a
+                    href="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities/{{ activity_summary.next_due_activity.id }}"
+                    class="text-sm font-black text-sky-800
+                           hover:underline"
+                >
+                    View Activity
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</section>
+
+<section
+            class="mt-6 rounded-2xl border border-slate-200
+                   bg-white p-6 shadow-sm"
+        >
+            <div
+                class="flex flex-col gap-6 sm:flex-row
+                       sm:items-center sm:justify-between"
+            >
+                <div>
+                    <p
+                        class="text-xs font-bold uppercase
+                               tracking-wider text-emerald-700"
+                    >
+                        Tree Identification
+                    </p>
+
+                    <h2
+                        class="mt-2 text-xl font-bold text-slate-950"
+                    >
+                        QR Code
+                    </h2>
+
+                    <p class="mt-2 max-w-xl text-sm text-slate-500">
+                        Scan this QR code to open the coconut tree
+                        record directly in Messis AI.
+                    </p>
+
+                    <div
+                        class="mt-4 flex flex-wrap gap-3"
+                    >
+                        <a
+                            href="/farms/{{ farm.id }}/trees/{{ tree.id }}/qr.png?download=true&box_size=12"
+                            class="inline-flex items-center
+                                   justify-center rounded-xl
+                                   bg-emerald-600 px-5 py-3
+                                   text-sm font-bold text-white
+                                   transition hover:bg-emerald-700"
+                        >
+                            Download QR Code
+                        </a>
+
+                        <a
+                            href="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities"
+                            class="inline-flex items-center
+                                   justify-center rounded-xl
+                                   border border-emerald-300
+                                   bg-emerald-50 px-5 py-3
+                                   text-sm font-bold text-emerald-800
+                                   transition hover:bg-emerald-100"
+                        >
+                            Manage Tree Activities
+                        </a>
+
+                        <a
+                            href="/farms/{{ farm.id }}/trees/{{ tree.id }}/health-report"
+                            class="inline-flex items-center
+                                   justify-center rounded-xl
+                                   border border-slate-300
+                                   bg-white px-5 py-3
+                                   text-sm font-bold text-slate-700
+                                   transition hover:bg-slate-50"
+                        >
+                            Print Health Report
+                        </a>
+                    </div>
+                </div>
+
+                <div
+                    class="rounded-2xl border border-slate-200
+                           bg-white p-3"
+                >
+                    <img
+                        src="/farms/{{ farm.id }}/trees/{{ tree.id }}/qr.png?box_size=8"
+                        alt="QR code for {{ tree.tree_code }}"
+                        class="h-44 w-44"
+                    >
+                </div>
+            </div>
+        </section>
+
+
+<section class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="text-xl font-bold text-slate-900">
+        Tree Timeline
+    </h2>
+
+    {% set events = coconut_tree_timeline(tree) %}
+
+    {% if events %}
+    <div class="mt-6 space-y-5">
+        {% for event in events %}
+        <div class="flex gap-4">
+            <div class="mt-1 h-3 w-3 rounded-full bg-emerald-600"></div>
+
+            <div>
+                <div class="font-bold text-slate-800">
+                    {{ event.title }}
+                </div>
+
+                <div class="text-sm text-slate-500">
+                    {{ event.date }}
+                </div>
+
+                <div class="mt-1 text-sm text-slate-600">
+                    {{ event.description }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="mt-4 text-sm text-slate-500">
+        No timeline events available.
+    </div>
+    {% endif %}
+</section>
+
+</main>
+</body>
+</html>

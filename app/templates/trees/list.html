@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>{{ farm.name }} Coconut Trees | Messis AI</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        body {
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(16, 185, 129, 0.12),
+                    transparent 32rem
+                ),
+                #f8fafc;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-slate-800">
+    <header class="border-b border-slate-200 bg-white/90 backdrop-blur">
+        <div
+            class="mx-auto flex max-w-7xl items-center justify-between
+                   gap-4 px-4 py-4 sm:px-6 lg:px-8"
+        >
+            <div>
+                <a
+                    href="/farms"
+                    class="text-sm font-semibold text-emerald-700
+                           hover:text-emerald-900"
+                >
+                    ← Farms
+                </a>
+
+                <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-950">
+                    Coconut Tree Master
+                </h1>
+
+                <p class="mt-1 text-sm text-slate-500">
+                    {{ farm.name }}
+                    {% if farm.location %}
+                        · {{ farm.location }}
+                    {% endif %}
+                </p>
+            </div>
+
+            <div class="text-right">
+                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Signed in as
+                </p>
+
+                <p class="text-sm font-semibold text-slate-700">
+                    {{ user.display_name }}
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {% if request.query_params.get("success") %}
+            <div
+                class="mb-6 rounded-xl border border-emerald-200
+                       bg-emerald-50 px-4 py-3 text-sm font-semibold
+                       text-emerald-700"
+            >
+                {{ request.query_params.get("success") }}
+            </div>
+        {% endif %}
+
+        <section
+            class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            aria-label="Tree summary"
+        >
+            <article
+                class="rounded-2xl border border-slate-200 bg-white p-5
+                       shadow-sm"
+            >
+                <p class="text-sm font-medium text-slate-500">
+                    Total Trees
+                </p>
+
+                <p class="mt-2 text-3xl font-bold text-slate-950">
+                    {{ tree_count }}
+                </p>
+            </article>
+
+            <article
+                class="rounded-2xl border border-emerald-200 bg-emerald-50
+                       p-5 shadow-sm"
+            >
+                <p class="text-sm font-medium text-emerald-700">
+                    Active Trees
+                </p>
+
+                <p class="mt-2 text-3xl font-bold text-emerald-900">
+                    {{ active_count }}
+                </p>
+            </article>
+
+            <article
+                class="rounded-2xl border border-amber-200 bg-amber-50
+                       p-5 shadow-sm"
+            >
+                <p class="text-sm font-medium text-amber-700">
+                    Needs Attention
+                </p>
+
+                <p class="mt-2 text-3xl font-bold text-amber-900">
+                    {{ status_counts["Needs Attention"] }}
+                </p>
+            </article>
+
+            <article
+                class="rounded-2xl border border-red-200 bg-red-50
+                       p-5 shadow-sm"
+            >
+                <p class="text-sm font-medium text-red-700">
+                    Diseased
+                </p>
+
+                <p class="mt-2 text-3xl font-bold text-red-900">
+                    {{ status_counts["Diseased"] }}
+                </p>
+            </article>
+        </section>
+
+        <section
+            class="mt-8 rounded-2xl border border-slate-200
+                   bg-white p-5 shadow-sm"
+        >
+            <form
+                method="get"
+                action="/farms/{{ farm.id }}/trees"
+                class="grid gap-4 lg:grid-cols-12"
+            >
+                <div class="lg:col-span-4">
+                    <label
+                        for="q"
+                        class="block text-xs font-bold uppercase
+                               tracking-wider text-slate-500"
+                    >
+                        Search
+                    </label>
+
+                    <input
+                        id="q"
+                        name="q"
+                        type="search"
+                        value="{{ query_text }}"
+                        placeholder="Tree code, name, QR, block or row"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 px-4 py-3 text-sm
+                               outline-none transition
+                               focus:border-emerald-500"
+                    >
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label
+                        for="variety"
+                        class="block text-xs font-bold uppercase
+                               tracking-wider text-slate-500"
+                    >
+                        Variety
+                    </label>
+
+                    <select
+                        id="variety"
+                        name="variety"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 bg-white px-4 py-3
+                               text-sm outline-none transition
+                               focus:border-emerald-500"
+                    >
+                        <option value="">All varieties</option>
+
+                        {% for variety in tree_varieties %}
+                            <option
+                                value="{{ variety }}"
+                                {% if variety_filter == variety %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ variety }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label
+                        for="health_status"
+                        class="block text-xs font-bold uppercase
+                               tracking-wider text-slate-500"
+                    >
+                        Health
+                    </label>
+
+                    <select
+                        id="health_status"
+                        name="health_status"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 bg-white px-4 py-3
+                               text-sm outline-none transition
+                               focus:border-emerald-500"
+                    >
+                        <option value="">All health statuses</option>
+
+                        {% for status in tree_health_statuses %}
+                            <option
+                                value="{{ status }}"
+                                {% if health_filter == status %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ status }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label
+                        for="activity"
+                        class="block text-xs font-bold uppercase
+                               tracking-wider text-slate-500"
+                    >
+                        Activity
+                    </label>
+
+                    <select
+                        id="activity"
+                        name="activity"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 bg-white px-4 py-3
+                               text-sm outline-none transition
+                               focus:border-emerald-500"
+                    >
+                        <option value="">All trees</option>
+
+                        <option
+                            value="active"
+                            {% if activity_filter == "active" %}
+                                selected
+                            {% endif %}
+                        >
+                            Active
+                        </option>
+
+                        <option
+                            value="inactive"
+                            {% if activity_filter == "inactive" %}
+                                selected
+                            {% endif %}
+                        >
+                            Inactive
+                        </option>
+                    </select>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label
+                        for="page_size"
+                        class="block text-xs font-bold uppercase
+                               tracking-wider text-slate-500"
+                    >
+                        Per Page
+                    </label>
+
+                    <select
+                        id="page_size"
+                        name="page_size"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 bg-white px-4 py-3
+                               text-sm outline-none transition
+                               focus:border-emerald-500"
+                    >
+                        {% for size in [10, 20, 50, 100] %}
+                            <option
+                                value="{{ size }}"
+                                {% if page_size == size %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ size }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div
+                    class="flex flex-wrap items-center gap-3
+                           lg:col-span-12"
+                >
+                    <button
+                        type="submit"
+                        class="inline-flex items-center justify-center
+                               rounded-xl bg-emerald-600 px-5 py-3
+                               text-sm font-bold text-white shadow-sm
+                               transition hover:bg-emerald-700"
+                    >
+                        Apply Filters
+                    </button>
+
+                    <a
+                        href="/farms/{{ farm.id }}/trees"
+                        class="inline-flex items-center justify-center
+                               rounded-xl border border-slate-300
+                               bg-white px-5 py-3 text-sm font-bold
+                               text-slate-700 transition
+                               hover:bg-slate-100"
+                    >
+                        Clear Filters
+                    </a>
+
+                    {% if query_text
+                          or variety_filter
+                          or health_filter
+                          or activity_filter %}
+                        <span
+                            class="text-sm font-semibold
+                                   text-slate-500"
+                        >
+                            {{ filtered_count }}
+                            matching
+                            {% if filtered_count == 1 %}
+                                tree
+                            {% else %}
+                                trees
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+            </form>
+        </section>
+
+        <section
+            class="mt-8 overflow-hidden rounded-2xl border border-slate-200
+                   bg-white shadow-sm"
+        >
+            <div
+                class="flex flex-col gap-4 border-b border-slate-200
+                       px-5 py-5 sm:flex-row sm:items-center
+                       sm:justify-between"
+            >
+                <div>
+                    <h2 class="text-lg font-bold text-slate-950">
+                        Registered Coconut Trees
+                    </h2>
+
+                    <p class="mt-1 text-sm text-slate-500">
+                        Tree records belonging to {{ farm.name }}.
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                    <span
+                        class="inline-flex w-fit items-center rounded-full
+                               bg-slate-100 px-3 py-1 text-xs font-semibold
+                               text-slate-600"
+                    >
+                        {{ filtered_count }}
+                        {% if filtered_count == 1 %}
+                            record
+                        {% else %}
+                            records
+                        {% endif %}
+                    </span>
+
+                    <a
+                        href="/farms/{{ farm.id }}/trees/labels?q={{ query_text | urlencode }}&variety={{ variety_filter | urlencode }}&health_status={{ health_filter | urlencode }}&activity={{ activity_filter | urlencode }}"
+                        class="inline-flex items-center justify-center
+                               rounded-xl border border-amber-200
+                               bg-amber-50 px-4 py-2 text-sm
+                               font-bold text-amber-700 transition
+                               hover:bg-amber-100"
+                    >
+                        Print Labels
+                    </a>
+
+                    <a
+                        href="/farms/{{ farm.id }}/trees/bulk-update"
+                        class="inline-flex items-center justify-center
+                               rounded-xl border border-violet-200
+                               bg-violet-50 px-4 py-2 text-sm
+                               font-bold text-violet-700 transition
+                               hover:bg-violet-100"
+                    >
+                        Bulk Update
+                    </a>
+
+                    <a
+                        href="/farms/{{ farm.id }}/trees/import"
+                        class="inline-flex items-center justify-center
+                               rounded-xl border border-blue-200
+                               bg-blue-50 px-4 py-2 text-sm
+                               font-bold text-blue-700 transition
+                               hover:bg-blue-100"
+                    >
+                        Import CSV
+                    </a>
+
+                    <a
+                        href="/farms/{{ farm.id }}/trees/export.csv?q={{ query_text | urlencode }}&variety={{ variety_filter | urlencode }}&health_status={{ health_filter | urlencode }}&activity={{ activity_filter | urlencode }}"
+                        class="inline-flex items-center justify-center
+                               rounded-xl border border-emerald-200
+                               bg-emerald-50 px-4 py-2 text-sm
+                               font-bold text-emerald-700 transition
+                               hover:bg-emerald-100"
+                    >
+                        Export CSV
+                    </a>
+
+                    <a
+                        href="/farms/{{ farm.id }}/trees/new"
+                        class="inline-flex items-center justify-center
+                               rounded-xl bg-emerald-600 px-4 py-2
+                               text-sm font-bold text-white shadow-sm
+                               transition hover:bg-emerald-700"
+                    >
+                        + Add Tree
+                    </a>
+                </div>
+            </div>
+
+            {% if trees %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th
+                                    scope="col"
+                                    class="px-5 py-3 text-left text-xs
+                                           font-bold uppercase tracking-wider
+                                           text-slate-500"
+                                >
+                                    Tree
+                                </th>
+
+                                <th
+                                    scope="col"
+                                    class="px-5 py-3 text-left text-xs
+                                           font-bold uppercase tracking-wider
+                                           text-slate-500"
+                                >
+                                    Variety
+                                </th>
+
+                                <th
+                                    scope="col"
+                                    class="px-5 py-3 text-left text-xs
+                                           font-bold uppercase tracking-wider
+                                           text-slate-500"
+                                >
+                                    Position
+                                </th>
+
+                                <th
+                                    scope="col"
+                                    class="px-5 py-3 text-left text-xs
+                                           font-bold uppercase tracking-wider
+                                           text-slate-500"
+                                >
+                                    Planting Date
+                                </th>
+
+                                <th
+                                    scope="col"
+                                    class="px-5 py-3 text-left text-xs
+                                           font-bold uppercase tracking-wider
+                                           text-slate-500"
+                                >
+                                    Health
+                                </th>
+
+                                <th
+                                    scope="col"
+                                    class="px-5 py-3 text-left text-xs
+                                           font-bold uppercase tracking-wider
+                                           text-slate-500"
+                                >
+                                    Activity
+                                </th>
+
+                                <th
+                                    scope="col"
+                                    class="px-5 py-3 text-right text-xs
+                                           font-bold uppercase tracking-wider
+                                           text-slate-500"
+                                >
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                            {% for tree in trees %}
+                                <tr class="transition hover:bg-slate-50">
+                                    <td class="whitespace-nowrap px-5 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="flex h-10 w-10
+                                                       shrink-0 items-center
+                                                       justify-center
+                                                       rounded-xl
+                                                       bg-emerald-100
+                                                       text-lg"
+                                            >
+                                                🌴
+                                            </div>
+
+                                            <div>
+                                                <a
+                                                    href="/farms/{{ farm.id }}/trees/{{ tree.id }}"
+                                                    class="font-bold
+                                                           text-slate-900
+                                                           transition
+                                                           hover:text-emerald-700"
+                                                >
+                                                    {{ tree.tree_code }}
+                                                </a>
+
+                                                <p
+                                                    class="text-sm
+                                                           text-slate-500"
+                                                >
+                                                    {{ tree.tree_name or
+                                                       "Unnamed tree" }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <td class="whitespace-nowrap px-5 py-4">
+                                        <span
+                                            class="rounded-full bg-blue-50
+                                                   px-3 py-1 text-xs
+                                                   font-semibold
+                                                   text-blue-700"
+                                        >
+                                            {{ tree.variety }}
+                                        </span>
+                                    </td>
+
+                                    <td class="px-5 py-4 text-sm text-slate-600">
+                                        {% if tree.block_name %}
+                                            <span class="font-semibold">
+                                                {{ tree.block_name }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-slate-400">
+                                                No block
+                                            </span>
+                                        {% endif %}
+
+                                        <div class="mt-1 text-xs text-slate-400">
+                                            {% if tree.row_number %}
+                                                Row {{ tree.row_number }}
+                                            {% endif %}
+
+                                            {% if tree.position_number %}
+                                                {% if tree.row_number %} · {% endif %}
+                                                Position {{ tree.position_number }}
+                                            {% endif %}
+
+                                            {% if not tree.row_number
+                                                  and not tree.position_number %}
+                                                Position not recorded
+                                            {% endif %}
+                                        </div>
+                                    </td>
+
+                                    <td
+                                        class="whitespace-nowrap px-5 py-4
+                                               text-sm text-slate-600"
+                                    >
+                                        {% if tree.planting_date %}
+                                            {{ tree.planting_date.strftime(
+                                                "%d %b %Y"
+                                            ) }}
+                                        {% else %}
+                                            <span class="text-slate-400">
+                                                Not recorded
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="whitespace-nowrap px-5 py-4">
+                                        {% if tree.health_status == "Healthy" %}
+                                            <span
+                                                class="rounded-full
+                                                       bg-emerald-100 px-3 py-1
+                                                       text-xs font-bold
+                                                       text-emerald-700"
+                                            >
+                                                Healthy
+                                            </span>
+                                        {% elif tree.health_status ==
+                                                 "Needs Attention" %}
+                                            <span
+                                                class="rounded-full
+                                                       bg-amber-100 px-3 py-1
+                                                       text-xs font-bold
+                                                       text-amber-700"
+                                            >
+                                                Needs Attention
+                                            </span>
+                                        {% elif tree.health_status ==
+                                                 "Diseased" %}
+                                            <span
+                                                class="rounded-full bg-red-100
+                                                       px-3 py-1 text-xs
+                                                       font-bold text-red-700"
+                                            >
+                                                Diseased
+                                            </span>
+                                        {% else %}
+                                            <span
+                                                class="rounded-full
+                                                       bg-slate-200 px-3 py-1
+                                                       text-xs font-bold
+                                                       text-slate-600"
+                                            >
+                                                {{ tree.health_status }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td class="whitespace-nowrap px-5 py-4">
+                                        {% if tree.is_active %}
+                                            <span
+                                                class="inline-flex items-center
+                                                       gap-2 text-sm
+                                                       font-semibold
+                                                       text-emerald-700"
+                                            >
+                                                <span
+                                                    class="h-2 w-2
+                                                           rounded-full
+                                                           bg-emerald-500"
+                                                ></span>
+                                                Active
+                                            </span>
+                                        {% else %}
+                                            <span
+                                                class="inline-flex items-center
+                                                       gap-2 text-sm
+                                                       font-semibold
+                                                       text-slate-500"
+                                            >
+                                                <span
+                                                    class="h-2 w-2
+                                                           rounded-full
+                                                           bg-slate-400"
+                                                ></span>
+                                                Inactive
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td
+                                        class="whitespace-nowrap px-5 py-4
+                                               text-right"
+                                    >
+                                        <div
+                                            class="flex items-center
+                                                   justify-end gap-2"
+                                        >
+                                            <a
+                                                href="/farms/{{ farm.id }}/trees/{{ tree.id }}"
+                                                class="inline-flex rounded-lg
+                                                       border border-emerald-200
+                                                       bg-emerald-50 px-3 py-2
+                                                       text-xs font-bold
+                                                       text-emerald-700
+                                                       transition
+                                                       hover:bg-emerald-100"
+                                            >
+                                                View
+                                            </a>
+
+                                            <a
+                                                href="/farms/{{ farm.id }}/trees/{{ tree.id }}/edit"
+                                                class="inline-flex rounded-lg
+                                                       border border-slate-300
+                                                       bg-white px-3 py-2
+                                                       text-xs font-bold
+                                                       text-slate-700
+                                                       transition
+                                                       hover:bg-slate-100"
+                                            >
+                                                Edit
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="px-6 py-16 text-center">
+                    <div
+                        class="mx-auto flex h-16 w-16 items-center
+                               justify-center rounded-2xl bg-emerald-100
+                               text-3xl"
+                    >
+                        🌴
+                    </div>
+
+                    <h3 class="mt-5 text-lg font-bold text-slate-900">
+                        {% if query_text
+                              or variety_filter
+                              or health_filter
+                              or activity_filter %}
+                            No matching coconut trees
+                        {% else %}
+                            No coconut trees registered
+                        {% endif %}
+                    </h3>
+
+                    <p class="mx-auto mt-2 max-w-md text-sm text-slate-500">
+                        {% if query_text
+                              or variety_filter
+                              or health_filter
+                              or activity_filter %}
+                            Change or clear the filters to view more trees.
+                        {% else %}
+                            Coconut tree records added to this farm will
+                            appear here.
+                        {% endif %}
+                    </p>
+                </div>
+            {% endif %}
+        </section>
+
+        {% if filtered_count > 0 %}
+            <nav
+                class="mt-6 flex flex-col gap-4 rounded-2xl border
+                       border-slate-200 bg-white px-5 py-4 shadow-sm
+                       sm:flex-row sm:items-center sm:justify-between"
+                aria-label="Coconut tree pagination"
+            >
+                <p class="text-sm font-medium text-slate-600">
+                    Showing
+                    <span class="font-bold text-slate-900">
+                        {{ pagination_start }}
+                    </span>
+                    to
+                    <span class="font-bold text-slate-900">
+                        {{ pagination_end }}
+                    </span>
+                    of
+                    <span class="font-bold text-slate-900">
+                        {{ filtered_count }}
+                    </span>
+                    trees
+                </p>
+
+                <div class="flex items-center gap-2">
+                    {% if page > 1 %}
+                        <a
+                            href="/farms/{{ farm.id }}/trees?q={{ query_text | urlencode }}&variety={{ variety_filter | urlencode }}&health_status={{ health_filter | urlencode }}&activity={{ activity_filter | urlencode }}&page_size={{ page_size }}&page={{ page - 1 }}"
+                            class="inline-flex items-center justify-center
+                                   rounded-xl border border-slate-300
+                                   bg-white px-4 py-2 text-sm font-bold
+                                   text-slate-700 transition
+                                   hover:bg-slate-100"
+                        >
+                            Previous
+                        </a>
+                    {% else %}
+                        <span
+                            class="inline-flex cursor-not-allowed items-center
+                                   justify-center rounded-xl border
+                                   border-slate-200 bg-slate-100 px-4 py-2
+                                   text-sm font-bold text-slate-400"
+                        >
+                            Previous
+                        </span>
+                    {% endif %}
+
+                    <span
+                        class="inline-flex items-center justify-center
+                               rounded-xl bg-emerald-50 px-4 py-2
+                               text-sm font-bold text-emerald-700"
+                    >
+                        Page {{ page }} of {{ total_pages }}
+                    </span>
+
+                    {% if page < total_pages %}
+                        <a
+                            href="/farms/{{ farm.id }}/trees?q={{ query_text | urlencode }}&variety={{ variety_filter | urlencode }}&health_status={{ health_filter | urlencode }}&activity={{ activity_filter | urlencode }}&page_size={{ page_size }}&page={{ page + 1 }}"
+                            class="inline-flex items-center justify-center
+                                   rounded-xl border border-slate-300
+                                   bg-white px-4 py-2 text-sm font-bold
+                                   text-slate-700 transition
+                                   hover:bg-slate-100"
+                        >
+                            Next
+                        </a>
+                    {% else %}
+                        <span
+                            class="inline-flex cursor-not-allowed items-center
+                                   justify-center rounded-xl border
+                                   border-slate-200 bg-slate-100 px-4 py-2
+                                   text-sm font-bold text-slate-400"
+                        >
+                            Next
+                        </span>
+                    {% endif %}
+                </div>
+            </nav>
+        {% endif %}
+    </main>
+</body>
+</html>

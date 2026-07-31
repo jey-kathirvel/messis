@@ -1,0 +1,263 @@
+============================================
+ PATCH-DEPLOY-005 - HARDENING AND RELEASE TAG
+============================================
+
+===== PREREQUISITE VALIDATION =====
+Syntax OK
+HTTPS_STATUS=200
+PREREQUISITES: PASSED
+
+===== BACKUP CURRENT CONFIGURATION =====
+CONFIGURATION BACKUP: PASSED
+
+===== APPLICATION OWNERSHIP VALIDATION =====
+uid=995(messis) gid=987(messis) groups=987(messis)
+messis:x:987:
+APPLICATION OWNERSHIP: PASSED
+
+===== SECRET FILE PERMISSIONS =====
+SECURED=/opt/messis/.env
+SECRET FILE PERMISSIONS: PASSED
+
+===== SYSTEMD HARDENING =====
+curl: (7) Failed to connect to 127.0.0.1 port 8080 after 0 ms: Couldn't connect to server
+curl: (7) Failed to connect to 127.0.0.1 port 8080 after 0 ms: Couldn't connect to server
+curl: (7) Failed to connect to 127.0.0.1 port 8080 after 0 ms: Couldn't connect to server
+SYSTEMD HARDENING: PASSED
+
+===== SYSTEMD SECURITY SCORE =====
+  NAME                                                        DESCRIPTION                                                             EXPOSURE
+✗ RemoveIPC=                                                  Service user may leave SysV IPC objects around                               0.1
+✗ RootDirectory=/RootImage=                                   Service runs within the host's root directory                                0.1
+✓ User=/DynamicUser=                                          Service runs under a static non-root user identity                      
+✓ RestrictRealtime=                                           Service realtime scheduling access is restricted                        
+✗ CapabilityBoundingSet=~CAP_SYS_TIME                         Service processes may change the system clock                                0.2
+✓ NoNewPrivileges=                                            Service processes cannot acquire new privileges                         
+✓ AmbientCapabilities=                                        Service process does not receive ambient capabilities                   
+✗ PrivateDevices=                                             Service potentially has access to hardware devices                           0.2
+✗ ProtectClock=                                               Service may write to the hardware clock or system clock                      0.2
+✗ CapabilityBoundingSet=~CAP_SYS_PACCT                        Service may use acct()                                                       0.1
+✗ CapabilityBoundingSet=~CAP_KILL                             Service may send UNIX signals to arbitrary processes                         0.1
+✗ CapabilityBoundingSet=~CAP_WAKE_ALARM                       Service may program timers that wake up the system                           0.1
+✗ CapabilityBoundingSet=~CAP_(DAC_*|FOWNER|IPC_OWNER)         Service may override UNIX file/IPC permission checks                         0.2
+✗ CapabilityBoundingSet=~CAP_BPF                              Service may not load BPF programs                                            0.1
+✗ CapabilityBoundingSet=~CAP_LINUX_IMMUTABLE                  Service may mark files immutable                                             0.1
+✗ CapabilityBoundingSet=~CAP_IPC_LOCK                         Service may lock memory into RAM                                             0.1
+✗ CapabilityBoundingSet=~CAP_SYS_TTY_CONFIG                   Service may issue vhangup()                                                  0.1
+✗ CapabilityBoundingSet=~CAP_SYS_BOOT                         Service may issue reboot()                                                   0.1
+✗ CapabilityBoundingSet=~CAP_SYS_CHROOT                       Service may issue chroot()                                                   0.1
+✓ SystemCallArchitectures=                                    Service may execute system calls only with native ABI                   
+✗ CapabilityBoundingSet=~CAP_BLOCK_SUSPEND                    Service may establish wake locks                                             0.1
+✗ RestrictNamespaces=~user                                    Service may create user namespaces                                           0.3
+✗ RestrictNamespaces=~pid                                     Service may create process namespaces                                        0.1
+✗ RestrictNamespaces=~net                                     Service may create network namespaces                                        0.1
+✗ RestrictNamespaces=~uts                                     Service may create hostname namespaces                                       0.1
+✗ RestrictNamespaces=~mnt                                     Service may create file system namespaces                                    0.1
+✗ CapabilityBoundingSet=~CAP_LEASE                            Service may create file leases                                               0.1
+✗ CapabilityBoundingSet=~CAP_MKNOD                            Service may create device nodes                                              0.1
+✗ RestrictNamespaces=~cgroup                                  Service may create cgroup namespaces                                         0.1
+✗ RestrictNamespaces=~ipc                                     Service may create IPC namespaces                                            0.1
+✗ ProtectHostname=                                            Service may change system host/domainname                                    0.1
+✗ CapabilityBoundingSet=~CAP_(CHOWN|FSETID|SETFCAP)           Service may change file ownership/access mode/capabilities unrestricted      0.2
+✗ CapabilityBoundingSet=~CAP_SET(UID|GID|PCAP)                Service may change UID/GID identities/capabilities                           0.3
+✗ RestrictAddressFamilies=~AF_PACKET                          Service may allocate packet sockets                                          0.2
+✗ RestrictAddressFamilies=~AF_NETLINK                         Service may allocate netlink sockets                                         0.1
+✗ RestrictAddressFamilies=~AF_UNIX                            Service may allocate local sockets                                           0.1
+✗ RestrictAddressFamilies=~…                                  Service may allocate exotic sockets                                          0.3
+✗ RestrictAddressFamilies=~AF_(INET|INET6)                    Service may allocate Internet sockets                                        0.3
+✗ CapabilityBoundingSet=~CAP_MAC_*                            Service may adjust SMACK MAC                                                 0.1
+✗ ProtectSystem=                                              Service has very limited write access to the OS file hierarchy               0.1
+✗ CapabilityBoundingSet=~CAP_SYS_RAWIO                        Service has raw I/O access                                                   0.2
+✗ CapabilityBoundingSet=~CAP_SYS_PTRACE                       Service has ptrace() debugging abilities                                     0.3
+✗ CapabilityBoundingSet=~CAP_SYS_(NICE|RESOURCE)              Service has privileges to change resource use parameters                     0.1
+✓ SupplementaryGroups=                                        Service has no supplementary groups                                     
+✗ DeviceAllow=                                                Service has no device ACL                                                    0.2
+✓ PrivateTmp=                                                 Service has no access to other software's temporary files               
+✓ CapabilityBoundingSet=~CAP_SYSLOG                           Service has no access to kernel logging                                 
+✓ ProtectHome=                                                Service has no access to home directories                               
+✗ CapabilityBoundingSet=~CAP_NET_ADMIN                        Service has network configuration privileges                                 0.2
+✗ ProtectProc=                                                Service has full access to process tree (/proc hidepid=)                     0.2
+✗ ProcSubset=                                                 Service has full access to non-process /proc files (/proc subset=)           0.1
+✗ CapabilityBoundingSet=~CAP_NET_(BIND_SERVICE|BROADCAST|RAW) Service has elevated networking privileges                                   0.1
+✗ CapabilityBoundingSet=~CAP_AUDIT_*                          Service has audit subsystem access                                           0.1
+✗ CapabilityBoundingSet=~CAP_SYS_ADMIN                        Service has administrator privileges                                         0.3
+✗ PrivateNetwork=                                             Service has access to the host's network                                     0.5
+✗ PrivateUsers=                                               Service has access to other users                                            0.2
+✓ KeyringMode=                                                Service doesn't share key material with other services                  
+✓ Delegate=                                                   Service does not maintain its own delegated control group subtree       
+✗ SystemCallFilter=~@clock                                    Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@cpu-emulation                            Service does not filter system calls                                         0.1
+✗ SystemCallFilter=~@debug                                    Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@module                                   Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@mount                                    Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@obsolete                                 Service does not filter system calls                                         0.1
+✗ SystemCallFilter=~@privileged                               Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@raw-io                                   Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@reboot                                   Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@resources                                Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@swap                                     Service does not filter system calls                                         0.2
+✗ IPAddressDeny=                                              Service does not define an IP address allow list                             0.2
+✓ NotifyAccess=                                               Service child processes cannot alter service state                      
+✓ ProtectKernelLogs=                                          Service cannot read from or write to the kernel log ring buffer         
+✓ ProtectControlGroups=                                       Service cannot modify the control group file system                     
+✓ ProtectKernelModules=                                       Service cannot load or read kernel modules                              
+✓ CapabilityBoundingSet=~CAP_SYS_MODULE                       Service cannot load kernel modules                                      
+✓ PrivateMounts=                                              Service cannot install system mounts                                    
+✓ MemoryDenyWriteExecute=                                     Service cannot create writable executable memory mappings               
+✓ LockPersonality=                                            Service cannot change ABI personality                                   
+✓ ProtectKernelTunables=                                      Service cannot alter kernel tunables (/proc/sys, …)                     
+✓ RestrictSUIDSGID=                                           SUID/SGID file creation by service is restricted                        
+✗ UMask=                                                      Files created by service are group-readable by default                       0.1
+
+→ Overall exposure level for messis.service: 6.9 MEDIUM 😐
+SYSTEMD SECURITY SCORE: RECORDED
+
+===== APACHE HARDENING =====
+Module headers already enabled
+Module proxy already enabled
+Considering dependency proxy for proxy_http:
+Module proxy already enabled
+Module proxy_http already enabled
+Module rewrite already enabled
+Considering dependency mime for ssl:
+Module mime already enabled
+Considering dependency socache_shmcb for ssl:
+Module socache_shmcb already enabled
+Module ssl already enabled
+Syntax OK
+APACHE HARDENING: PASSED
+
+===== SERVER TOKEN HARDENING =====
+Syntax OK
+SERVER TOKEN HARDENING: PASSED
+
+===== HTTP METHOD VALIDATION =====
+TRACE_STATUS=405
+HTTP METHOD VALIDATION: PASSED
+
+===== SECURITY HEADER VALIDATION =====
+HTTP/1.1 200 OK
+Date: Fri, 31 Jul 2026 10:31:33 GMT
+Server: uvicorn
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+content-length: 2206
+content-type: text/html; charset=utf-8
+Vary: Accept-Encoding
+
+SECURITY HEADERS: PASSED
+
+===== APPLICATION SECURITY VALIDATION =====
+APPLICATION_TITLE=Messis AI
+ROUTE_COUNT=60
+APPLICATION SECURITY VALIDATION: PASSED
+
+===== DATABASE CONNECTION VALIDATION =====
+DATABASE_NAME=messis_db
+DATABASE_USER=messis_user
+DATABASE CONNECTION: PASSED
+
+===== LOG ROTATION CONFIGURATION =====
+warning: logrotate in debug mode does nothing except printing debug messages!  Consider using verbose mode (-v) instead if this is not what you want.
+
+reading config file /etc/logrotate.d/messis
+Reading state from file: /var/lib/logrotate/status
+Allocating hash table for state file, size 64 entries
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+
+Handling 1 logs
+
+rotating pattern: /var/log/apache2/messis-access.log
+/var/log/apache2/messis-error.log  after 1 days (14 rotations)
+empty log files are not rotated, old logs are removed
+considering log /var/log/apache2/messis-access.log
+Creating new state
+  Now: 2026-07-31 10:31
+  Last rotated at 2026-07-31 10:00
+  log does not need rotating (log has already been rotated)
+considering log /var/log/apache2/messis-error.log
+Creating new state
+  Now: 2026-07-31 10:31
+  Last rotated at 2026-07-31 10:00
+  log does not need rotating (log has already been rotated)
+not running postrotate script, since no logs were rotated
+LOG ROTATION: PASSED
+
+===== REUSABLE HEALTH CHECK =====
+Certificate will not expire
+MESSIS HEALTH CHECK: PASSED
+REUSABLE HEALTH CHECK: PASSED
+
+===== GIT REPOSITORY VALIDATION =====
+fatal: not a git repository (or any of the parent directories): .git

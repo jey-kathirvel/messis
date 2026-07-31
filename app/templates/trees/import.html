@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Import Coconut Trees | Messis AI</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(16, 185, 129, 0.14),
+                    transparent 30rem
+                ),
+                #f8fafc;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-slate-800">
+    <header
+        class="border-b border-slate-200 bg-white/90 backdrop-blur"
+    >
+        <div
+            class="mx-auto flex max-w-5xl items-center justify-between
+                   gap-4 px-4 py-4 sm:px-6 lg:px-8"
+        >
+            <div>
+                <a
+                    href="/farms/{{ farm.id }}/trees"
+                    class="text-sm font-semibold text-emerald-700
+                           hover:text-emerald-900"
+                >
+                    ← Coconut Trees
+                </a>
+
+                <h1
+                    class="mt-1 text-2xl font-bold tracking-tight
+                           text-slate-950"
+                >
+                    Import Coconut Trees
+                </h1>
+
+                <p class="mt-1 text-sm text-slate-500">
+                    {{ farm.name }}
+                    {% if farm.location %}
+                        · {{ farm.location }}
+                    {% endif %}
+                </p>
+            </div>
+
+            <div
+                class="flex flex-col items-end gap-3 text-right"
+            >
+                <div>
+                    <p
+                        class="text-xs font-semibold uppercase
+                               tracking-wider text-slate-400"
+                    >
+                        Maximum rows
+                    </p>
+
+                    <p class="text-lg font-bold text-slate-800">
+                        {{ max_rows }}
+                    </p>
+                </div>
+
+                <a
+                    href="/farms/{{ farm.id }}/trees/import-template.csv"
+                    class="inline-flex items-center justify-center
+                           rounded-xl border border-emerald-200
+                           bg-emerald-50 px-4 py-2 text-sm font-bold
+                           text-emerald-700 transition
+                           hover:bg-emerald-100"
+                >
+                    Download CSV Template
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        {% if errors %}
+            <section
+                class="mb-6 rounded-2xl border border-red-200
+                       bg-red-50 p-5"
+            >
+                <h2 class="font-bold text-red-800">
+                    Import could not be completed
+                </h2>
+
+                <ul
+                    class="mt-3 max-h-80 list-disc space-y-2
+                           overflow-y-auto pl-5 text-sm text-red-700"
+                >
+                    {% for error in errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
+        <div class="grid gap-6 lg:grid-cols-3">
+            <section
+                class="overflow-hidden rounded-2xl border
+                       border-slate-200 bg-white shadow-sm
+                       lg:col-span-2"
+            >
+                <div class="border-b border-slate-200 px-6 py-5">
+                    <h2 class="text-lg font-bold text-slate-950">
+                        Upload CSV File
+                    </h2>
+
+                    <p class="mt-1 text-sm text-slate-500">
+                        The entire import is rejected when any row
+                        contains an error.
+                    </p>
+
+                    <p class="mt-2 text-sm text-slate-500">
+                        Use the downloadable template to preserve the
+                        required column names and CSV structure.
+                    </p>
+                </div>
+
+                <form
+                    method="post"
+                    action="/farms/{{ farm.id }}/trees/import"
+                    enctype="multipart/form-data"
+                    class="p-6"
+                >
+                    <label
+                        for="csv_file"
+                        class="block rounded-2xl border-2
+                               border-dashed border-slate-300
+                               bg-slate-50 p-8 text-center
+                               transition hover:border-emerald-400
+                               hover:bg-emerald-50"
+                    >
+                        <span class="block text-4xl">
+                            📄
+                        </span>
+
+                        <span
+                            class="mt-3 block text-base font-bold
+                                   text-slate-800"
+                        >
+                            Select coconut tree CSV file
+                        </span>
+
+                        <span
+                            class="mt-2 block text-sm text-slate-500"
+                        >
+                            UTF-8 CSV, maximum 5 MB and
+                            {{ max_rows }} rows
+                        </span>
+
+                        <input
+                            id="csv_file"
+                            name="csv_file"
+                            type="file"
+                            accept=".csv,text/csv"
+                            required
+                            class="mx-auto mt-5 block w-full max-w-sm
+                                   rounded-xl border border-slate-300
+                                   bg-white px-3 py-2 text-sm"
+                        >
+                    </label>
+
+                    <div
+                        class="mt-6 flex flex-col-reverse gap-3
+                               sm:flex-row sm:justify-end"
+                    >
+                        <a
+                            href="/farms/{{ farm.id }}/trees"
+                            class="inline-flex items-center justify-center
+                                   rounded-xl border border-slate-300
+                                   bg-white px-5 py-3 text-sm font-bold
+                                   text-slate-700 transition
+                                   hover:bg-slate-100"
+                        >
+                            Cancel
+                        </a>
+
+                        <button
+                            type="submit"
+                            class="inline-flex items-center justify-center
+                                   rounded-xl bg-emerald-600 px-5 py-3
+                                   text-sm font-bold text-white shadow-sm
+                                   transition hover:bg-emerald-700"
+                        >
+                            Validate and Import
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <aside class="space-y-6">
+                <section
+                    class="rounded-2xl border border-slate-200
+                           bg-white p-5 shadow-sm"
+                >
+                    <h2 class="font-bold text-slate-950">
+                        Required Columns
+                    </h2>
+
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        {% for header in required_headers %}
+                            <code
+                                class="rounded-lg bg-red-50 px-2.5 py-1.5
+                                       text-xs font-bold text-red-700"
+                            >
+                                {{ header }}
+                            </code>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section
+                    class="rounded-2xl border border-slate-200
+                           bg-white p-5 shadow-sm"
+                >
+                    <h2 class="font-bold text-slate-950">
+                        Optional Columns
+                    </h2>
+
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        {% for header in optional_headers %}
+                            <code
+                                class="rounded-lg bg-slate-100
+                                       px-2.5 py-1.5 text-xs font-bold
+                                       text-slate-600"
+                            >
+                                {{ header }}
+                            </code>
+                        {% endfor %}
+                    </div>
+                </section>
+            </aside>
+        </div>
+
+        <section
+            class="mt-6 overflow-hidden rounded-2xl border
+                   border-slate-200 bg-white shadow-sm"
+        >
+            <div
+                class="flex flex-col gap-3 border-b border-slate-200
+                       px-6 py-5 sm:flex-row sm:items-center
+                       sm:justify-between"
+            >
+                <div>
+                    <h2 class="text-lg font-bold text-slate-950">
+                        CSV Example
+                    </h2>
+
+                    <p class="mt-1 text-sm text-slate-500">
+                        Dates must use YYYY-MM-DD format.
+                    </p>
+                </div>
+
+                <a
+                    href="/farms/{{ farm.id }}/trees/import-template.csv"
+                    class="inline-flex items-center justify-center
+                           rounded-xl border border-slate-300
+                           bg-white px-4 py-2 text-sm font-bold
+                           text-slate-700 transition
+                           hover:bg-slate-100"
+                >
+                    Download Example
+                </a>
+            </div>
+
+            <div class="overflow-x-auto p-6">
+                <pre
+                    class="min-w-max rounded-xl bg-slate-950 p-5
+                           text-xs leading-6 text-slate-100"
+                >tree_code,tree_name,variety,health_status,planting_date,block_name,row_number,position_number,qr_code_id,height_m,canopy_diameter_m,trunk_girth_cm,remarks,is_active
+CTN-001,North Tree,Tall,Healthy,2020-06-15,Block A,R1,P1,QR-CTN-001,8.50,5.25,75.40,Healthy producing tree,Yes
+CTN-002,Canal Tree,Dwarf,Needs Attention,2021-01-10,Block A,R1,P2,QR-CTN-002,6.20,4.80,62.30,Inspect leaf colour,Yes</pre>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

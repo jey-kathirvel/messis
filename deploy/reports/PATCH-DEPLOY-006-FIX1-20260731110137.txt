@@ -1,0 +1,1282 @@
+============================================
+ PATCH-DEPLOY-006-FIX1 - SAFE VPS CLEANUP
+============================================
+BEFORE_DISK_USAGE=91%
+BEFORE_AVAILABLE=9.2GiB
+
+===== SERVICE PRE-CHECK =====
+SERVICE PRE-CHECK: PASSED
+
+===== APT CACHE CLEANUP =====
+Reading package lists...
+Building dependency tree...
+Reading state information...
+APT CACHE CLEANUP: PASSED
+
+===== JOURNAL CLEANUP =====
+Vacuuming done, freed 0B of archived journals from /var/log/journal/2d5beb0da535496e921d960c473043d7.
+Vacuuming done, freed 0B of archived journals from /run/log/journal.
+Vacuuming done, freed 0B of archived journals from /var/log/journal.
+Vacuuming done, freed 0B of archived journals from /var/log/journal/2d5beb0da535496e921d960c473043d7.
+Vacuuming done, freed 0B of archived journals from /var/log/journal.
+Vacuuming done, freed 0B of archived journals from /run/log/journal.
+JOURNAL CLEANUP: PASSED
+
+===== OLD ROTATED LOG CLEANUP =====
+/var/log/monarx-agent.log-20260721
+/var/log/nginx/access.log.1
+/var/log/nginx/error.log.1
+/var/log/kern.log.2.gz
+/var/log/syslog.2.gz
+/var/log/postgresql/postgresql-16-main.log.2.gz
+/var/log/letsencrypt/letsencrypt.log.2.gz
+/var/log/auth.log.2.gz
+OLD LOG CLEANUP: PASSED
+
+===== TEMPORARY FILE CLEANUP =====
+TEMPORARY FILE CLEANUP: PASSED
+
+===== PYTHON CACHE CLEANUP =====
+/opt/jey-vault/venv/lib/python3.12/site-packages/starlette/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/starlette/middleware/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/annotated_types/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/pydantic_settings/sources/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/pydantic_settings/sources/providers/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/pydantic_settings/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/pydantic_core/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/fastapi/dependencies/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/fastapi/security/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/fastapi/openapi/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/fastapi/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/fastapi/middleware/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/fastapi/_compat/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/annotated_doc/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/uvicorn/supervisors/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/uvicorn/loops/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/uvicorn/protocols/http/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/uvicorn/protocols/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/uvicorn/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/uvicorn/middleware/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/uvicorn/lifespan/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/greenlet/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/jinja2/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/sqlalchemy/sql/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/sqlalchemy/pool/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/sqlalchemy/orm/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/sqlalchemy/connectors/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/sqlalchemy/util/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/sqlalchemy/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/sqlalchemy/engine/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/sqlalchemy/cyextension/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/sqlalchemy/event/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/sqlalchemy/future/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/sqlalchemy/dialects/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/typing_inspection/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/httptools/parser/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/httptools/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/psycopg2/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/email_validator/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/itsdangerous/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/dotenv/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/click/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/python_multipart/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/websockets/extensions/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/websockets/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/PIL/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/idna/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/pydantic/v1/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/pydantic/plugin/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/pydantic/_internal/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/pydantic/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/anyio/_core/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/anyio/streams/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/anyio/abc/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/anyio/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/anyio/_backends/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/watchfiles/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/markupsafe/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/uvloop/includes/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/uvloop/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/passlib/utils/compat/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/passlib/utils/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/passlib/handlers/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/passlib/__pycache__
+/opt/jey-vault/venv/lib/python3.12/site-packages/passlib/crypto/__pycache__
+/opt/jey-vault/app/core/__pycache__
+/opt/jey-vault/app/modules/dashboard/__pycache__
+/opt/jey-vault/app/modules/documents/__pycache__
+/opt/jey-vault/app/modules/profile/__pycache__
+/opt/jey-vault/app/modules/__pycache__
+/opt/jey-vault/app/modules/auth/__pycache__
+/opt/jey-vault/app/modules/sidebar/__pycache__
+/opt/jey-vault/app/modules/users/__pycache__
+/opt/jey-vault/app/models/__pycache__
+/opt/jey-vault/app/db/__pycache__
+/opt/jey-vault/app/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/starlette/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/starlette/middleware/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/annotated_types/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/pydantic_settings/sources/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/pydantic_settings/sources/providers/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/pydantic_settings/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/asyncpg/pgproto/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/asyncpg/protocol/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/asyncpg/exceptions/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/asyncpg/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/pydantic_core/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/fastapi/dependencies/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/fastapi/security/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/fastapi/openapi/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/fastapi/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/fastapi/middleware/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/fastapi/_compat/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/annotated_doc/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/uvicorn/supervisors/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/uvicorn/loops/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/uvicorn/protocols/http/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/uvicorn/protocols/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/uvicorn/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/uvicorn/middleware/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/uvicorn/lifespan/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/greenlet/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/jinja2/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/sql/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/pool/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/orm/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/connectors/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/util/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/engine/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/cyextension/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/event/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/future/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/ext/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/dialects/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/typing_inspection/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/orjson/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/itsdangerous/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/dotenv/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/click/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/python_multipart/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/idna/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/pydantic/v1/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/pydantic/plugin/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/pydantic/_internal/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/pydantic/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/anyio/_core/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/anyio/streams/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/anyio/abc/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/anyio/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/markupsafe/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/h11/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/passlib/utils/compat/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/passlib/utils/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/passlib/handlers/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/passlib/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/passlib/crypto/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/httpx/_transports/__pycache__
+/opt/api-studio/venv/lib/python3.12/site-packages/httpx/__pycache__
+/opt/api-studio/app/routers/__pycache__
+/opt/api-studio/app/core/__pycache__
+/opt/api-studio/app/services/__pycache__
+/opt/api-studio/app/models/__pycache__
+/opt/api-studio/app/parsers/__pycache__
+/opt/api-studio/app/__pycache__
+/opt/api-studio/app/repositories/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/starlette/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/starlette/middleware/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/annotated_types/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/pydantic_settings/sources/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/pydantic_settings/sources/providers/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/pydantic_settings/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/pydantic_core/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/fastapi/dependencies/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/fastapi/security/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/fastapi/openapi/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/fastapi/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/fastapi/middleware/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/uvicorn/supervisors/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/uvicorn/loops/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/uvicorn/protocols/http/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/uvicorn/protocols/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/uvicorn/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/uvicorn/middleware/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/uvicorn/lifespan/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/greenlet/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/jinja2/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/sqlalchemy/sql/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/sqlalchemy/pool/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/sqlalchemy/orm/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/sqlalchemy/util/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/sqlalchemy/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/sqlalchemy/engine/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/sqlalchemy/cyextension/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/sqlalchemy/event/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/sqlalchemy/future/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/sqlalchemy/dialects/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/typing_inspection/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/httptools/parser/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/httptools/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/psycopg2/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/bcrypt/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/email_validator/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/dotenv/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/click/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/python_multipart/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/websockets/extensions/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/websockets/legacy/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/websockets/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/websockets/asyncio/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/idna/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/jose/backends/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/jose/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/pydantic/plugin/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/pydantic/_internal/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/pydantic/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/cryptography/x509/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/cryptography/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/cryptography/hazmat/primitives/serialization/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/cryptography/hazmat/primitives/ciphers/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/cryptography/hazmat/primitives/asymmetric/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/cryptography/hazmat/primitives/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/cryptography/hazmat/backends/openssl/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/cryptography/hazmat/backends/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/cryptography/hazmat/decrepit/ciphers/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/cryptography/hazmat/decrepit/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/cryptography/hazmat/bindings/openssl/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/cryptography/hazmat/bindings/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/cryptography/hazmat/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/anyio/_core/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/anyio/streams/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/anyio/abc/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/anyio/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/anyio/_backends/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/watchfiles/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/markupsafe/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/uvloop/includes/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/uvloop/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/passlib/utils/compat/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/passlib/utils/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/passlib/handlers/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/passlib/__pycache__
+/opt/apisentry/venv/lib/python3.12/site-packages/passlib/crypto/__pycache__
+/opt/apisentry/app/core/__pycache__
+/opt/apisentry/app/services/discovery/__pycache__
+/opt/apisentry/app/services/mail/__pycache__
+/opt/apisentry/app/services/security/source_analysis/analyzers/__pycache__
+/opt/apisentry/app/services/security/source_analysis/__pycache__
+/opt/apisentry/app/services/security/__pycache__
+/opt/apisentry/app/services/security/knowledge/__pycache__
+/opt/apisentry/app/services/__pycache__
+/opt/apisentry/app/services/auth/__pycache__
+/opt/apisentry/app/api/v1/__pycache__
+/opt/apisentry/app/api/v1/auth/__pycache__
+/opt/apisentry/app/api/v1/projects/__pycache__
+/opt/apisentry/app/api/__pycache__
+/opt/apisentry/app/workers/__pycache__
+/opt/apisentry/app/models/__pycache__
+/opt/apisentry/app/db/__pycache__
+/opt/apisentry/app/__pycache__
+/opt/apisentry/app/schemas/__pycache__
+/opt/apisentry/app/web/__pycache__
+/opt/messis/tests/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/starlette/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/starlette/middleware/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/annotated_types/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pydantic_settings/sources/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pydantic_settings/sources/providers/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pydantic_settings/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/psycopg/types/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/psycopg/pq/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/psycopg/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pydantic_core/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/fastapi/dependencies/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/fastapi/security/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/fastapi/openapi/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/fastapi/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/uvicorn/supervisors/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/uvicorn/loops/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/uvicorn/protocols/http/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/uvicorn/protocols/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/uvicorn/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/uvicorn/middleware/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/uvicorn/lifespan/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/mako/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/mako/ext/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/index/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/resolution/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/resolution/resolvelib/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/utils/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/distributions/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/cli/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/metadata/importlib/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/metadata/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/locations/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/models/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/network/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/operations/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/operations/build/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/operations/install/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/req/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/commands/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/build_env/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_internal/vcs/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/rich/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/distlib/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/distro/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/truststore/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/cachecontrol/caches/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/cachecontrol/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/msgpack/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/pygments/lexers/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/pygments/styles/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/pygments/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/pygments/filters/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/requests/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/packaging/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/urllib3/http2/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/urllib3/contrib/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/urllib3/util/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/urllib3/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/certifi/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/resolvelib/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/resolvelib/resolvers/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/idna/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pip/_vendor/platformdirs/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/argon2/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/psycopg_binary/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/greenlet/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/qrcode/tests/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/qrcode/compat/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/qrcode/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/qrcode/image/styles/moduledrawers/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/qrcode/image/styles/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/qrcode/image/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/jinja2/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/sqlalchemy/sql/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/sqlalchemy/pool/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/sqlalchemy/orm/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/sqlalchemy/util/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/sqlalchemy/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/sqlalchemy/engine/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/sqlalchemy/cyextension/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/sqlalchemy/event/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/sqlalchemy/future/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/sqlalchemy/ext/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/sqlalchemy/dialects/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/typing_inspection/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/httptools/parser/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/httptools/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/itsdangerous/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/dotenv/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/click/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/python_multipart/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/websockets/extensions/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/websockets/legacy/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/websockets/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/_argon2_cffi_bindings/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/PIL/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/idna/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pydantic/plugin/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pydantic/_internal/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/pydantic/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/anyio/_core/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/anyio/streams/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/anyio/abc/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/anyio/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/anyio/_backends/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/alembic/ddl/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/alembic/script/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/alembic/autogenerate/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/alembic/runtime/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/alembic/operations/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/alembic/util/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/alembic/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/watchfiles/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/markupsafe/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/_distutils_hack/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/uvloop/includes/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/uvloop/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/httpx/_transports/__pycache__
+/opt/messis/.venv/lib/python3.12/site-packages/httpx/__pycache__
+/opt/messis/app/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/starlette/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/starlette/middleware/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/annotated_types/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/pydantic_settings/sources/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/pydantic_settings/sources/providers/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/pydantic_settings/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/distro/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/pydantic_core/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/fastapi/dependencies/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/fastapi/security/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/fastapi/openapi/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/fastapi/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/uvicorn/supervisors/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/uvicorn/loops/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/uvicorn/protocols/http/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/uvicorn/protocols/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/uvicorn/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/uvicorn/middleware/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/uvicorn/lifespan/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/httpcore/_sync/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/httpcore/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/httpcore/_async/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/httpcore/_backends/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/greenlet/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/sniffio/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/jinja2/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/sqlalchemy/sql/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/sqlalchemy/pool/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/sqlalchemy/orm/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/sqlalchemy/util/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/sqlalchemy/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/sqlalchemy/engine/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/sqlalchemy/cyextension/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/sqlalchemy/event/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/sqlalchemy/future/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/sqlalchemy/dialects/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/types/shared_params/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/types/shared/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/types/responses/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/types/beta/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/types/beta/threads/runs/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/types/beta/threads/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/types/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/types/chat/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/types/graders/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/lib/_parsing/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/lib/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/lib/streaming/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/_utils/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/auth/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/openai/providers/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/typing_inspection/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/httptools/parser/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/httptools/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/orjson/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/psycopg2/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/email_validator/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/itsdangerous/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/certifi/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/dotenv/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/click/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/python_multipart/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/websockets/extensions/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/websockets/legacy/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/websockets/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/websockets/asyncio/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/idna/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/pydantic/plugin/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/pydantic/_internal/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/pydantic/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/anyio/_core/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/anyio/streams/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/anyio/abc/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/anyio/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/watchfiles/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/markupsafe/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/h11/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/uvloop/includes/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/uvloop/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/passlib/utils/compat/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/passlib/utils/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/passlib/handlers/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/passlib/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/passlib/crypto/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/httpx/_transports/__pycache__
+/opt/ads-credit-debit/venv/lib/python3.12/site-packages/httpx/__pycache__
+/opt/ads-credit-debit/__pycache__
+/opt/ads-credit-debit/app/routers/__pycache__
+/opt/ads-credit-debit/app/core/__pycache__
+/opt/ads-credit-debit/app/services/__pycache__
+/opt/ads-credit-debit/app/models/__pycache__
+/opt/ads-credit-debit/app/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/starlette/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/starlette/middleware/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/annotated_types/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/et_xmlfile/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/pydantic_core/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/fastapi/dependencies/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/fastapi/security/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/fastapi/openapi/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/fastapi/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/fastapi/middleware/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/fastapi/_compat/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/annotated_doc/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/uvicorn/supervisors/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/uvicorn/loops/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/uvicorn/protocols/http/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/uvicorn/protocols/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/uvicorn/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/uvicorn/middleware/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/uvicorn/lifespan/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/greenlet/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/jinja2/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/sqlalchemy/sql/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/sqlalchemy/pool/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/sqlalchemy/orm/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/sqlalchemy/connectors/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/sqlalchemy/util/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/sqlalchemy/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/sqlalchemy/engine/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/sqlalchemy/cyextension/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/sqlalchemy/event/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/sqlalchemy/future/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/sqlalchemy/dialects/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/formula/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/descriptors/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/utils/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/reader/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/chartsheet/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/worksheet/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/cell/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/writer/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/comments/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/styles/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/packaging/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/xml/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/compat/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/workbook/external_link/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/workbook/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/formatting/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/drawing/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/chart/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/openpyxl/pivot/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/typing_inspection/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/psycopg2/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/bcrypt/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/itsdangerous/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/dotenv/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/click/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/python_multipart/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/PIL/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/pydantic/v1/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/pydantic/plugin/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/pydantic/_internal/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/pydantic/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/anyio/_core/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/anyio/streams/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/anyio/abc/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/anyio/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/anyio/_backends/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/markupsafe/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/h11/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/passlib/utils/compat/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/passlib/utils/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/passlib/handlers/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/passlib/__pycache__
+/opt/crm/venv/lib/python3.12/site-packages/passlib/crypto/__pycache__
+/opt/crm/__pycache__
+/opt/crm/app/settings/__pycache__
+/opt/crm/app/core/__pycache__
+/opt/crm/app/reports/__pycache__
+/opt/crm/app/leads/__pycache__
+/opt/crm/app/quotations/__pycache__
+/opt/crm/app/models/__pycache__
+/opt/crm/app/customers/__pycache__
+/opt/crm/app/auth/__pycache__
+/opt/crm/app/followups/__pycache__
+/opt/crm/app/users/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/starlette/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/starlette/middleware/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/annotated_types/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/pydantic_settings/sources/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/pydantic_settings/sources/providers/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/pydantic_settings/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/asyncpg/pgproto/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/asyncpg/protocol/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/asyncpg/exceptions/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/asyncpg/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/pydantic_core/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/fastapi/dependencies/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/fastapi/security/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/fastapi/openapi/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/fastapi/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/fastapi/middleware/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/fastapi/_compat/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/annotated_doc/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/uvicorn/supervisors/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/uvicorn/loops/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/uvicorn/protocols/http/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/uvicorn/protocols/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/uvicorn/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/uvicorn/middleware/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/uvicorn/lifespan/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/greenlet/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/jinja2/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/sql/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/pool/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/orm/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/connectors/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/util/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/engine/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/cyextension/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/event/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/future/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/ext/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/ext/asyncio/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/dialects/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/typing_inspection/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/httptools/parser/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/httptools/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/dotenv/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/click/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/python_multipart/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/websockets/extensions/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/websockets/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/pydantic/v1/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/pydantic/plugin/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/pydantic/_internal/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/pydantic/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/anyio/_core/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/anyio/streams/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/anyio/abc/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/anyio/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/anyio/_backends/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/watchfiles/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/markupsafe/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/uvloop/includes/__pycache__
+/opt/sprintiq/venv/lib/python3.12/site-packages/uvloop/__pycache__
+/opt/sprintiq/app/routers/__pycache__
+/opt/sprintiq/app/core/__pycache__
+/opt/sprintiq/app/services/__pycache__
+/opt/sprintiq/app/models/__pycache__
+/opt/sprintiq/app/db/__pycache__
+/opt/sprintiq/app/__pycache__
+/opt/sprintiq/app/schemas/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/starlette/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/starlette/middleware/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/annotated_types/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/pydantic_settings/sources/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/pydantic_settings/sources/providers/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/pydantic_settings/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/et_xmlfile/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/pydantic_core/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/fastapi/dependencies/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/fastapi/security/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/fastapi/openapi/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/fastapi/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/fastapi/middleware/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/fastapi/_compat/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/annotated_doc/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/uvicorn/supervisors/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/uvicorn/loops/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/uvicorn/protocols/http/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/uvicorn/protocols/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/uvicorn/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/uvicorn/middleware/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/uvicorn/lifespan/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/greenlet/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/reportlab/lib/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/reportlab/pdfgen/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/reportlab/platypus/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/reportlab/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/reportlab/pdfbase/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/jinja2/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/sqlalchemy/sql/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/sqlalchemy/pool/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/sqlalchemy/orm/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/sqlalchemy/connectors/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/sqlalchemy/util/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/sqlalchemy/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/sqlalchemy/engine/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/sqlalchemy/cyextension/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/sqlalchemy/event/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/sqlalchemy/future/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/sqlalchemy/dialects/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/formula/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/descriptors/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/utils/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/reader/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/chartsheet/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/worksheet/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/cell/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/writer/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/comments/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/styles/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/packaging/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/xml/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/compat/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/workbook/external_link/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/workbook/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/formatting/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/drawing/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/chart/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/openpyxl/pivot/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/typing_inspection/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/razorpay/constants/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/razorpay/resources/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/razorpay/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/razorpay/utility/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/requests/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/psycopg2/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/bcrypt/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/urllib3/http2/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/urllib3/contrib/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/urllib3/util/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/urllib3/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/email_validator/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/itsdangerous/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/certifi/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/dotenv/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/click/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/python_multipart/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/PIL/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/idna/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/pydantic/v1/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/pydantic/plugin/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/pydantic/_internal/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/pydantic/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/anyio/_core/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/anyio/streams/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/anyio/abc/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/anyio/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/anyio/_backends/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/markupsafe/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/h11/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/charset_normalizer/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/passlib/utils/compat/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/passlib/utils/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/passlib/handlers/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/passlib/__pycache__
+/opt/ads-erp-phase2/venv/lib/python3.12/site-packages/passlib/crypto/__pycache__
+/opt/ads-erp-phase2/__pycache__
+/opt/ads-erp-phase2/app/incidents/__pycache__
+/opt/ads-erp-phase2/app/supplier_payments/__pycache__
+/opt/ads-erp-phase2/app/settings/__pycache__
+/opt/ads-erp-phase2/app/purchase/__pycache__
+/opt/ads-erp-phase2/app/dashboard/__pycache__
+/opt/ads-erp-phase2/app/finance_tools/__pycache__
+/opt/ads-erp-phase2/app/company/__pycache__
+/opt/ads-erp-phase2/app/products/__pycache__
+/opt/ads-erp-phase2/app/suppliers/__pycache__
+/opt/ads-erp-phase2/app/security/__pycache__
+/opt/ads-erp-phase2/app/reports/__pycache__
+/opt/ads-erp-phase2/app/hotel_operations/__pycache__
+/opt/ads-erp-phase2/app/billing/__pycache__
+/opt/ads-erp-phase2/app/config/__pycache__
+/opt/ads-erp-phase2/app/hrm/__pycache__
+/opt/ads-erp-phase2/app/models/__pycache__
+/opt/ads-erp-phase2/app/customers/__pycache__
+/opt/ads-erp-phase2/app/inventory/__pycache__
+/opt/ads-erp-phase2/app/categories/__pycache__
+/opt/ads-erp-phase2/app/permissions/__pycache__
+/opt/ads-erp-phase2/app/accounts/__pycache__
+/opt/ads-erp-phase2/app/units/__pycache__
+/opt/ads-erp-phase2/app/access_control/__pycache__
+/opt/ads-erp-phase2/app/routes/__pycache__
+/opt/ads-erp-phase2/app/__pycache__
+/opt/ads-erp-phase2/app/auth/__pycache__
+/opt/ads-erp-phase2/app/booking/__pycache__
+/opt/ads-erp-phase2/app/users/__pycache__
+/opt/ads-erp-phase2/app/roles/__pycache__
+/opt/ads-erp-phase2/app/custom_gst/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/starlette/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/starlette/middleware/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/annotated_types/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/pydantic_core/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/fastapi/dependencies/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/fastapi/security/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/fastapi/openapi/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/fastapi/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/fastapi/middleware/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/fastapi/_compat/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/annotated_doc/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/uvicorn/supervisors/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/uvicorn/loops/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/uvicorn/protocols/http/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/uvicorn/protocols/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/uvicorn/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/uvicorn/middleware/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/uvicorn/lifespan/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/greenlet/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/jinja2/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/sqlalchemy/sql/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/sqlalchemy/pool/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/sqlalchemy/orm/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/sqlalchemy/connectors/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/sqlalchemy/util/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/sqlalchemy/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/sqlalchemy/engine/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/sqlalchemy/cyextension/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/sqlalchemy/event/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/sqlalchemy/future/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/sqlalchemy/dialects/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/typing_inspection/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/httptools/parser/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/httptools/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/psycopg2/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/email_validator/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/itsdangerous/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/dotenv/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/click/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/python_multipart/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/websockets/extensions/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/websockets/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/idna/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/pydantic/v1/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/pydantic/plugin/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/pydantic/_internal/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/pydantic/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/anyio/_core/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/anyio/streams/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/anyio/abc/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/anyio/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/watchfiles/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/markupsafe/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/uvloop/includes/__pycache__
+/opt/leaf-store/venv/lib/python3.12/site-packages/uvloop/__pycache__
+/opt/leaf-store/app/routers/__pycache__
+/opt/leaf-store/app/core/__pycache__
+/opt/leaf-store/app/services/__pycache__
+/opt/leaf-store/app/models/__pycache__
+/opt/leaf-store/app/db/__pycache__
+/opt/leaf-store/app/__pycache__
+/opt/leaf-store/app/schemas/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/starlette/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/starlette/middleware/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/annotated_types/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/pydantic_settings/sources/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/pydantic_settings/sources/providers/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/pydantic_settings/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/pydantic_core/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/fastapi/dependencies/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/fastapi/security/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/fastapi/openapi/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/fastapi/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/fastapi/middleware/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/fastapi/_compat/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/annotated_doc/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/uvicorn/supervisors/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/uvicorn/loops/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/uvicorn/protocols/http/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/uvicorn/protocols/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/uvicorn/protocols/websockets/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/uvicorn/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/uvicorn/middleware/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/uvicorn/lifespan/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/greenlet/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/jinja2/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/sqlalchemy/sql/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/sqlalchemy/pool/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/sqlalchemy/orm/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/sqlalchemy/connectors/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/sqlalchemy/util/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/sqlalchemy/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/sqlalchemy/engine/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/sqlalchemy/cyextension/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/sqlalchemy/event/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/sqlalchemy/future/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/sqlalchemy/dialects/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/sqlalchemy/dialects/postgresql/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/typing_inspection/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/psycopg2/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/certifi/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/dotenv/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/click/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/python_multipart/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/idna/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/pydantic/v1/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/pydantic/plugin/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/pydantic/_internal/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/pydantic/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/anyio/_core/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/anyio/streams/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/anyio/abc/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/anyio/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/anyio/_backends/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/markupsafe/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/h11/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/gunicorn/http/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/gunicorn/workers/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/gunicorn/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/gunicorn/app/__pycache__
+/var/www/online-ars/.venv/lib/python3.12/site-packages/gunicorn/ctl/__pycache__
+/var/www/online-ars/app/__pycache__
+PYTHON CACHE CLEANUP: PASSED
+
+===== NODE CACHE CLEANUP =====
+npm warn using --force Recommended protections disabled.
+/root/.npm/_logs
+NODE CACHE CLEANUP: PASSED
+
+===== SAFE ARCHIVE CLEANUP =====
+OLD ARCHIVE CLEANUP: PASSED
+
+===== OLD BACKUP FILE CLEANUP =====
+/root/backups/apache-20260708-110225/sites-enabled/erp.ads-ai.in-le-ssl.conf.save
+OLD BACKUP FILE CLEANUP: PASSED
+
+===== OLD MESSIS REPORT CLEANUP =====
+MESSIS HISTORY CLEANUP: PASSED
+
+===== CRASH DUMP CLEANUP =====
+CRASH DUMP CLEANUP: PASSED
+
+===== DOCKER CACHE CLEANUP =====
+Deleted Containers:
+56bd01c580128b883b4d74dd58c8bdff39c82f7feb7bf5088e3c698972e4b1e0
+
+Total reclaimed space: 4.096kB
+Deleted Images:
+untagged: sha256:a94bc461005f4c7cf759a476a3ae5cb221485fb2e07e53fdaece8734f16c1ae5
+deleted: sha256:a94bc461005f4c7cf759a476a3ae5cb221485fb2e07e53fdaece8734f16c1ae5
+untagged: sha256:e8fb12b5f1dd9ea680cbf5efae134a132ea9958a63fa009734e8195aabafc9fa
+deleted: sha256:e8fb12b5f1dd9ea680cbf5efae134a132ea9958a63fa009734e8195aabafc9fa
+untagged: sha256:f86359a561b42fa622c93973f4709447c8f3f809c119be56d3ae51dad13f7c97
+deleted: sha256:f86359a561b42fa622c93973f4709447c8f3f809c119be56d3ae51dad13f7c97
+untagged: sha256:40561a2d4f853e937c1efbac3730154c240d64829691115c596259d60ebbf678
+deleted: sha256:40561a2d4f853e937c1efbac3730154c240d64829691115c596259d60ebbf678
+untagged: sha256:57ff83f797cde0d5b09bb972a2f5fc2c2796a480e7a9871bbacf85c0df0f44db
+deleted: sha256:57ff83f797cde0d5b09bb972a2f5fc2c2796a480e7a9871bbacf85c0df0f44db
+untagged: sha256:8d23f00c1527da07c1537bcea8395b3619c3eb431d5563ae703e9546fd0ceb4a
+deleted: sha256:8d23f00c1527da07c1537bcea8395b3619c3eb431d5563ae703e9546fd0ceb4a
+untagged: sha256:a18793791aca230b15092dc717add8d42b6cd029e2682f11715a8f820e3f4707
+deleted: sha256:a18793791aca230b15092dc717add8d42b6cd029e2682f11715a8f820e3f4707
+untagged: sha256:109fe01a1bede6c0a3c78301bebefc81b7aad6439956c8b94a38534b8e2d52d6
+deleted: sha256:109fe01a1bede6c0a3c78301bebefc81b7aad6439956c8b94a38534b8e2d52d6
+untagged: sha256:2ce5418a28c65696fa69e77ecc63293009ea5b6effdd6ee57a1946cd0186be11
+deleted: sha256:2ce5418a28c65696fa69e77ecc63293009ea5b6effdd6ee57a1946cd0186be11
+untagged: sha256:50cde82c4368b231213a94fd0aa77d0f6bda9ecd20ff68072e11303cba9ae82c
+deleted: sha256:50cde82c4368b231213a94fd0aa77d0f6bda9ecd20ff68072e11303cba9ae82c
+untagged: sha256:70272a9511247bcb3202e2bcd74953747fa14d302d0553d61d3239cd82aa24ef
+deleted: sha256:70272a9511247bcb3202e2bcd74953747fa14d302d0553d61d3239cd82aa24ef
+untagged: sha256:a48d25f569882bcf1221d20706bf5499aca20e4a193ec20c844266d6be19bd09
+deleted: sha256:a48d25f569882bcf1221d20706bf5499aca20e4a193ec20c844266d6be19bd09
+untagged: sha256:a53cbccb1849820849e47ada37cfab44267c12efb6067d122e97553871ae0694
+deleted: sha256:a53cbccb1849820849e47ada37cfab44267c12efb6067d122e97553871ae0694
+untagged: sha256:dbbfb3370c06dd4e9aca9b3ad7d8d4264d1ddbd8c747f2b001c8415df84c3b4f
+deleted: sha256:dbbfb3370c06dd4e9aca9b3ad7d8d4264d1ddbd8c747f2b001c8415df84c3b4f
+untagged: sha256:326ce66392fcb938d920635a7f73f2edd1b9ce9472c739e47fed94f1374cc6ee
+deleted: sha256:326ce66392fcb938d920635a7f73f2edd1b9ce9472c739e47fed94f1374cc6ee
+untagged: sha256:db03571a48dc35d7d6fde0e05a76751285a964386b91dd22027ae7a5e53bd300
+deleted: sha256:db03571a48dc35d7d6fde0e05a76751285a964386b91dd22027ae7a5e53bd300
+untagged: sha256:faa0aa41e08c664cfca2e55ae701544204b4ff4cd74cd8099c78fed8a0d4a7cb
+deleted: sha256:faa0aa41e08c664cfca2e55ae701544204b4ff4cd74cd8099c78fed8a0d4a7cb
+untagged: sha256:133b167a86ab0d516dcfd90b4b23428b9016731571c5676337eb852c125f7f9c
+deleted: sha256:133b167a86ab0d516dcfd90b4b23428b9016731571c5676337eb852c125f7f9c
+untagged: sha256:42d397028f00be05313356ac8c84c17c5914301e1864293e169e3b7fa9ed3c02
+deleted: sha256:42d397028f00be05313356ac8c84c17c5914301e1864293e169e3b7fa9ed3c02
+untagged: sha256:6a96f6cd36e9b4ba8c320cc83d590ffb8a5f88058cf87a1fdffcacb54e448f0c
+deleted: sha256:6a96f6cd36e9b4ba8c320cc83d590ffb8a5f88058cf87a1fdffcacb54e448f0c
+untagged: sha256:e5ecd820fabcdd4ffdd1e075f1f35f80a6a603ec0b9a53cb994515c1b1f949a5
+deleted: sha256:e5ecd820fabcdd4ffdd1e075f1f35f80a6a603ec0b9a53cb994515c1b1f949a5
+untagged: sha256:fbf9ac052f4e1ccc98ff23c6cbd9dd10806cbad81d1d25a99fab2721bd8f41b6
+deleted: sha256:fbf9ac052f4e1ccc98ff23c6cbd9dd10806cbad81d1d25a99fab2721bd8f41b6
+untagged: sha256:030ec7151661107bf5b37d734c1a7e84ab88883284b299d7b1cd74fa427a3585
+deleted: sha256:030ec7151661107bf5b37d734c1a7e84ab88883284b299d7b1cd74fa427a3585
+untagged: sha256:72da6df3b7c050d47393e0a338e685211e5a40b89d1d8e4dfca41e8e4e50a1bb
+deleted: sha256:72da6df3b7c050d47393e0a338e685211e5a40b89d1d8e4dfca41e8e4e50a1bb
+untagged: sha256:79e7383f14c57c3615cc3fbd3172a994f3e33cf0b944ea65159719500be14601
+deleted: sha256:79e7383f14c57c3615cc3fbd3172a994f3e33cf0b944ea65159719500be14601
+untagged: sha256:0616f507fd88e9d4b5dcebcaeb91957bd778ccfc01b029df4fc3b2904cfc00cd
+deleted: sha256:0616f507fd88e9d4b5dcebcaeb91957bd778ccfc01b029df4fc3b2904cfc00cd
+untagged: sha256:956ac4a46625eef2669c696ccc078c75bf5ef13e5c9070b96d14c002ddd65112
+deleted: sha256:956ac4a46625eef2669c696ccc078c75bf5ef13e5c9070b96d14c002ddd65112
+untagged: sha256:d80a984b11bbf55cca8e92f3e84c58c830f21bc1779aebfe3a00a3843e709ee8
+deleted: sha256:d80a984b11bbf55cca8e92f3e84c58c830f21bc1779aebfe3a00a3843e709ee8
+untagged: sha256:f5de995033a3ddbb7b3fd5033a478e350ac3d05d44c4dc1386b015d4eedd6c96
+deleted: sha256:f5de995033a3ddbb7b3fd5033a478e350ac3d05d44c4dc1386b015d4eedd6c96
+untagged: sha256:2a3e2fd1df4370571b48c2a61c7799fc67fc58ae8a82342e644f4e7add4b9add
+deleted: sha256:2a3e2fd1df4370571b48c2a61c7799fc67fc58ae8a82342e644f4e7add4b9add
+untagged: sha256:c1379340c2f8e5834e9219313efd9755c5a6e9ee0b29723bb8e622575974553e
+deleted: sha256:c1379340c2f8e5834e9219313efd9755c5a6e9ee0b29723bb8e622575974553e
+untagged: sha256:e8b4fcc50e89fba9af14aa9ab589ca55c6ba97c7adfa085d8eff7074982d5c0d
+deleted: sha256:e8b4fcc50e89fba9af14aa9ab589ca55c6ba97c7adfa085d8eff7074982d5c0d
+untagged: sha256:f20be18a8c6fb5fa2f9f81c78e14c627989b331a6db7240b43e8462096785d59
+deleted: sha256:f20be18a8c6fb5fa2f9f81c78e14c627989b331a6db7240b43e8462096785d59
+untagged: sha256:5c196018e97b6c881c68361cf709f735c87bf40055dcf917cb4d00e14fd13dc5
+deleted: sha256:5c196018e97b6c881c68361cf709f735c87bf40055dcf917cb4d00e14fd13dc5
+untagged: sha256:79d019218f7a944df2df37055a23d6db1834304ad81a2ba4bce2cfc256f77fc8
+deleted: sha256:79d019218f7a944df2df37055a23d6db1834304ad81a2ba4bce2cfc256f77fc8
+untagged: sha256:ccb26a3966749e39d914a519ca14050fc4c5eef2807a02017de1af14ca1245d4
+deleted: sha256:ccb26a3966749e39d914a519ca14050fc4c5eef2807a02017de1af14ca1245d4
+untagged: sha256:29af588c54392d98781cbbaa1c8013563d6e63efbbeb5f13d76895d586f4d33a
+deleted: sha256:29af588c54392d98781cbbaa1c8013563d6e63efbbeb5f13d76895d586f4d33a
+untagged: sha256:9eab8e9705eff59453d818fc2697243131adf10b741291be9f5d358853ae990f
+deleted: sha256:9eab8e9705eff59453d818fc2697243131adf10b741291be9f5d358853ae990f
+untagged: sha256:0fe7e7e9fc6996ea6722f103c4dd78c9c0558b151756f84555e4aea62a07bde8
+deleted: sha256:0fe7e7e9fc6996ea6722f103c4dd78c9c0558b151756f84555e4aea62a07bde8
+untagged: sha256:4e0c94244d9fa2b47a77db19e4866abc809309ff82e49ebe7f2c6e93b4470044
+deleted: sha256:4e0c94244d9fa2b47a77db19e4866abc809309ff82e49ebe7f2c6e93b4470044
+untagged: sha256:a10909df1bfcb6fac90752fb7b41ed9ace91c699311da144fdba851deef081b7
+deleted: sha256:a10909df1bfcb6fac90752fb7b41ed9ace91c699311da144fdba851deef081b7
+untagged: sha256:063ba409c383e56be96576be4d0df90b06d5f384fa32e4ec49cf1d6883e52fa9
+deleted: sha256:063ba409c383e56be96576be4d0df90b06d5f384fa32e4ec49cf1d6883e52fa9
+untagged: sha256:2b31baffa039cf329f1328d3352fa6ab0b65aac55c439ed470317f7ddc57f0ea
+deleted: sha256:2b31baffa039cf329f1328d3352fa6ab0b65aac55c439ed470317f7ddc57f0ea
+untagged: sha256:5dc7b1a3dacfce7f632d333edb994e492f1cc8d33d0106a00c7e8327b5b5155e
+deleted: sha256:5dc7b1a3dacfce7f632d333edb994e492f1cc8d33d0106a00c7e8327b5b5155e
+untagged: sha256:858f1c1d63ec8fed0d0ead1399a1689ea2e167da4732e4eb43f7efaac610f6be
+deleted: sha256:858f1c1d63ec8fed0d0ead1399a1689ea2e167da4732e4eb43f7efaac610f6be
+untagged: sha256:701a3f99a37c3119a953a18a98e103f2e2fcb27a37f37b0080f785340102d9fe
+deleted: sha256:701a3f99a37c3119a953a18a98e103f2e2fcb27a37f37b0080f785340102d9fe
+untagged: sha256:85e95b2283ced1daf267cc997b93818ce7b7c878ff6deeee7e6d940a3c1a6eac
+deleted: sha256:85e95b2283ced1daf267cc997b93818ce7b7c878ff6deeee7e6d940a3c1a6eac
+untagged: sha256:5223d4dc3703a4d079d78b3fee49fd637b9576ece402aedb660fd14f43e1a35e
+deleted: sha256:5223d4dc3703a4d079d78b3fee49fd637b9576ece402aedb660fd14f43e1a35e
+untagged: sha256:5e702b58d36b0bcbc2fbd8bef5d2f2696736a099f239bd28324067747f081673
+deleted: sha256:5e702b58d36b0bcbc2fbd8bef5d2f2696736a099f239bd28324067747f081673
+untagged: sha256:a808173dfbf269e21b0c6ff52204bb6b3455ae3edf845b7694f135d4d1a1d355
+deleted: sha256:a808173dfbf269e21b0c6ff52204bb6b3455ae3edf845b7694f135d4d1a1d355
+untagged: sha256:50d8cce3276bf1edb631c82a598ac5d2d87749802892645eae3df7c680cce13a
+deleted: sha256:50d8cce3276bf1edb631c82a598ac5d2d87749802892645eae3df7c680cce13a
+untagged: sha256:97027bd3e43abf928c9ec6e05f7b1d615b681dd3fa96c72f53c3e40a28affbac
+deleted: sha256:97027bd3e43abf928c9ec6e05f7b1d615b681dd3fa96c72f53c3e40a28affbac
+untagged: sha256:d3bea2d4c8e52fb0d613299b27071d56be2cc7664b11ab49ae7d8a615f5a3d6a
+deleted: sha256:d3bea2d4c8e52fb0d613299b27071d56be2cc7664b11ab49ae7d8a615f5a3d6a
+untagged: sha256:ff9e0631c71722506a2e0716c29f2adfdca9015f991829dbedb91ae2643d6044
+deleted: sha256:ff9e0631c71722506a2e0716c29f2adfdca9015f991829dbedb91ae2643d6044
+untagged: sha256:0084a38a63ad08fa99cdc1bfc1a9617362abeec916c87ab2b439b679854d999e
+deleted: sha256:0084a38a63ad08fa99cdc1bfc1a9617362abeec916c87ab2b439b679854d999e
+untagged: sha256:34351361504c242623ead8ab515e4b9c03deb6897fbfb11ebeec4a552081733a
+deleted: sha256:34351361504c242623ead8ab515e4b9c03deb6897fbfb11ebeec4a552081733a
+untagged: sha256:dd933bb2276b90364da18f57149fb68f225bbf22af882dd359b03edd0d20be62
+deleted: sha256:dd933bb2276b90364da18f57149fb68f225bbf22af882dd359b03edd0d20be62
+untagged: sha256:098625aea205a3e43c361e2ac1281a4ddb38ad36d277295dee73ff698e65089c
+deleted: sha256:098625aea205a3e43c361e2ac1281a4ddb38ad36d277295dee73ff698e65089c
+untagged: sha256:6a7f038504756edbcf02d4032cee5c8263ba6fc2f3be77bdb953e2720810b833
+deleted: sha256:6a7f038504756edbcf02d4032cee5c8263ba6fc2f3be77bdb953e2720810b833
+untagged: sha256:8c8ea841cd7f54452772add3f555837f2eae475d67507bb7dd1e4a05cb130f69
+deleted: sha256:8c8ea841cd7f54452772add3f555837f2eae475d67507bb7dd1e4a05cb130f69
+untagged: sha256:d5c55067c466c75e788760b847863c1002b844b27fa759ebbc840db5426f1f83
+deleted: sha256:d5c55067c466c75e788760b847863c1002b844b27fa759ebbc840db5426f1f83
+untagged: sha256:3b378b79cd8477d7539b934873c08ed3d26c3b7cec4a67c010fbb80db0dcb58e
+deleted: sha256:3b378b79cd8477d7539b934873c08ed3d26c3b7cec4a67c010fbb80db0dcb58e
+untagged: sha256:3fe7c3885780c77d3f8dec207e2d08d0db92993b1fd16ad0ad1a06ec258ab6a8
+deleted: sha256:3fe7c3885780c77d3f8dec207e2d08d0db92993b1fd16ad0ad1a06ec258ab6a8
+untagged: sha256:57b89205583106e660270565033146203e3b6f23cd00865715283bc143217ea2
+deleted: sha256:57b89205583106e660270565033146203e3b6f23cd00865715283bc143217ea2
+untagged: sha256:62e323ca17efb2d3f083453cff44dffec7cb043de2858108679bcce71f0fef76
+deleted: sha256:62e323ca17efb2d3f083453cff44dffec7cb043de2858108679bcce71f0fef76
+untagged: sha256:84b11f2d17427ea07d9c6c0a83fd463e5b09d180638f3bb58bd86405649d8f62
+deleted: sha256:84b11f2d17427ea07d9c6c0a83fd463e5b09d180638f3bb58bd86405649d8f62
+untagged: sha256:b6c3f9d9e14f4c9ee2e159b4a2a04e2ad4125d3d92c245998232b698b725326d
+deleted: sha256:b6c3f9d9e14f4c9ee2e159b4a2a04e2ad4125d3d92c245998232b698b725326d
+untagged: sha256:d783e6525411a5b3eacfba70bdec847fe072b1c748fca646a615893ce7740123
+deleted: sha256:d783e6525411a5b3eacfba70bdec847fe072b1c748fca646a615893ce7740123
+untagged: sha256:e83685d3161e967319e8cdbd055cbb2807c8f4b8a455da05b79b1909b2024d61
+deleted: sha256:e83685d3161e967319e8cdbd055cbb2807c8f4b8a455da05b79b1909b2024d61
+untagged: sha256:caae1a2af3caaf29706ae631dfab307e95da0bc451bd0b15edf0b8319df288c0
+deleted: sha256:caae1a2af3caaf29706ae631dfab307e95da0bc451bd0b15edf0b8319df288c0
+untagged: sha256:5138b49078c0b03cb02d6254b3088502f8059c2aada36687efaca7ab17201e99
+deleted: sha256:5138b49078c0b03cb02d6254b3088502f8059c2aada36687efaca7ab17201e99
+untagged: sha256:afb4c62cc91da82523d7ebe79f216127b92f97eba9d56176533f08f2965815bd
+deleted: sha256:afb4c62cc91da82523d7ebe79f216127b92f97eba9d56176533f08f2965815bd
+untagged: sha256:b47f830b0ac51dc4d05743a41a89b2cd1c1006706b81b4f2f3c3366f5b570ab8
+deleted: sha256:b47f830b0ac51dc4d05743a41a89b2cd1c1006706b81b4f2f3c3366f5b570ab8
+untagged: sha256:6ec786b629ac0162be6aa359b5940f4eb56a7c9470660dcd28a612ff9c8da369
+deleted: sha256:6ec786b629ac0162be6aa359b5940f4eb56a7c9470660dcd28a612ff9c8da369
+untagged: sha256:cf47cb4b3fb446ddd2cc88add2c722a2ad8dc1ad2fccb322f58bdc5a38aa8202
+deleted: sha256:cf47cb4b3fb446ddd2cc88add2c722a2ad8dc1ad2fccb322f58bdc5a38aa8202
+untagged: sha256:65acce78e0c2dd316843bdb2c7676a8ee3fc248b4433e1bb62128dfebf6ac1e2
+deleted: sha256:65acce78e0c2dd316843bdb2c7676a8ee3fc248b4433e1bb62128dfebf6ac1e2
+untagged: sha256:71f6c5e5a7b6e6d07eef65edc553cd54866620091d6f7de8a4792fdc5807c0a0
+deleted: sha256:71f6c5e5a7b6e6d07eef65edc553cd54866620091d6f7de8a4792fdc5807c0a0
+untagged: sha256:79ed51f7ccb24f0d777a3df7a020c8cb29fa3a0523499cf49f736a3fcf059c4d
+deleted: sha256:79ed51f7ccb24f0d777a3df7a020c8cb29fa3a0523499cf49f736a3fcf059c4d
+untagged: sha256:f6bc5c0fcfda0ffc3fc131dd357e8a278726bddf622396468a1c3ea76c3c2879
+deleted: sha256:f6bc5c0fcfda0ffc3fc131dd357e8a278726bddf622396468a1c3ea76c3c2879
+untagged: sha256:05c0fa4d51e1f6418e829725a8036eab6d003066f438cb73326b8da51e86dedc
+deleted: sha256:05c0fa4d51e1f6418e829725a8036eab6d003066f438cb73326b8da51e86dedc
+untagged: sha256:31944517e47c3998a5c2aaf050587b00c475bb068ffbd51c0cfeb4016004a3d7
+deleted: sha256:31944517e47c3998a5c2aaf050587b00c475bb068ffbd51c0cfeb4016004a3d7
+untagged: sha256:391e80b5a456ff3392e1db80c57a80dd829898688e0c7cd6b00dec8820cb3637
+deleted: sha256:391e80b5a456ff3392e1db80c57a80dd829898688e0c7cd6b00dec8820cb3637
+untagged: sha256:4f475be36ccf00089ea0ec6a983be3f50a97ea790b40f70dcc853d87b2f57307
+deleted: sha256:4f475be36ccf00089ea0ec6a983be3f50a97ea790b40f70dcc853d87b2f57307
+untagged: sha256:5ea0e94c1617c17623b88a796930d66251c3779842646d4c812846b1780b5cd9
+deleted: sha256:5ea0e94c1617c17623b88a796930d66251c3779842646d4c812846b1780b5cd9
+untagged: sha256:786e8399cda83543ed6d9ead21c97e05dfc97e72884064cc70984a7727e3dc41
+deleted: sha256:786e8399cda83543ed6d9ead21c97e05dfc97e72884064cc70984a7727e3dc41
+untagged: sha256:9d2455638782320fe50a353db507a1cbd378e894a2506b0491ec263e468f28c8
+deleted: sha256:9d2455638782320fe50a353db507a1cbd378e894a2506b0491ec263e468f28c8
+untagged: sha256:c687c304432d33ef54afff1b861fb813610168e75bd2b8e51e7b5dc4ab2f9961
+deleted: sha256:c687c304432d33ef54afff1b861fb813610168e75bd2b8e51e7b5dc4ab2f9961
+untagged: sha256:d9e875c8374a322fa976692927193402d2670b5e9aacc914a66979fc719cecc3
+deleted: sha256:d9e875c8374a322fa976692927193402d2670b5e9aacc914a66979fc719cecc3
+untagged: sha256:1650804cd446e384b1d23cc131f97872e3b4f1bcda5bbea526b0d80b2783c986
+deleted: sha256:1650804cd446e384b1d23cc131f97872e3b4f1bcda5bbea526b0d80b2783c986
+untagged: sha256:0385a85d54637f25c5174a30c725223bf723cabfb8e840f585317d1ab8223d3b
+deleted: sha256:0385a85d54637f25c5174a30c725223bf723cabfb8e840f585317d1ab8223d3b
+untagged: sha256:3c5eadbf5a5fa08d3fcc8869b4efe5bfeb72afb6606bca44120f41c8ae706019
+deleted: sha256:3c5eadbf5a5fa08d3fcc8869b4efe5bfeb72afb6606bca44120f41c8ae706019
+untagged: sha256:5c9ae5b19e9ded9fb06d8cd831f48f1cb43099334f85b7cc07b4346f7225b347
+deleted: sha256:5c9ae5b19e9ded9fb06d8cd831f48f1cb43099334f85b7cc07b4346f7225b347
+untagged: sha256:a75d232c2a959e1ce8fb193f47d8f0d37b6f3e5590c650dd55dd14e10794e1e8
+deleted: sha256:a75d232c2a959e1ce8fb193f47d8f0d37b6f3e5590c650dd55dd14e10794e1e8
+untagged: sha256:2af024599b89db207d2a3c9f08d22067a4e5ad24a6528fb2438da2adb8bc03e0
+deleted: sha256:2af024599b89db207d2a3c9f08d22067a4e5ad24a6528fb2438da2adb8bc03e0
+untagged: sha256:6949a8795f7e52d4cbc88f4a4c12410004b1c5e5aab2ee444f0e4ee3e3657b93
+deleted: sha256:6949a8795f7e52d4cbc88f4a4c12410004b1c5e5aab2ee444f0e4ee3e3657b93
+untagged: sha256:78ccd87d7094ff6d6f195768a6f5011ef7158d09f31d16c12ec6344babbe3a22
+deleted: sha256:78ccd87d7094ff6d6f195768a6f5011ef7158d09f31d16c12ec6344babbe3a22
+untagged: sha256:8bbef35d144c8ece1cb1373275c5b4928a40e9f37b057683e42d0e2aa136287a
+deleted: sha256:8bbef35d144c8ece1cb1373275c5b4928a40e9f37b057683e42d0e2aa136287a
+untagged: sha256:b319fbe9e4f43d06362669a46a632cc265068cf75180fc21ce9d2aa3b6f667ed
+deleted: sha256:b319fbe9e4f43d06362669a46a632cc265068cf75180fc21ce9d2aa3b6f667ed
+untagged: sha256:b369ead290a5543923f1f0ca63d2b331f36fad4b9f9db8df1135b665ae4b6966
+deleted: sha256:b369ead290a5543923f1f0ca63d2b331f36fad4b9f9db8df1135b665ae4b6966
+untagged: sha256:d4bdfc9a53207deb105398b343959bbf7e1e2da4067a1637ae4ed86cf2b3b0ef
+deleted: sha256:d4bdfc9a53207deb105398b343959bbf7e1e2da4067a1637ae4ed86cf2b3b0ef
+untagged: sha256:7b86a725ade0f9177fbffa2e8d51d9f4980aee3ba0ebd6b61b9e5d656b34a27a
+deleted: sha256:7b86a725ade0f9177fbffa2e8d51d9f4980aee3ba0ebd6b61b9e5d656b34a27a
+untagged: sha256:8a3f0269c5be4110a9fc39962cedde0276b9a9ba62c8e412f8a4d68f0f1dcb63
+deleted: sha256:8a3f0269c5be4110a9fc39962cedde0276b9a9ba62c8e412f8a4d68f0f1dcb63
+untagged: sha256:23dcb5a0f0463106e827d05065f2554e9af2d558ee761731c7d9c021fd8a8e1c
+deleted: sha256:23dcb5a0f0463106e827d05065f2554e9af2d558ee761731c7d9c021fd8a8e1c
+untagged: sha256:9f1ef16c369438c149f1fab7345266aeab1b0251edd7bb9cd637d7d982397a3e
+deleted: sha256:9f1ef16c369438c149f1fab7345266aeab1b0251edd7bb9cd637d7d982397a3e
+untagged: sha256:157c4c518b3ef3cfacd2de2476a010bb3d67587f75d8426cd8bebb7e0bafe968
+deleted: sha256:157c4c518b3ef3cfacd2de2476a010bb3d67587f75d8426cd8bebb7e0bafe968
+untagged: sha256:48ee1a9a6e13d189e3fb922675d602b89f32e016c3c477fc2ef275ba164a4b1d
+deleted: sha256:48ee1a9a6e13d189e3fb922675d602b89f32e016c3c477fc2ef275ba164a4b1d
+untagged: sha256:5495fa474c78871197815e59b5137a594cd9055580081c3b533724aa037e84cd
+deleted: sha256:5495fa474c78871197815e59b5137a594cd9055580081c3b533724aa037e84cd
+untagged: sha256:69965fe40898c1cdd59ec6a7ca3f398ca424e862500469da6bd4e61966e971d5
+deleted: sha256:69965fe40898c1cdd59ec6a7ca3f398ca424e862500469da6bd4e61966e971d5
+untagged: sha256:cc298ed937880dfacc535bbb5f4abff798f848de08c7b1ad32147394889adcb5
+deleted: sha256:cc298ed937880dfacc535bbb5f4abff798f848de08c7b1ad32147394889adcb5
+untagged: sha256:d64144707853c4766a5a1efdb5f815f97c6066ec5eda13b0897397bf800734d0
+deleted: sha256:d64144707853c4766a5a1efdb5f815f97c6066ec5eda13b0897397bf800734d0
+untagged: sha256:f3f0e64ac9ca16a522f9edde9ef9981407b2a171c54173aadaf5be2b6573ba17
+deleted: sha256:f3f0e64ac9ca16a522f9edde9ef9981407b2a171c54173aadaf5be2b6573ba17
+untagged: sha256:fa2153e35c93a290cec90c1917265aea870466b44280f449cf0bf0bb5ba69a9a
+deleted: sha256:fa2153e35c93a290cec90c1917265aea870466b44280f449cf0bf0bb5ba69a9a
+untagged: sha256:1ca790ab10be95aa34b21f92bb367e4d66b4860dba55ce9a1f8975885fda6d53
+deleted: sha256:1ca790ab10be95aa34b21f92bb367e4d66b4860dba55ce9a1f8975885fda6d53
+untagged: sha256:256f6f613e4d533c937e2068b565ad2062b884dc4da54b02fd378794df7e5fdf
+deleted: sha256:256f6f613e4d533c937e2068b565ad2062b884dc4da54b02fd378794df7e5fdf
+untagged: sha256:42c4d189543b65b982bacaec4b6ba762cd284893a506c02c58bb84ecc91d3ad9
+deleted: sha256:42c4d189543b65b982bacaec4b6ba762cd284893a506c02c58bb84ecc91d3ad9
+untagged: sha256:a53e6acc4d3b064d6cdaf47670c199078d19f5d5660689d5f6f36955e3262313
+deleted: sha256:a53e6acc4d3b064d6cdaf47670c199078d19f5d5660689d5f6f36955e3262313
+untagged: sha256:afbef3b3e07fbb0dfd8ec5a586989a1423bd2cccbca613b2ab7b62e9fffcfc23
+deleted: sha256:afbef3b3e07fbb0dfd8ec5a586989a1423bd2cccbca613b2ab7b62e9fffcfc23
+untagged: sha256:c2f9a7aea99cfef258d8ff59cd406d10f6b3713d8941f3f10f38fe45f647f28f
+deleted: sha256:c2f9a7aea99cfef258d8ff59cd406d10f6b3713d8941f3f10f38fe45f647f28f
+untagged: sha256:6bb39f34f0c2fb687d06db3bea3f870c98e10bc16d27608d07bc4750790a127e
+deleted: sha256:6bb39f34f0c2fb687d06db3bea3f870c98e10bc16d27608d07bc4750790a127e
+untagged: sha256:76ee94d3daa0100884aeb41b55800c7ac46cd4c0a1aac2ab6b7dddc0b2f146cc
+deleted: sha256:76ee94d3daa0100884aeb41b55800c7ac46cd4c0a1aac2ab6b7dddc0b2f146cc
+untagged: sha256:8c895642469b2f9d5da3cc831c7f5ffbae20543f060853bcbf79864081ceecdf
+deleted: sha256:8c895642469b2f9d5da3cc831c7f5ffbae20543f060853bcbf79864081ceecdf
+
+Total reclaimed space: 3.332GB
+DEPRECATED: The legacy builder is deprecated and will be removed in a future release.
+            Install the buildx component to build images with BuildKit:
+            https://docs.docker.com/go/buildx/
+
+Deleted build cache objects:
+or3ap081z1jc5u9x4tavlkwwb
+6s5yt3dv65krnndv27rxdpg60
+ej5hc62hueoz0d0hi99rn9iai
+x2kaqf7kiti4x3r4j53zdqpv3
+c7mtpqauswkr5tfr0lpfqlnii
+c33r90t5s6gv1jhn28w0z1thv
+esxzud96rokq1futh4znc8bon
+rq2uu5pfpu8my1r42xi3lk0k6
+qk0xhw21cx11sxtdin1ifq644
+2qlz2clxuq64cdo4pnevbrbxy
+t2swtmyiyrhfrqdhmmjlxi2cq
+iwjim86xtvns3pqyg0369kltm
+vk8urf0vp18jj08w1ikr0steu
+quy0aitpdp2nixwiqjnszfgl4
+we1x0dx2av3kbk3tigewzk5b7
+qam8mocj8r9b31scr4a7rc3jh
+k99se60b0j10twem1l0vueqea
+anjdug62mcvny4qup6n1ux18e
+lfhw27wwhjsbv5vsn7v87rwpo
+pud8kpad39rir92homq8lndrp
+o5jnwyd7ydhuktoga7be831ys
+yxc6as2f2vubtu2alarsw1adq
+z4fgk4ezzxuaqaic1nnvnrd2l
+t8iit9acwdjh90y6zen8004t2
+ce8fmwowt17a6babjepy1sjme
+qxx4owno2x2796jfru9zka7af
+7bszuj15aoj5f4noxazjr3o0e
+uqptb9pkioo7v0hqx93jomgo8
+r2kntkenaeuuzhe1yco67bjot
+7rle9q8ho5lhzjmdj9scd3cuj
+c8hit04co5ctc80ec6cfdjm1q
+2eonocap9p0lp44khtcztsrnh
+a4ez4w6brhlc07nk8ncv2a4sy
+9lczfc7uye16xzqzn333ck2v1
+b1poyo1q18smakfch16mpi763
+tjgqzlixnttxfyw1f9ebcds7y
+lyzv4ro3wcq4hp9yjgi1he0aj
+a2f122eribnvgfg353k6j09mw
+kw6cqxyvskradl4f0u3cyd86g
+q5sftl6joamyglw1le15z83q7
+0p0d80mnwxqidc8xhpzntnoii
+o70296h3qxhe29n608cg78ef0
+
+Total reclaimed space: 391.9MB
+DOCKER CACHE CLEANUP: PASSED
+
+===== PACKAGE AUTOREMOVE =====
+Reading package lists...
+Building dependency tree...
+Reading state information...
+0 upgraded, 0 newly installed, 0 to remove and 17 not upgraded.
+PACKAGE AUTOREMOVE: PASSED
+
+===== LARGE FILE REPORT =====
+
+===== SERVICE POST-CHECK =====
+curl: (7) Failed to connect to 127.0.0.1 port 8080 after 0 ms: Couldn't connect to server
+curl: (7) Failed to connect to 127.0.0.1 port 8080 after 0 ms: Couldn't connect to server
+curl: (7) Failed to connect to 127.0.0.1 port 8080 after 0 ms: Couldn't connect to server
+Certificate will not expire
+MESSIS HEALTH CHECK: PASSED
+
+============================================
+ PATCH-DEPLOY-006-FIX1 SERVICES: PASSED
+ PATCH-DEPLOY-006-FIX1 CLEANUP: PASSED
+ PATCH-DEPLOY-006-FIX1 PUBLIC_STATUS=200
+ PATCH-DEPLOY-006-FIX1 BEFORE=91%
+ PATCH-DEPLOY-006-FIX1 AFTER=78%
+ PATCH-DEPLOY-006-FIX1 RECOVERED=13GiB
+ PATCH-DEPLOY-006-FIX1 REPORT=/opt/messis/deploy/reports/PATCH-DEPLOY-006-FIX1-20260731110137.txt
+ PATCH-DEPLOY-006-FIX1 GIT: DEFERRED
+ PATCH-DEPLOY-006-FIX1: PASSED
+============================================

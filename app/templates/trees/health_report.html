@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {{ report.tree_code }} Health Report | Messis AI
+    </title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        @page {
+            size: A4;
+            margin: 14mm;
+        }
+
+        @media print {
+            body {
+                background: white !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-shadow-none {
+                box-shadow: none !important;
+            }
+
+            .print-border {
+                border: 1px solid #cbd5e1 !important;
+            }
+
+            .avoid-break {
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-slate-100 text-slate-900">
+    <div
+        class="no-print sticky top-0 z-20 border-b
+               border-slate-200 bg-white/95 backdrop-blur"
+    >
+        <div
+            class="mx-auto flex max-w-5xl items-center
+                   justify-between gap-4 px-5 py-4"
+        >
+            <a
+                href="/farms/{{ farm.id }}/trees/{{ tree.id }}"
+                class="rounded-xl border border-slate-300
+                       bg-white px-4 py-2 text-sm font-bold
+                       text-slate-700 hover:bg-slate-50"
+            >
+                Back to Tree
+            </a>
+
+            <button
+                type="button"
+                onclick="window.print()"
+                class="rounded-xl bg-emerald-600 px-5 py-2
+                       text-sm font-bold text-white
+                       hover:bg-emerald-700"
+            >
+                Print Health Report
+            </button>
+        </div>
+    </div>
+
+    <main class="mx-auto max-w-5xl px-5 py-8">
+        <article
+            class="print-shadow-none overflow-hidden rounded-3xl
+                   border border-slate-200 bg-white shadow-xl"
+        >
+            <header
+                class="bg-gradient-to-r from-emerald-700
+                       to-green-600 px-8 py-8 text-white"
+            >
+                <div
+                    class="flex flex-col gap-6 sm:flex-row
+                           sm:items-center sm:justify-between"
+                >
+                    <div>
+                        <p
+                            class="text-xs font-black uppercase
+                                   tracking-[0.22em]
+                                   text-emerald-100"
+                        >
+                            Messis AI
+                        </p>
+
+                        <h1
+                            class="mt-3 text-3xl font-black"
+                        >
+                            Coconut Tree Health Report
+                        </h1>
+
+                        <p class="mt-2 text-emerald-100">
+                            {{ farm.name }}
+                        </p>
+                    </div>
+
+                    <div
+                        class="rounded-2xl bg-white/15
+                               px-6 py-4 text-center"
+                    >
+                        <p
+                            class="text-xs font-bold uppercase
+                                   tracking-wider
+                                   text-emerald-100"
+                        >
+                            Health Score
+                        </p>
+
+                        <p class="mt-1 text-4xl font-black">
+                            {{ report.health_score }}/100
+                        </p>
+
+                        <p class="mt-1 text-sm font-bold">
+                            {{ report.health_label }}
+                        </p>
+                    </div>
+                </div>
+            </header>
+
+            <div class="space-y-8 p-8">
+                <section class="avoid-break">
+                    <div
+                        class="flex flex-col gap-5 sm:flex-row
+                               sm:items-start
+                               sm:justify-between"
+                    >
+                        <div>
+                            <p
+                                class="text-xs font-black uppercase
+                                       tracking-wider
+                                       text-emerald-700"
+                            >
+                                Tree Identification
+                            </p>
+
+                            <h2
+                                class="mt-2 text-3xl font-black
+                                       text-slate-950"
+                            >
+                                {{ report.tree_code }}
+                            </h2>
+
+                            <p
+                                class="mt-2 text-sm text-slate-500"
+                            >
+                                {{ report.variety or "Variety not recorded" }}
+                            </p>
+                        </div>
+
+                        <img
+                            src="/farms/{{ farm.id }}/trees/{{ tree.id }}/qr.png?box_size=8"
+                            alt="QR code for {{ report.tree_code }}"
+                            class="h-32 w-32 rounded-xl border
+                                   border-slate-200 bg-white p-2"
+                        >
+                    </div>
+                </section>
+
+                <section
+                    class="avoid-break grid gap-4
+                           sm:grid-cols-2 lg:grid-cols-4"
+                >
+                    <div
+                        class="rounded-2xl border border-slate-200
+                               bg-slate-50 p-5"
+                    >
+                        <p
+                            class="text-xs font-bold uppercase
+                                   tracking-wider text-slate-500"
+                        >
+                            Current Status
+                        </p>
+
+                        <p
+                            class="mt-2 text-lg font-black
+                                   text-slate-900"
+                        >
+                            {{ report.health_status or "Not recorded" }}
+                        </p>
+                    </div>
+
+                    <div
+                        class="rounded-2xl border border-slate-200
+                               bg-slate-50 p-5"
+                    >
+                        <p
+                            class="text-xs font-bold uppercase
+                                   tracking-wider text-slate-500"
+                        >
+                            Tree Age
+                        </p>
+
+                        <p
+                            class="mt-2 text-lg font-black
+                                   text-slate-900"
+                        >
+                            {{ report.age_label }}
+                        </p>
+                    </div>
+
+                    <div
+                        class="rounded-2xl border border-slate-200
+                               bg-slate-50 p-5"
+                    >
+                        <p
+                            class="text-xs font-bold uppercase
+                                   tracking-wider text-slate-500"
+                        >
+                            Growth Stage
+                        </p>
+
+                        <p
+                            class="mt-2 text-lg font-black
+                                   text-slate-900"
+                        >
+                            {{ report.maturity_status }}
+                        </p>
+                    </div>
+
+                    <div
+                        class="rounded-2xl border border-slate-200
+                               bg-slate-50 p-5"
+                    >
+                        <p
+                            class="text-xs font-bold uppercase
+                                   tracking-wider text-slate-500"
+                        >
+                            Record Status
+                        </p>
+
+                        <p
+                            class="mt-2 text-lg font-black
+                                   text-slate-900"
+                        >
+                            {% if report.is_active %}
+                                Active
+                            {% else %}
+                                Inactive
+                            {% endif %}
+                        </p>
+                    </div>
+                </section>
+
+                <section
+                    class="avoid-break rounded-2xl border
+                           border-slate-200 p-6"
+                >
+                    <h2
+                        class="text-xl font-black
+                               text-slate-950"
+                    >
+                        Tree Information
+                    </h2>
+
+                    <dl
+                        class="mt-5 grid gap-x-8 gap-y-5
+                               sm:grid-cols-2"
+                    >
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-500"
+                            >
+                                Location
+                            </dt>
+
+                            <dd
+                                class="mt-1 font-semibold
+                                       text-slate-900"
+                            >
+                                {{ report.location }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-500"
+                            >
+                                Planting Date
+                            </dt>
+
+                            <dd
+                                class="mt-1 font-semibold
+                                       text-slate-900"
+                            >
+                                {{ report.planting_date or "Not recorded" }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-500"
+                            >
+                                Variety
+                            </dt>
+
+                            <dd
+                                class="mt-1 font-semibold
+                                       text-slate-900"
+                            >
+                                {{ report.variety or "Not recorded" }}
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt
+                                class="text-xs font-bold uppercase
+                                       tracking-wider text-slate-500"
+                            >
+                                Recommended Actions
+                            </dt>
+
+                            <dd
+                                class="mt-1 font-semibold
+                                       text-slate-900"
+                            >
+                                {{ report.recommendation_count }}
+                            </dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <section>
+                    <div>
+                        <p
+                            class="text-xs font-black uppercase
+                                   tracking-wider
+                                   text-emerald-700"
+                        >
+                            Care Plan
+                        </p>
+
+                        <h2
+                            class="mt-2 text-2xl font-black
+                                   text-slate-950"
+                        >
+                            Recommended Next Actions
+                        </h2>
+                    </div>
+
+                    <div class="mt-5 space-y-4">
+                        {% for recommendation in report.recommendations %}
+                            {% set style = coconut_tree_priority_style(
+                                recommendation.priority
+                            ) %}
+
+                            <article
+                                class="avoid-break rounded-2xl border
+                                       bg-white p-5
+                                       {{ style.border }}"
+                            >
+                                <div
+                                    class="flex items-start
+                                           justify-between gap-4"
+                                >
+                                    <div>
+                                        <h3
+                                            class="text-base font-black
+                                                   text-slate-900"
+                                        >
+                                            {{ loop.index }}.
+                                            {{ recommendation.title }}
+                                        </h3>
+
+                                        <p
+                                            class="mt-2 text-sm
+                                                   leading-6
+                                                   text-slate-600"
+                                        >
+                                            {{ recommendation.description }}
+                                        </p>
+                                    </div>
+
+                                    <span
+                                        class="shrink-0 rounded-full
+                                               px-3 py-1 text-[10px]
+                                               font-black uppercase
+                                               tracking-wider
+                                               {{ style.badge }}"
+                                    >
+                                        {{ recommendation.priority }}
+                                    </span>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <footer
+                    class="border-t border-slate-200 pt-6"
+                >
+                    <p
+                        class="text-xs leading-5 text-slate-500"
+                    >
+                        This report is generated from the current
+                        Messis AI tree record. Recommendations support
+                        farm monitoring and do not replace professional
+                        agricultural diagnosis or treatment advice.
+                    </p>
+                </footer>
+            </div>
+        </article>
+    </main>
+</body>
+</html>

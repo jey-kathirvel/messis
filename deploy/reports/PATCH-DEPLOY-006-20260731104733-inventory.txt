@@ -1,0 +1,186 @@
+Messis AI Disk Inventory
+Generated: 2026-07-31T10:47:33+00:00
+
+4.0K	/bin.usr-is-merged
+4.0K	/home
+4.0K	/lib.usr-is-merged
+4.0K	/media
+4.0K	/mnt
+4.0K	/sbin.usr-is-merged
+4.0K	/srv
+8.0K	/snap
+16K	/lost+found
+9.0M	/etc
+28M	/tmp
+3.0G	/opt
+3.3G	/usr
+3.9G	/root
+77G	/var
+87G	/
+
+===== /var INVENTORY =====
+36K	/var/lib/PackageKit
+40K	/var/lib/php
+44K	/var/lib/apache2
+52K	/var/backups/akshatroyalstay-v2
+68K	/var/lib/swcatalog
+96K	/var/tmp
+116K	/var/log/postgresql
+144K	/var/log/unattended-upgrades
+196K	/var/backups/ads-ai
+204K	/var/log/apt
+236K	/var/lib/cloud
+272K	/var/lib/ucf
+384K	/var/lib/snapd
+756K	/var/lib/systemd
+864K	/var/lib/letsencrypt
+1.1M	/var/www/cases.akshatroyalstay.in
+1.6M	/var/cache/apparmor
+2.0M	/var/lib/fwupd
+2.1M	/var/cache/man
+2.2M	/var/www/ads-ai.in
+3.6M	/var/log/apache2
+3.7M	/var/backups
+3.8M	/var/lib/command-not-found
+4.1M	/var/cache/snapd
+4.4M	/var/log/letsencrypt
+5.0M	/var/cache/debconf
+5.0M	/var/www/dev.ads-ai.in
+6.5M	/var/lib/ubuntu-advantage
+7.5M	/var/log/sysstat
+7.8M	/var/cache/swcatalog
+14M	/var/www/akshatroyalstay-v2
+15M	/var/cache/fwupd
+28M	/var/www/gst.akshatroyalstay.in
+46M	/var/lib/dpkg
+79M	/var/log/journal
+101M	/var/www/online-ars
+114M	/var/cache/apt
+117M	/var/log
+139M	/var/lib/postgresql
+149M	/var/cache
+188M	/var/www/html
+191M	/var/lib/apt
+252M	/var/lib/mysql
+346M	/var/www/dolibarr-develop
+528M	/var/lib/docker
+561M	/var/www/vbridge-ai-lab
+1.3G	/var/www
+75G	/var/lib/containerd
+76G	/var/lib
+77G	/var
+
+===== /opt INVENTORY =====
+1.1M	/opt/deals-ads/lib
+1.2M	/opt/jey-vault/.git
+1.3M	/opt/ads-credit-debit/.git
+1.6M	/opt/ads-credit-debit/logs
+2.1M	/opt/ads-erp-phase2/backups
+2.2M	/opt/apisentry/app
+3.3M	/opt/apisentry/.git
+4.5M	/opt/messis/app
+4.9M	/opt/jey-vault/storage
+5.2M	/opt/deals-ads/.git
+12M	/opt/frappe_docker/.git
+13M	/opt/ads-credit-debit/uploads
+13M	/opt/frappe_docker
+19M	/opt/ads-erp-phase2/.git
+23M	/opt/ads-credit-debit/node_modules
+26M	/opt/api-studio/.git
+32M	/opt/apisentry/storage
+35M	/opt/crm/.git
+37M	/opt/ads-erp/.git
+38M	/opt/deals-ads/dist
+47M	/opt/leaf-store/.git
+57M	/opt/ads-erp/.venv
+84M	/opt/sprintiq/venv
+86M	/opt/sprintiq
+87M	/opt/leaf-store/venv
+91M	/opt/ads-erp/venv
+98M	/opt/api-studio/app
+98M	/opt/crm/venv
+102M	/opt/ads-erp-phase2/venv
+109M	/opt/apisentry/venv
+115M	/opt/jey-vault/venv
+116M	/opt/api-studio/venv
+119M	/opt/messis/.venv
+122M	/opt/jey-vault
+124M	/opt/messis
+125M	/opt/ads-credit-debit/venv
+126M	/opt/api-studio/AdminLTE-3.2.0
+126M	/opt/crm/app
+128M	/opt/ads-erp/app
+130M	/opt/ads-erp-phase2/app
+134M	/opt/leaf-store
+147M	/opt/apisentry
+164M	/opt/ads-credit-debit
+252M	/opt/ads-erp-phase2
+259M	/opt/crm
+313M	/opt/ads-erp
+364M	/opt/api-studio
+1015M	/opt/deals-ads/node_modules
+1.1G	/opt/deals-ads
+3.0G	/opt
+
+===== /var/www INVENTORY =====
+60K	/var/www/html/tests
+88K	/var/www/online-ars/templates
+100K	/var/www/html/translations
+104K	/var/www/html/Adapter
+108K	/var/www/cases.akshatroyalstay.in/incidents
+160K	/var/www/online-ars/app
+220K	/var/www/html/Core
+292K	/var/www/html/override
+364K	/var/www/html/pdf
+420K	/var/www/vbridge-ai-lab/.git
+456K	/var/www/dolibarr-develop/scripts
+532K	/var/www/html/config
+752K	/var/www/cases.akshatroyalstay.in/.git
+860K	/var/www/html/docs
+940K	/var/www/html/localization
+1016K	/var/www/ads-ai.in/vendor
+1016K	/var/www/dev.ads-ai.in/vendor
+1.1M	/var/www/ads-ai.in/assets
+1.1M	/var/www/cases.akshatroyalstay.in
+1.1M	/var/www/dev.ads-ai.in/assets
+1.1M	/var/www/html/mails
+2.2M	/var/www/ads-ai.in
+2.7M	/var/www/dev.ads-ai.in/.git
+3.1M	/var/www/dolibarr-develop/documents
+4.8M	/var/www/html/controllers
+5.0M	/var/www/dev.ads-ai.in
+5.7M	/var/www/html/classes
+6.5M	/var/www/html/cache
+6.8M	/var/www/akshatroyalstay-v2/assets
+6.8M	/var/www/html/themes
+7.1M	/var/www/akshatroyalstay-v2/.git
+9.5M	/var/www/online-ars/static
+11M	/var/www/gst.akshatroyalstay.in/.git
+12M	/var/www/html/js
+12M	/var/www/online-ars/.git
+14M	/var/www/akshatroyalstay-v2
+17M	/var/www/gst.akshatroyalstay.in/vendor
+22M	/var/www/html/admin285nhtwsn
+28M	/var/www/gst.akshatroyalstay.in
+38M	/var/www/html/img
+44M	/var/www/html/modules
+45M	/var/www/html/tools
+80M	/var/www/online-ars/.venv
+101M	/var/www/online-ars
+188M	/var/www/html
+341M	/var/www/dolibarr-develop/htdocs
+346M	/var/www/dolibarr-develop
+561M	/var/www/vbridge-ai-lab
+561M	/var/www/vbridge-ai-lab/app
+1.3G	/var/www
+
+===== LARGE FILES ABOVE 250 MB =====
+      265MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/45c253b0d365a9b35c8f01d06732ef6035d04d076443af8cf2ab2f9fd298fb5a
+      265MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/d34ba38eff0c39467a1c05336eac5eae5bed60df3af2f265282e4862f2a972d8
+      271MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/6a3ba67f610c771fc50db7830d3c4e8e0d7faf5c5e05556ec59036c3b75427f9
+      277MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/19d3b4f8db64a12f7bd2346fcca4b85bdde3bba7416547263040bf43657dcf5a
+      288MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/16ea32888a1d7ed42073fc78da5957711f43686ba4ee8b18ca1de7e936d1578e
+      327MiB  /var/lib/docker/buildkit/containerd-overlayfs/metadata_v2.db
+      529MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/9a8c574420c00d094c841e1b63150ab3acd23aa4070dffd759704b4ae543d7e5
+      540MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/7790071d71a310c720aade8e28fd52f686c0ec00f6474abff58ce4e90607645e
+      551MiB  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256/daff2bfbd09e7f923a77b66c654bdd7edb9f7c09a1e9c79a045719e657740415

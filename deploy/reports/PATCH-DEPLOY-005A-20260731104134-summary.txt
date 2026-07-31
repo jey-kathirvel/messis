@@ -1,0 +1,89 @@
+Messis AI Production Readiness Audit
+====================================
+
+Patch: PATCH-DEPLOY-005A
+Date: 2026-07-31T10:41:37+00:00
+Domain: https://messis.ads-ai.in
+Application root: /opt/messis
+
+Passed checks: 63
+Warnings: 3
+Failed checks: 1
+
+PASSED
+------
+- messis.service is active
+- messis.service is enabled
+- apache2 is active
+- apache2 is enabled
+- postgresql is active
+- postgresql is enabled
+- certbot.timer is active
+- certbot.timer is enabled
+- Messis systemd service file exists
+- Systemd service syntax is valid
+- Systemd service runs as messis user
+- Systemd service runs as messis group
+- NoNewPrivileges is enabled
+- PrivateTmp is enabled
+- ProtectSystem is configured
+- ProtectHome is configured
+- RestrictSUIDSGID is enabled
+- Secure systemd UMask is configured
+- Systemd security report generated
+- Backend listens only on 127.0.0.1:8080
+- Apache HTTP port 80 is listening
+- Apache HTTPS port 443 is listening
+- Apache HTTP virtual host exists
+- Apache HTTPS virtual host exists
+- Apache security configuration exists
+- Apache configuration syntax is valid
+- Apache proxy module is enabled
+- Apache SSL module is enabled
+- Apache headers module is enabled
+- Apache ServerTokens is set to Prod
+- Apache ServerSignature is disabled
+- Messis application imports successfully
+- Database connectivity and schema validation succeeded
+- Local backend HTTP response is valid
+- HTTP redirects to HTTPS
+- HTTP redirect target is correct
+- Public HTTPS endpoint is available
+- Public HTTPS response contains expected application content
+- Dashboard authentication workflow response is valid
+- X-Content-Type-Options header is present
+- X-Frame-Options header is present
+- Referrer-Policy header is present
+- Permissions-Policy header is present
+- Strict-Transport-Security header is present
+- TRACE HTTP method is blocked
+- Let's Encrypt certificate file exists
+- SSL certificate is valid for more than 30 days
+- SSL certificate includes messis.ads-ai.in
+- TLS certificate chain verification succeeded
+- TLS protocol negotiation succeeded
+- Application root owner is messis
+- Application root group is messis
+- Secret file secured: /opt/messis/.env
+- Messis logrotate configuration exists
+- Messis logrotate configuration is valid
+- Deployment script exists: /opt/messis/deploy/health_check.sh
+- Deployment script syntax valid: /opt/messis/deploy/health_check.sh
+- Deployment script exists: /opt/messis/deploy/smoke_test_production.sh
+- Deployment script syntax valid: /opt/messis/deploy/smoke_test_production.sh
+- No recent critical Messis application errors
+- No critical Apache errors detected
+- Available memory is above 512 MB
+- Reusable health check passed
+
+WARNINGS
+--------
+- Content-Security-Policy header is not configured
+- Deployment script missing: /opt/messis/deploy/rollback_patch_deploy_005.sh
+- Root disk usage is 91%
+
+FAILURES
+--------
+- Apache proxy_http module is not enabled
+
+Git repository initialization and release tagging: DEFERRED

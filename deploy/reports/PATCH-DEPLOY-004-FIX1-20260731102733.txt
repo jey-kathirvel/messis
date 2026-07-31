@@ -1,0 +1,130 @@
+============================================
+ PATCH-DEPLOY-004-FIX1 - STATIC DISCOVERY FIX
+============================================
+
+===== PREREQUISITE VALIDATION =====
+HTTPS_ROOT_STATUS=200
+PREREQUISITES: PASSED
+
+===== AUTH PAGE DISCOVERY =====
+HTTP/1.1 303 See Other
+Date: Fri, 31 Jul 2026 10:27:32 GMT
+Server: uvicorn
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+content-length: 0
+location: /?error=Please%20sign%20in%20to%20continue.
+
+DASHBOARD_STATUS=303
+DASHBOARD_LOCATION=/?error=Please%20sign%20in%20to%20continue.
+AUTH_URL=https://messis.ads-ai.in/?error=Please%20sign%20in%20to%20continue.
+AUTH_STATUS=200
+AUTH PAGE DISCOVERY: PASSED
+
+===== STATIC ROUTE VALIDATION =====
+STATIC_ROUTE path=/static name=static type=Mount
+STATIC ROUTE VALIDATION: PASSED
+
+===== STATIC FILE INVENTORY =====
+STATIC_DIR=/opt/messis/app/static
+STATIC_FILE_COUNT=2
+css/app.css
+js/app.js
+STATIC FILE INVENTORY: PASSED
+
+===== HTML STATIC ASSET DISCOVERY =====
+/static/css/app.css
+/static/js/app.js
+HTML_STATIC_ASSET_COUNT=2
+
+===== FILESYSTEM STATIC ASSET DISCOVERY =====
+/static/css/app.css
+/static/js/app.js
+FILESYSTEM_STATIC_ASSET_COUNT=2
+
+===== COMBINED STATIC ASSET LIST =====
+/static/css/app.css
+/static/js/app.js
+SELECTED_STATIC_ASSET_COUNT=2
+COMBINED STATIC ASSET LIST: PASSED
+
+===== STATIC ASSET HTTP SMOKE TEST =====
+/static/css/app.css => 200 (text/css; charset=utf-8)
+/static/js/app.js => 200 (text/javascript; charset=utf-8)
+TESTED_ASSET_COUNT=2
+STATIC ASSET HTTP SMOKE TEST: PASSED
+
+===== SECURITY HEADER SMOKE TEST =====
+HTTP/1.1 200 OK
+Date: Fri, 31 Jul 2026 10:27:34 GMT
+Server: uvicorn
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+content-length: 2204
+content-type: text/html; charset=utf-8
+Vary: Accept-Encoding
+
+SECURITY HEADERS: PASSED
+
+===== SSL CERTIFICATE SMOKE TEST =====
+subject=CN = messis.ads-ai.in
+issuer=C = US, O = Let's Encrypt, CN = YE2
+notBefore=Jul 31 04:57:54 2026 GMT
+notAfter=Oct 29 04:57:53 2026 GMT
+X509v3 Subject Alternative Name: 
+    DNS:messis.ads-ai.in
+Certificate will not expire
+SSL CERTIFICATE: PASSED
+
+===== TLS HANDSHAKE SMOKE TEST =====
+TLS HANDSHAKE: PASSED
+
+===== RESTART RESILIENCE TEST =====
+curl: (7) Failed to connect to 127.0.0.1 port 8080 after 0 ms: Couldn't connect to server
+curl: (7) Failed to connect to 127.0.0.1 port 8080 after 0 ms: Couldn't connect to server
+PID_BEFORE=341777
+PID_AFTER=352347
+POST_RESTART_STATUS=200
+RESTART RESILIENCE: PASSED
+
+===== ERROR LOG VALIDATION =====
+MESSIS_ERROR_COUNT=0
+APACHE_ERROR_COUNT=0
+ERROR LOG VALIDATION: PASSED
+
+===== CERTBOT TIMER VALIDATION =====
+NEXT                        LEFT LAST                              PASSED UNIT          ACTIVATES
+Fri 2026-07-31 22:50:48 UTC  12h Fri 2026-07-31 05:42:22 UTC 4h 45min ago certbot.timer certbot.service
+
+1 timers listed.
+Pass --all to see loaded but inactive timers, too.
+CERTBOT TIMER: PASSED
+
+===== FINAL PUBLIC VALIDATION =====
+FINAL_ROOT_STATUS=200
+FINAL_DASHBOARD_STATUS=303
+FINAL PUBLIC VALIDATION: PASSED
+Certificate will not expire
+MESSIS PRODUCTION SMOKE TEST: PASSED
+
+============================================
+ PATCH-DEPLOY-004 STATIC ROUTE: PASSED
+ PATCH-DEPLOY-004 STATIC INVENTORY: PASSED
+ PATCH-DEPLOY-004 STATIC ASSETS: PASSED
+ PATCH-DEPLOY-004 SECURITY HEADERS: PASSED
+ PATCH-DEPLOY-004 SSL CERTIFICATE: PASSED
+ PATCH-DEPLOY-004 TLS: PASSED
+ PATCH-DEPLOY-004 RESTART RESILIENCE: PASSED
+ PATCH-DEPLOY-004 ERROR LOGS: PASSED
+ PATCH-DEPLOY-004 CERTBOT TIMER: PASSED
+ PATCH-DEPLOY-004 PUBLIC VALIDATION: PASSED
+ PATCH-DEPLOY-004 REUSABLE SMOKE SCRIPT: PASSED
+ PATCH-DEPLOY-004 REPORT=/opt/messis/deploy/reports/PATCH-DEPLOY-004-FIX1-20260731102733.txt
+ PATCH-DEPLOY-004-FIX1: PASSED
+ PATCH-DEPLOY-004: PASSED
+============================================
+[?2004h(.venv) ]0;root@srv1733383: /opt/messisroot@srv1733383:/opt/messis# cat /roo[?2004l

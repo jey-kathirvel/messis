@@ -1,0 +1,422 @@
+============================================
+ PATCH-DEPLOY-005A - PRODUCTION READINESS AUDIT
+============================================
+
+Audit time: 2026-07-31T10:41:34+00:00
+Application: Messis AI
+Domain: https://messis.ads-ai.in
+Application root: /opt/messis
+
+===== SERVICE AUDIT =====
+PASS: messis.service is active
+PASS: messis.service is enabled
+PASS: apache2 is active
+PASS: apache2 is enabled
+PASS: postgresql is active
+PASS: postgresql is enabled
+PASS: certbot.timer is active
+PASS: certbot.timer is enabled
+
+===== SYSTEMD SERVICE AUDIT =====
+PASS: Messis systemd service file exists
+PASS: Systemd service syntax is valid
+PASS: Systemd service runs as messis user
+PASS: Systemd service runs as messis group
+PASS: NoNewPrivileges is enabled
+PASS: PrivateTmp is enabled
+PASS: ProtectSystem is configured
+PASS: ProtectHome is configured
+PASS: RestrictSUIDSGID is enabled
+PASS: Secure systemd UMask is configured
+
+===== SYSTEMD SECURITY SCORE =====
+  NAME                                                        DESCRIPTION                                                             EXPOSURE
+✗ RemoveIPC=                                                  Service user may leave SysV IPC objects around                               0.1
+✗ RootDirectory=/RootImage=                                   Service runs within the host's root directory                                0.1
+✓ User=/DynamicUser=                                          Service runs under a static non-root user identity                      
+✓ RestrictRealtime=                                           Service realtime scheduling access is restricted                        
+✗ CapabilityBoundingSet=~CAP_SYS_TIME                         Service processes may change the system clock                                0.2
+✓ NoNewPrivileges=                                            Service processes cannot acquire new privileges                         
+✓ AmbientCapabilities=                                        Service process does not receive ambient capabilities                   
+✗ PrivateDevices=                                             Service potentially has access to hardware devices                           0.2
+✗ ProtectClock=                                               Service may write to the hardware clock or system clock                      0.2
+✗ CapabilityBoundingSet=~CAP_SYS_PACCT                        Service may use acct()                                                       0.1
+✗ CapabilityBoundingSet=~CAP_KILL                             Service may send UNIX signals to arbitrary processes                         0.1
+✗ CapabilityBoundingSet=~CAP_WAKE_ALARM                       Service may program timers that wake up the system                           0.1
+✗ CapabilityBoundingSet=~CAP_(DAC_*|FOWNER|IPC_OWNER)         Service may override UNIX file/IPC permission checks                         0.2
+✗ CapabilityBoundingSet=~CAP_BPF                              Service may not load BPF programs                                            0.1
+✗ CapabilityBoundingSet=~CAP_LINUX_IMMUTABLE                  Service may mark files immutable                                             0.1
+✗ CapabilityBoundingSet=~CAP_IPC_LOCK                         Service may lock memory into RAM                                             0.1
+✗ CapabilityBoundingSet=~CAP_SYS_TTY_CONFIG                   Service may issue vhangup()                                                  0.1
+✗ CapabilityBoundingSet=~CAP_SYS_BOOT                         Service may issue reboot()                                                   0.1
+✗ CapabilityBoundingSet=~CAP_SYS_CHROOT                       Service may issue chroot()                                                   0.1
+✓ SystemCallArchitectures=                                    Service may execute system calls only with native ABI                   
+✗ CapabilityBoundingSet=~CAP_BLOCK_SUSPEND                    Service may establish wake locks                                             0.1
+✗ RestrictNamespaces=~user                                    Service may create user namespaces                                           0.3
+✗ RestrictNamespaces=~pid                                     Service may create process namespaces                                        0.1
+✗ RestrictNamespaces=~net                                     Service may create network namespaces                                        0.1
+✗ RestrictNamespaces=~uts                                     Service may create hostname namespaces                                       0.1
+✗ RestrictNamespaces=~mnt                                     Service may create file system namespaces                                    0.1
+✗ CapabilityBoundingSet=~CAP_LEASE                            Service may create file leases                                               0.1
+✗ CapabilityBoundingSet=~CAP_MKNOD                            Service may create device nodes                                              0.1
+✗ RestrictNamespaces=~cgroup                                  Service may create cgroup namespaces                                         0.1
+✗ RestrictNamespaces=~ipc                                     Service may create IPC namespaces                                            0.1
+✗ ProtectHostname=                                            Service may change system host/domainname                                    0.1
+✗ CapabilityBoundingSet=~CAP_(CHOWN|FSETID|SETFCAP)           Service may change file ownership/access mode/capabilities unrestricted      0.2
+✗ CapabilityBoundingSet=~CAP_SET(UID|GID|PCAP)                Service may change UID/GID identities/capabilities                           0.3
+✗ RestrictAddressFamilies=~AF_PACKET                          Service may allocate packet sockets                                          0.2
+✗ RestrictAddressFamilies=~AF_NETLINK                         Service may allocate netlink sockets                                         0.1
+✗ RestrictAddressFamilies=~AF_UNIX                            Service may allocate local sockets                                           0.1
+✗ RestrictAddressFamilies=~…                                  Service may allocate exotic sockets                                          0.3
+✗ RestrictAddressFamilies=~AF_(INET|INET6)                    Service may allocate Internet sockets                                        0.3
+✗ CapabilityBoundingSet=~CAP_MAC_*                            Service may adjust SMACK MAC                                                 0.1
+✗ ProtectSystem=                                              Service has very limited write access to the OS file hierarchy               0.1
+✗ CapabilityBoundingSet=~CAP_SYS_RAWIO                        Service has raw I/O access                                                   0.2
+✗ CapabilityBoundingSet=~CAP_SYS_PTRACE                       Service has ptrace() debugging abilities                                     0.3
+✗ CapabilityBoundingSet=~CAP_SYS_(NICE|RESOURCE)              Service has privileges to change resource use parameters                     0.1
+✓ SupplementaryGroups=                                        Service has no supplementary groups                                     
+✗ DeviceAllow=                                                Service has no device ACL                                                    0.2
+✓ PrivateTmp=                                                 Service has no access to other software's temporary files               
+✓ CapabilityBoundingSet=~CAP_SYSLOG                           Service has no access to kernel logging                                 
+✓ ProtectHome=                                                Service has no access to home directories                               
+✗ CapabilityBoundingSet=~CAP_NET_ADMIN                        Service has network configuration privileges                                 0.2
+✗ ProtectProc=                                                Service has full access to process tree (/proc hidepid=)                     0.2
+✗ ProcSubset=                                                 Service has full access to non-process /proc files (/proc subset=)           0.1
+✗ CapabilityBoundingSet=~CAP_NET_(BIND_SERVICE|BROADCAST|RAW) Service has elevated networking privileges                                   0.1
+✗ CapabilityBoundingSet=~CAP_AUDIT_*                          Service has audit subsystem access                                           0.1
+✗ CapabilityBoundingSet=~CAP_SYS_ADMIN                        Service has administrator privileges                                         0.3
+✗ PrivateNetwork=                                             Service has access to the host's network                                     0.5
+✗ PrivateUsers=                                               Service has access to other users                                            0.2
+✓ KeyringMode=                                                Service doesn't share key material with other services                  
+✓ Delegate=                                                   Service does not maintain its own delegated control group subtree       
+✗ SystemCallFilter=~@clock                                    Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@cpu-emulation                            Service does not filter system calls                                         0.1
+✗ SystemCallFilter=~@debug                                    Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@module                                   Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@mount                                    Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@obsolete                                 Service does not filter system calls                                         0.1
+✗ SystemCallFilter=~@privileged                               Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@raw-io                                   Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@reboot                                   Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@resources                                Service does not filter system calls                                         0.2
+✗ SystemCallFilter=~@swap                                     Service does not filter system calls                                         0.2
+✗ IPAddressDeny=                                              Service does not define an IP address allow list                             0.2
+✓ NotifyAccess=                                               Service child processes cannot alter service state                      
+✓ ProtectKernelLogs=                                          Service cannot read from or write to the kernel log ring buffer         
+✓ ProtectControlGroups=                                       Service cannot modify the control group file system                     
+✓ ProtectKernelModules=                                       Service cannot load or read kernel modules                              
+✓ CapabilityBoundingSet=~CAP_SYS_MODULE                       Service cannot load kernel modules                                      
+✓ PrivateMounts=                                              Service cannot install system mounts                                    
+✓ MemoryDenyWriteExecute=                                     Service cannot create writable executable memory mappings               
+✓ LockPersonality=                                            Service cannot change ABI personality                                   
+✓ ProtectKernelTunables=                                      Service cannot alter kernel tunables (/proc/sys, …)                     
+✓ RestrictSUIDSGID=                                           SUID/SGID file creation by service is restricted                        
+✗ UMask=                                                      Files created by service are group-readable by default                       0.1
+
+→ Overall exposure level for messis.service: 6.9 MEDIUM 😐
+PASS: Systemd security report generated
+
+===== PORT AUDIT =====
+PASS: Backend listens only on 127.0.0.1:8080
+PASS: Apache HTTP port 80 is listening
+PASS: Apache HTTPS port 443 is listening
+
+===== APACHE CONFIGURATION AUDIT =====
+PASS: Apache HTTP virtual host exists
+PASS: Apache HTTPS virtual host exists
+PASS: Apache security configuration exists
+PASS: Apache configuration syntax is valid
+PASS: Apache proxy module is enabled
+FAIL: Apache proxy_http module is not enabled
+PASS: Apache SSL module is enabled
+PASS: Apache headers module is enabled
+PASS: Apache ServerTokens is set to Prod
+PASS: Apache ServerSignature is disabled
+
+===== APPLICATION IMPORT AUDIT =====
+APPLICATION_TITLE=Messis AI
+ROUTE_COUNT=60
+PASS: Messis application imports successfully
+
+===== DATABASE AUDIT =====
+DATABASE_NAME=messis_db
+DATABASE_USER=messis_user
+TABLE_COUNT=5
+PASS: Database connectivity and schema validation succeeded
+
+===== LOCAL BACKEND AUDIT =====
+BACKEND_STATUS=200
+PASS: Local backend HTTP response is valid
+
+===== PUBLIC HTTP AUDIT =====
+HTTP_STATUS=301
+HTTP_LOCATION=https://messis.ads-ai.in/
+PASS: HTTP redirects to HTTPS
+PASS: HTTP redirect target is correct
+
+===== PUBLIC HTTPS AUDIT =====
+HTTPS_STATUS=200
+PASS: Public HTTPS endpoint is available
+PASS: Public HTTPS response contains expected application content
+DASHBOARD_STATUS=303
+PASS: Dashboard authentication workflow response is valid
+
+===== SECURITY HEADER AUDIT =====
+PASS: X-Content-Type-Options header is present
+PASS: X-Frame-Options header is present
+PASS: Referrer-Policy header is present
+PASS: Permissions-Policy header is present
+PASS: Strict-Transport-Security header is present
+WARN: Content-Security-Policy header is not configured
+
+===== HTTP METHOD AUDIT =====
+TRACE_STATUS=405
+PASS: TRACE HTTP method is blocked
+
+===== SSL CERTIFICATE AUDIT =====
+PASS: Let's Encrypt certificate file exists
+subject=CN = messis.ads-ai.in
+issuer=C = US, O = Let's Encrypt, CN = YE2
+notBefore=Jul 31 04:57:54 2026 GMT
+notAfter=Oct 29 04:57:53 2026 GMT
+X509v3 Subject Alternative Name: 
+    DNS:messis.ads-ai.in
+Certificate will not expire
+PASS: SSL certificate is valid for more than 30 days
+PASS: SSL certificate includes messis.ads-ai.in
+
+===== TLS HANDSHAKE AUDIT =====
+PASS: TLS certificate chain verification succeeded
+PASS: TLS protocol negotiation succeeded
+
+===== FILE OWNERSHIP AUDIT =====
+APP_OWNER=messis
+APP_GROUP=messis
+PASS: Application root owner is messis
+PASS: Application root group is messis
+
+===== SECRET FILE AUDIT =====
+/opt/messis/.env: mode=600 owner=messis:messis
+PASS: Secret file secured: /opt/messis/.env
+
+===== LOG ROTATION AUDIT =====
+PASS: Messis logrotate configuration exists
+PASS: Messis logrotate configuration is valid
+warning: logrotate in debug mode does nothing except printing debug messages!  Consider using verbose mode (-v) instead if this is not what you want.
+
+reading config file /etc/logrotate.d/messis
+Reading state from file: /var/lib/logrotate/status
+Allocating hash table for state file, size 64 entries
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+Creating new state
+
+Handling 1 logs
+
+rotating pattern: /var/log/apache2/messis-access.log
+/var/log/apache2/messis-error.log  after 1 days (14 rotations)
+empty log files are not rotated, old logs are removed
+considering log /var/log/apache2/messis-access.log
+Creating new state
+  Now: 2026-07-31 10:41
+  Last rotated at 2026-07-31 10:00
+  log does not need rotating (log has already been rotated)
+considering log /var/log/apache2/messis-error.log
+Creating new state
+  Now: 2026-07-31 10:41
+  Last rotated at 2026-07-31 10:00
+  log does not need rotating (log has already been rotated)
+not running postrotate script, since no logs were rotated
+
+===== DEPLOYMENT SCRIPT AUDIT =====
+PASS: Deployment script exists: /opt/messis/deploy/health_check.sh
+PASS: Deployment script syntax valid: /opt/messis/deploy/health_check.sh
+PASS: Deployment script exists: /opt/messis/deploy/smoke_test_production.sh
+PASS: Deployment script syntax valid: /opt/messis/deploy/smoke_test_production.sh
+WARN: Deployment script missing: /opt/messis/deploy/rollback_patch_deploy_005.sh
+
+===== RUNTIME ERROR AUDIT =====
+MESSIS_CRITICAL_ERROR_COUNT=0
+APACHE_CRITICAL_ERROR_COUNT=0
+PASS: No recent critical Messis application errors
+PASS: No critical Apache errors detected
+
+===== RESOURCE AUDIT =====
+ROOT_DISK_USAGE_PERCENT=91
+MESSIS_DIRECTORY_SIZE_KB=126648
+AVAILABLE_MEMORY_MB=4988
+WARN: Root disk usage is 91%
+PASS: Available memory is above 512 MB
+
+===== REUSABLE HEALTH CHECK =====
+Certificate will not expire
+MESSIS HEALTH CHECK: PASSED
+PASS: Reusable health check passed
+
+===== AUDIT SUMMARY =====
+Messis AI Production Readiness Audit
+====================================
+
+Patch: PATCH-DEPLOY-005A
+Date: 2026-07-31T10:41:37+00:00
+Domain: https://messis.ads-ai.in
+Application root: /opt/messis
+
+Passed checks: 63
+Warnings: 3
+Failed checks: 1
+
+PASSED
+------
+- messis.service is active
+- messis.service is enabled
+- apache2 is active
+- apache2 is enabled
+- postgresql is active
+- postgresql is enabled
+- certbot.timer is active
+- certbot.timer is enabled
+- Messis systemd service file exists
+- Systemd service syntax is valid
+- Systemd service runs as messis user
+- Systemd service runs as messis group
+- NoNewPrivileges is enabled
+- PrivateTmp is enabled
+- ProtectSystem is configured
+- ProtectHome is configured
+- RestrictSUIDSGID is enabled
+- Secure systemd UMask is configured
+- Systemd security report generated
+- Backend listens only on 127.0.0.1:8080
+- Apache HTTP port 80 is listening
+- Apache HTTPS port 443 is listening
+- Apache HTTP virtual host exists
+- Apache HTTPS virtual host exists
+- Apache security configuration exists
+- Apache configuration syntax is valid
+- Apache proxy module is enabled
+- Apache SSL module is enabled
+- Apache headers module is enabled
+- Apache ServerTokens is set to Prod
+- Apache ServerSignature is disabled
+- Messis application imports successfully
+- Database connectivity and schema validation succeeded
+- Local backend HTTP response is valid
+- HTTP redirects to HTTPS
+- HTTP redirect target is correct
+- Public HTTPS endpoint is available
+- Public HTTPS response contains expected application content
+- Dashboard authentication workflow response is valid
+- X-Content-Type-Options header is present
+- X-Frame-Options header is present
+- Referrer-Policy header is present
+- Permissions-Policy header is present
+- Strict-Transport-Security header is present
+- TRACE HTTP method is blocked
+- Let's Encrypt certificate file exists
+- SSL certificate is valid for more than 30 days
+- SSL certificate includes messis.ads-ai.in
+- TLS certificate chain verification succeeded
+- TLS protocol negotiation succeeded
+- Application root owner is messis
+- Application root group is messis
+- Secret file secured: /opt/messis/.env
+- Messis logrotate configuration exists
+- Messis logrotate configuration is valid
+- Deployment script exists: /opt/messis/deploy/health_check.sh
+- Deployment script syntax valid: /opt/messis/deploy/health_check.sh
+- Deployment script exists: /opt/messis/deploy/smoke_test_production.sh
+- Deployment script syntax valid: /opt/messis/deploy/smoke_test_production.sh
+- No recent critical Messis application errors
+- No critical Apache errors detected
+- Available memory is above 512 MB
+- Reusable health check passed
+
+WARNINGS
+--------
+- Content-Security-Policy header is not configured
+- Deployment script missing: /opt/messis/deploy/rollback_patch_deploy_005.sh
+- Root disk usage is 91%
+
+FAILURES
+--------
+- Apache proxy_http module is not enabled
+
+Git repository initialization and release tagging: DEFERRED
+
+============================================
+ PATCH-DEPLOY-005A PASS_COUNT=63
+ PATCH-DEPLOY-005A WARN_COUNT=3
+ PATCH-DEPLOY-005A FAIL_COUNT=1
+ PATCH-DEPLOY-005A REPORT=/opt/messis/deploy/reports/PATCH-DEPLOY-005A-20260731104134.txt
+ PATCH-DEPLOY-005A SUMMARY=/opt/messis/deploy/reports/PATCH-DEPLOY-005A-20260731104134-summary.txt
+ PATCH-DEPLOY-005A GIT: DEFERRED
+============================================
+PATCH-DEPLOY-005A: COMPLETED WITH FAILURES
+logout

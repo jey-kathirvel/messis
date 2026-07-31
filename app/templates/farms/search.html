@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="theme-color"
+        content="#065f46"
+    >
+
+    <title>{{ page_title }} | Messis AI</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(16, 185, 129, 0.15),
+                    transparent 32rem
+                ),
+                radial-gradient(
+                    circle at bottom right,
+                    rgba(245, 158, 11, 0.13),
+                    transparent 30rem
+                ),
+                linear-gradient(
+                    135deg,
+                    #f0fdf4 0%,
+                    #f8fafc 52%,
+                    #fff7ed 100%
+                );
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-slate-800">
+    <header
+        class="sticky top-0 z-40 border-b border-white/70
+               bg-white/90 backdrop-blur-xl"
+    >
+        <div
+            class="mx-auto flex max-w-7xl items-center
+                   justify-between gap-4 px-4 py-4 sm:px-6"
+        >
+            <a
+                href="/dashboard"
+                class="flex items-center gap-3"
+            >
+                <div
+                    class="flex h-11 w-11 items-center
+                           justify-center rounded-2xl
+                           bg-gradient-to-br from-emerald-600
+                           to-green-800 text-xl shadow-lg"
+                >
+                    🌴
+                </div>
+
+                <div>
+                    <p class="font-black text-emerald-950">
+                        Messis AI
+                    </p>
+
+                    <p
+                        class="text-xs font-medium
+                               text-emerald-700"
+                    >
+                        Smart Agriculture Management System
+                    </p>
+                </div>
+            </a>
+
+            <a
+                href="/farms"
+                class="rounded-xl border border-slate-200
+                       bg-white px-4 py-2 text-sm font-black
+                       text-slate-700 transition
+                       hover:bg-slate-50"
+            >
+                Farms
+            </a>
+        </div>
+    </header>
+
+    <main
+        class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10"
+    >
+        <a
+            href="/farms"
+            class="inline-flex items-center gap-2 rounded-xl
+                   px-3 py-2 text-sm font-black
+                   text-emerald-800 transition
+                   hover:bg-emerald-100"
+        >
+            ← Back to Farms
+        </a>
+
+        <section
+            class="mt-5 overflow-hidden rounded-3xl
+                   bg-gradient-to-br from-emerald-950
+                   via-emerald-800 to-green-600
+                   px-6 py-8 text-white shadow-2xl
+                   shadow-emerald-950/20 sm:px-8 lg:px-10"
+        >
+            <p
+                class="text-xs font-black uppercase
+                       tracking-[0.18em] text-emerald-100"
+            >
+                Farm Directory
+            </p>
+
+            <h1
+                class="mt-3 text-3xl font-black tracking-tight
+                       sm:text-4xl"
+            >
+                Search and Filter Farms
+            </h1>
+
+            <p
+                class="mt-3 max-w-2xl text-sm leading-6
+                       text-emerald-50/90 sm:text-base"
+            >
+                Find farms by name, location or notes and
+                organise results by acreage, tree count or date.
+            </p>
+        </section>
+
+        <section
+            class="mt-6 rounded-3xl border border-white/80
+                   bg-white/90 p-5 shadow-xl
+                   shadow-slate-900/5 backdrop-blur sm:p-7"
+        >
+            <form
+                method="get"
+                action="/farms/search"
+                class="grid gap-4 lg:grid-cols-12
+                       lg:items-end"
+            >
+                <div class="lg:col-span-5">
+                    <label
+                        for="q"
+                        class="mb-2 block text-sm font-black
+                               text-slate-700"
+                    >
+                        Search
+                    </label>
+
+                    <input
+                        id="q"
+                        name="q"
+                        type="search"
+                        value="{{ search_query }}"
+                        placeholder="Farm name, location or notes"
+                        class="w-full rounded-2xl border
+                               border-slate-200 bg-white px-4 py-3
+                               font-semibold text-slate-800
+                               outline-none transition
+                               focus:border-emerald-500
+                               focus:ring-4
+                               focus:ring-emerald-100"
+                    >
+                </div>
+
+                <div class="lg:col-span-3">
+                    <label
+                        for="location"
+                        class="mb-2 block text-sm font-black
+                               text-slate-700"
+                    >
+                        Location
+                    </label>
+
+                    <select
+                        id="location"
+                        name="location"
+                        class="w-full rounded-2xl border
+                               border-slate-200 bg-white px-4 py-3
+                               font-semibold text-slate-800
+                               outline-none transition
+                               focus:border-emerald-500
+                               focus:ring-4
+                               focus:ring-emerald-100"
+                    >
+                        <option value="">
+                            All locations
+                        </option>
+
+                        {% for location in locations %}
+                            <option
+                                value="{{ location }}"
+                                {% if location_filter == location %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ location }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label
+                        for="sort"
+                        class="mb-2 block text-sm font-black
+                               text-slate-700"
+                    >
+                        Sort
+                    </label>
+
+                    <select
+                        id="sort"
+                        name="sort"
+                        class="w-full rounded-2xl border
+                               border-slate-200 bg-white px-4 py-3
+                               font-semibold text-slate-800
+                               outline-none transition
+                               focus:border-emerald-500
+                               focus:ring-4
+                               focus:ring-emerald-100"
+                    >
+                        <option
+                            value="name_asc"
+                            {% if selected_sort == "name_asc" %}
+                                selected
+                            {% endif %}
+                        >
+                            Name A–Z
+                        </option>
+
+                        <option
+                            value="name_desc"
+                            {% if selected_sort == "name_desc" %}
+                                selected
+                            {% endif %}
+                        >
+                            Name Z–A
+                        </option>
+
+                        <option
+                            value="newest"
+                            {% if selected_sort == "newest" %}
+                                selected
+                            {% endif %}
+                        >
+                            Newest
+                        </option>
+
+                        <option
+                            value="oldest"
+                            {% if selected_sort == "oldest" %}
+                                selected
+                            {% endif %}
+                        >
+                            Oldest
+                        </option>
+
+                        <option
+                            value="trees_desc"
+                            {% if selected_sort == "trees_desc" %}
+                                selected
+                            {% endif %}
+                        >
+                            Most trees
+                        </option>
+
+                        <option
+                            value="trees_asc"
+                            {% if selected_sort == "trees_asc" %}
+                                selected
+                            {% endif %}
+                        >
+                            Fewest trees
+                        </option>
+
+                        <option
+                            value="acreage_desc"
+                            {% if selected_sort == "acreage_desc" %}
+                                selected
+                            {% endif %}
+                        >
+                            Largest acreage
+                        </option>
+
+                        <option
+                            value="acreage_asc"
+                            {% if selected_sort == "acreage_asc" %}
+                                selected
+                            {% endif %}
+                        >
+                            Smallest acreage
+                        </option>
+                    </select>
+                </div>
+
+                <div
+                    class="flex gap-2 lg:col-span-2"
+                >
+                    <button
+                        type="submit"
+                        class="flex-1 rounded-2xl
+                               bg-emerald-700 px-5 py-3
+                               text-sm font-black text-white
+                               shadow-lg transition
+                               hover:bg-emerald-800"
+                    >
+                        Search
+                    </button>
+
+                    <a
+                        href="/farms/search"
+                        class="rounded-2xl border
+                               border-slate-200 bg-white
+                               px-4 py-3 text-sm font-black
+                               text-slate-600 transition
+                               hover:bg-slate-50"
+                    >
+                        Clear
+                    </a>
+                </div>
+            </form>
+        </section>
+
+        <section
+            class="mt-6 grid gap-4 sm:grid-cols-3"
+        >
+            <article
+                class="rounded-2xl border border-white/80
+                       bg-white/90 p-5 shadow-lg"
+            >
+                <p
+                    class="text-xs font-black uppercase
+                           tracking-[0.15em] text-slate-500"
+                >
+                    Results
+                </p>
+
+                <p
+                    class="mt-2 text-3xl font-black
+                           text-emerald-800"
+                >
+                    {{ result_count }}
+                </p>
+            </article>
+
+            <article
+                class="rounded-2xl border border-white/80
+                       bg-white/90 p-5 shadow-lg"
+            >
+                <p
+                    class="text-xs font-black uppercase
+                           tracking-[0.15em] text-slate-500"
+                >
+                    Matching Acreage
+                </p>
+
+                <p
+                    class="mt-2 text-3xl font-black
+                           text-sky-800"
+                >
+                    {{ total_acreage }}
+                </p>
+            </article>
+
+            <article
+                class="rounded-2xl border border-white/80
+                       bg-white/90 p-5 shadow-lg"
+            >
+                <p
+                    class="text-xs font-black uppercase
+                           tracking-[0.15em] text-slate-500"
+                >
+                    Matching Trees
+                </p>
+
+                <p
+                    class="mt-2 text-3xl font-black
+                           text-green-800"
+                >
+                    {{ total_trees }}
+                </p>
+            </article>
+        </section>
+
+        {% if farms %}
+            <section
+                class="mt-6 grid gap-5 md:grid-cols-2
+                       xl:grid-cols-3"
+            >
+                {% for farm in farms %}
+                    <article
+                        class="group rounded-3xl border
+                               border-white/80 bg-white/90 p-6
+                               shadow-xl shadow-slate-900/5
+                               transition hover:-translate-y-1
+                               hover:shadow-2xl"
+                    >
+                        <div
+                            class="flex items-start
+                                   justify-between gap-4"
+                        >
+                            <div
+                                class="flex h-12 w-12 items-center
+                                       justify-center rounded-2xl
+                                       bg-emerald-100 text-2xl"
+                            >
+                                🌴
+                            </div>
+
+                            <span
+                                class="rounded-full bg-emerald-100
+                                       px-3 py-1 text-xs font-black
+                                       text-emerald-800"
+                            >
+                                #{{ farm.id }}
+                            </span>
+                        </div>
+
+                        <h2
+                            class="mt-5 text-xl font-black
+                                   text-slate-900"
+                        >
+                            {{ farm.name }}
+                        </h2>
+
+                        <p
+                            class="mt-2 flex items-center gap-2
+                                   text-sm font-semibold
+                                   text-slate-500"
+                        >
+                            📍
+                            {{
+                                farm.location
+                                or "Location not provided"
+                            }}
+                        </p>
+
+                        <dl
+                            class="mt-5 grid grid-cols-2 gap-3"
+                        >
+                            <div
+                                class="rounded-2xl bg-slate-50 p-4"
+                            >
+                                <dt
+                                    class="text-xs font-black
+                                           uppercase tracking-wide
+                                           text-slate-500"
+                                >
+                                    Acreage
+                                </dt>
+
+                                <dd
+                                    class="mt-1 text-lg font-black
+                                           text-slate-900"
+                                >
+                                    {{ farm.acreage or "—" }}
+                                </dd>
+                            </div>
+
+                            <div
+                                class="rounded-2xl bg-slate-50 p-4"
+                            >
+                                <dt
+                                    class="text-xs font-black
+                                           uppercase tracking-wide
+                                           text-slate-500"
+                                >
+                                    Trees
+                                </dt>
+
+                                <dd
+                                    class="mt-1 text-lg font-black
+                                           text-slate-900"
+                                >
+                                    {{ farm.total_trees or 0 }}
+                                </dd>
+                            </div>
+                        </dl>
+
+                        {% if farm.notes %}
+                            <p
+                                class="mt-5 line-clamp-3 text-sm
+                                       leading-6 text-slate-600"
+                            >
+                                {{ farm.notes }}
+                            </p>
+                        {% endif %}
+
+                        <div
+                            class="mt-6 flex items-center gap-2"
+                        >
+                            <a
+                                href="/farms/{{ farm.id }}"
+                                class="flex-1 rounded-xl
+                                       bg-emerald-700 px-4 py-2.5
+                                       text-center text-sm font-black
+                                       text-white transition
+                                       hover:bg-emerald-800"
+                            >
+                                View Farm
+                            </a>
+
+                            <a
+                                href="/farms/{{ farm.id }}/edit"
+                                class="rounded-xl border
+                                       border-slate-200 bg-white
+                                       px-4 py-2.5 text-sm
+                                       font-black text-slate-700
+                                       transition hover:bg-slate-50"
+                            >
+                                Edit
+                            </a>
+                        </div>
+                    </article>
+                {% endfor %}
+            </section>
+        {% else %}
+            <section
+                class="mt-6 rounded-3xl border-2
+                       border-dashed border-slate-300
+                       bg-white/70 px-6 py-16 text-center"
+            >
+                <p class="text-5xl">🔎</p>
+
+                <h2
+                    class="mt-5 text-2xl font-black
+                           text-slate-800"
+                >
+                    No matching farms
+                </h2>
+
+                <p
+                    class="mx-auto mt-3 max-w-lg text-sm
+                           leading-6 text-slate-500"
+                >
+                    Change the search term, location or sort
+                    selection and try again.
+                </p>
+
+                <a
+                    href="/farms/search"
+                    class="mt-6 inline-flex rounded-2xl
+                           bg-emerald-700 px-5 py-3
+                           text-sm font-black text-white
+                           hover:bg-emerald-800"
+                >
+                    Clear Filters
+                </a>
+            </section>
+        {% endif %}
+    </main>
+</body>
+</html>

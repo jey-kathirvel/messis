@@ -1,0 +1,116 @@
+============================================
+ PATCH-DEPLOY-004 - PRODUCTION SMOKE TESTING
+============================================
+
+===== SERVICE VALIDATION =====
+MESSIS SERVICE: PASSED
+APACHE SERVICE: PASSED
+POSTGRESQL SERVICE: PASSED
+
+===== SYSTEMD PROCESS VALIDATION =====
+MESSIS_PID=341777
+MESSIS_USER=messis
+MESSIS_GROUP=messis
+    PID USER     GROUP        ELAPSED CMD
+ 341777 messis   messis      04:10:55 /opt/messis/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8080 --workers 1 --proxy-headers --forwarded-allow-ips=127.0.0.1
+SYSTEMD PROCESS: PASSED
+
+===== PORT VALIDATION =====
+BACKEND_LISTEN=127.0.0.1:8080
+LISTEN 0      2048       127.0.0.1:8080       0.0.0.0:*    users:(("python",pid=341777,fd=14))                                                                                                                                            
+LISTEN 0      511                *:443              *:*    users:(("apache2",pid=351450,fd=6),("apache2",pid=351449,fd=6),("apache2",pid=351448,fd=6),("apache2",pid=351447,fd=6),("apache2",pid=351446,fd=6),("apache2",pid=349579,fd=6))
+LISTEN 0      511                *:80               *:*    users:(("apache2",pid=351450,fd=4),("apache2",pid=351449,fd=4),("apache2",pid=351448,fd=4),("apache2",pid=351447,fd=4),("apache2",pid=351446,fd=4),("apache2",pid=349579,fd=4))
+PORT VALIDATION: PASSED
+
+===== DATABASE VALIDATION =====
+APPLICATION_TITLE=Messis AI
+ROUTE_COUNT=60
+DATABASE_NAME=messis_db
+DATABASE_USER=messis_user
+TABLE_COUNT=5
+DATABASE_VERSION=PostgreSQL 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, 64-bit
+DATABASE VALIDATION: PASSED
+
+===== APPLICATION ROUTE INVENTORY =====
+/
+/api/farms/{farm_id}/trees
+/api/farms/{farm_id}/trees/{tree_id}/activities
+/api/farms/{farm_id}/trees/{tree_id}/activities-summary
+/api/farms/{farm_id}/trees/{tree_id}/activities/{activity_id}
+/api/farms/{farm_id}/trees/{tree_id}/activities/{activity_id}/status
+/api/trees/{tree_id}
+/auth/login
+/auth/logout
+/dashboard
+/docs
+/docs/oauth2-redirect
+/farms
+/farms/analytics
+/farms/export.csv
+/farms/new
+/farms/report
+/farms/search
+/farms/{farm_id}
+/farms/{farm_id}/delete
+/farms/{farm_id}/duplicate
+/farms/{farm_id}/edit
+/farms/{farm_id}/print
+/farms/{farm_id}/trees
+/farms/{farm_id}/trees/bulk-update
+/farms/{farm_id}/trees/export.csv
+/farms/{farm_id}/trees/import
+/farms/{farm_id}/trees/import-template.csv
+/farms/{farm_id}/trees/labels
+/farms/{farm_id}/trees/new
+/farms/{farm_id}/trees/{tree_id}
+/farms/{farm_id}/trees/{tree_id}/activities
+/farms/{farm_id}/trees/{tree_id}/activities/new
+/farms/{farm_id}/trees/{tree_id}/activities/{activity_id}
+/farms/{farm_id}/trees/{tree_id}/activities/{activity_id}/delete
+/farms/{farm_id}/trees/{tree_id}/activities/{activity_id}/edit
+/farms/{farm_id}/trees/{tree_id}/activities/{activity_id}/status
+/farms/{farm_id}/trees/{tree_id}/delete
+/farms/{farm_id}/trees/{tree_id}/edit
+/farms/{farm_id}/trees/{tree_id}/health-report
+/farms/{farm_id}/trees/{tree_id}/qr.png
+/health
+/openapi.json
+/redoc
+/static
+ROUTE_COUNT=45
+ROUTE INVENTORY: PASSED
+
+===== BACKEND HTTP SMOKE TEST =====
+BACKEND_ROOT_STATUS=200
+BACKEND_DASHBOARD_STATUS=303
+BACKEND HTTP: PASSED
+
+===== HTTP REDIRECT SMOKE TEST =====
+HTTP/1.1 301 Moved Permanently
+Date: Fri, 31 Jul 2026 10:24:42 GMT
+Server: Apache/2.4.58 (Ubuntu)
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Location: https://messis.ads-ai.in/
+Content-Length: 315
+Content-Type: text/html; charset=iso-8859-1
+
+HTTP_STATUS=301
+HTTP_LOCATION=https://messis.ads-ai.in/
+HTTP REDIRECT: PASSED
+
+===== HTTPS ROOT SMOKE TEST =====
+HTTPS_ROOT_STATUS=200
+HTTPS ROOT CONTENT: PASSED
+HTTPS ROOT: PASSED
+
+===== HTTPS DASHBOARD SMOKE TEST =====
+HTTPS_DASHBOARD_STATUS=303
+HTTPS DASHBOARD: PASSED
+
+===== STATIC ASSET DISCOVERY =====
+Traceback (most recent call last):
+  File "<stdin>", line 20, in <module>
+AssertionError: No static assets discovered.

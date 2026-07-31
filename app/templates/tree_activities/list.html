@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Tree Activities | {{ tree.tree_code }} | Messis AI
+    </title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen bg-slate-100 text-slate-900">
+    <header
+        class="border-b border-emerald-800
+               bg-gradient-to-r from-emerald-900
+               via-emerald-800 to-green-700 text-white"
+    >
+        <div class="mx-auto max-w-7xl px-5 py-8">
+            <div
+                class="flex flex-col gap-5 lg:flex-row
+                       lg:items-center lg:justify-between"
+            >
+                <div>
+                    <p
+                        class="text-xs font-black uppercase
+                               tracking-[0.22em]
+                               text-emerald-200"
+                    >
+                        Messis AI · Tree Operations
+                    </p>
+
+                    <h1
+                        class="mt-3 text-3xl font-black
+                               sm:text-4xl"
+                    >
+                        {{ tree.tree_code }} Activities
+                    </h1>
+
+                    <p class="mt-2 text-emerald-100">
+                        {{ farm.name }}
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap gap-3">
+                    <a
+                        href="/farms/{{ farm.id }}/trees/{{ tree.id }}"
+                        class="rounded-xl border border-white/30
+                               bg-white/10 px-5 py-3 text-sm
+                               font-bold text-white
+                               hover:bg-white/20"
+                    >
+                        Back to Tree
+                    </a>
+
+                    <a
+                        href="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities/new"
+                        class="rounded-xl bg-white px-5 py-3
+                               text-sm font-black text-emerald-800
+                               hover:bg-emerald-50"
+                    >
+                        Add Activity
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl space-y-6 px-5 py-8">
+        <section
+            class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+            <article
+                class="rounded-2xl border border-slate-200
+                       bg-white p-5 shadow-sm"
+            >
+                <p
+                    class="text-xs font-bold uppercase
+                           tracking-wider text-slate-500"
+                >
+                    Activities
+                </p>
+
+                <p
+                    class="mt-2 text-3xl font-black
+                           text-slate-950"
+                >
+                    {{ activities | length }}
+                </p>
+            </article>
+
+            <article
+                class="rounded-2xl border border-emerald-200
+                       bg-emerald-50 p-5 shadow-sm"
+            >
+                <p
+                    class="text-xs font-bold uppercase
+                           tracking-wider text-emerald-700"
+                >
+                    Completed
+                </p>
+
+                <p
+                    class="mt-2 text-3xl font-black
+                           text-emerald-900"
+                >
+                    {{ completed_count }}
+                </p>
+            </article>
+
+            <article
+                class="rounded-2xl border border-sky-200
+                       bg-sky-50 p-5 shadow-sm"
+            >
+                <p
+                    class="text-xs font-bold uppercase
+                           tracking-wider text-sky-700"
+                >
+                    Planned
+                </p>
+
+                <p
+                    class="mt-2 text-3xl font-black
+                           text-sky-900"
+                >
+                    {{ planned_count }}
+                </p>
+            </article>
+
+            <article
+                class="rounded-2xl border border-amber-200
+                       bg-amber-50 p-5 shadow-sm"
+            >
+                <p
+                    class="text-xs font-bold uppercase
+                           tracking-wider text-amber-700"
+                >
+                    Recorded Cost
+                </p>
+
+                <p
+                    class="mt-2 text-3xl font-black
+                           text-amber-900"
+                >
+                    ₹{{ "%.2f" | format(total_cost) }}
+                </p>
+            </article>
+        </section>
+
+        <section
+            class="rounded-2xl border border-slate-200
+                   bg-white p-5 shadow-sm"
+        >
+            <form
+                method="get"
+                action="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities"
+                class="grid gap-4 md:grid-cols-3"
+            >
+                <div>
+                    <label
+                        for="activity_type"
+                        class="text-sm font-bold text-slate-700"
+                    >
+                        Activity Type
+                    </label>
+
+                    <select
+                        id="activity_type"
+                        name="activity_type"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 bg-white px-4 py-3"
+                    >
+                        <option value="">
+                            All activity types
+                        </option>
+
+                        {% for item in activity_types %}
+                            <option
+                                value="{{ item }}"
+                                {% if selected_type == item %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ tree_activity_type_label(item) }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label
+                        for="status"
+                        class="text-sm font-bold text-slate-700"
+                    >
+                        Status
+                    </label>
+
+                    <select
+                        id="status"
+                        name="status"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 bg-white px-4 py-3"
+                    >
+                        <option value="">
+                            All statuses
+                        </option>
+
+                        {% for item in activity_statuses %}
+                            <option
+                                value="{{ item }}"
+                                {% if selected_status == item %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ tree_activity_status_label(item) }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div
+                    class="flex items-end gap-3"
+                >
+                    <button
+                        type="submit"
+                        class="rounded-xl bg-emerald-600
+                               px-5 py-3 text-sm font-bold
+                               text-white hover:bg-emerald-700"
+                    >
+                        Apply Filters
+                    </button>
+
+                    <a
+                        href="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities"
+                        class="rounded-xl border border-slate-300
+                               bg-white px-5 py-3 text-sm
+                               font-bold text-slate-700
+                               hover:bg-slate-50"
+                    >
+                        Clear
+                    </a>
+                </div>
+            </form>
+        </section>
+
+        {% if activities %}
+            <section class="space-y-4">
+                {% for activity in activities %}
+                    <article
+                        class="rounded-2xl border border-slate-200
+                               bg-white p-6 shadow-sm"
+                    >
+                        <div
+                            class="flex flex-col gap-5 lg:flex-row
+                                   lg:items-start
+                                   lg:justify-between"
+                        >
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap gap-2">
+                                    <span
+                                        class="rounded-full px-3 py-1
+                                               text-xs font-black
+                                               {{ tree_activity_type_style(
+                                                   activity.activity_type
+                                               ) }}"
+                                    >
+                                        {{ tree_activity_type_label(
+                                            activity.activity_type
+                                        ) }}
+                                    </span>
+
+                                    <span
+                                        class="rounded-full border
+                                               px-3 py-1 text-xs
+                                               font-black
+                                               {{ tree_activity_status_style(
+                                                   activity.status
+                                               ) }}"
+                                    >
+                                        {{ tree_activity_status_label(
+                                            activity.status
+                                        ) }}
+                                    </span>
+                                </div>
+
+                                <h2
+                                    class="mt-4 text-xl font-black
+                                           text-slate-950"
+                                >
+                                    {{ activity.title }}
+                                </h2>
+
+                                <p
+                                    class="mt-2 text-sm font-semibold
+                                           text-slate-500"
+                                >
+                                    {{ activity.activity_date }}
+                                </p>
+
+                                {% if activity.description %}
+                                    <p
+                                        class="mt-3 max-w-3xl text-sm
+                                               leading-6 text-slate-600"
+                                    >
+                                        {{ activity.description }}
+                                    </p>
+                                {% endif %}
+                            </div>
+
+                            <div class="flex shrink-0 flex-wrap gap-3">
+                                <a
+                                    href="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities/{{ activity.id }}"
+                                    class="rounded-xl bg-emerald-600
+                                           px-4 py-2 text-sm
+                                           font-bold text-white
+                                           hover:bg-emerald-700"
+                                >
+                                    View Details
+                                </a>
+
+                                <a
+                                    href="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities/{{ activity.id }}/edit"
+                                    class="rounded-xl border
+                                           border-slate-300 bg-white
+                                           px-4 py-2 text-sm
+                                           font-bold text-slate-700
+                                           hover:bg-slate-50"
+                                >
+                                    Edit
+                                </a>
+
+                                <form
+                                    method="post"
+                                    action="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities/{{ activity.id }}/delete"
+                                    onsubmit="return confirm('Delete this activity?');"
+                                >
+                                    <button
+                                        type="submit"
+                                        class="rounded-xl bg-red-600
+                                               px-4 py-2 text-sm
+                                               font-bold text-white
+                                               hover:bg-red-700"
+                                    >
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+
+                        <!-- PATCH-005B.5: LIST STATUS ACTIONS -->
+                        {% set status_actions = tree_activity_status_actions(
+                            activity
+                        ) %}
+
+                        {% if status_actions %}
+                            <div
+                                class="mt-5 flex flex-wrap gap-2
+                                       border-t border-slate-100
+                                       pt-5"
+                            >
+                                {% for action in status_actions %}
+                                    <form
+                                        method="post"
+                                        action="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities/{{ activity.id }}/status"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="status"
+                                            value="{{ action.status }}"
+                                        >
+
+                                        <input
+                                            type="hidden"
+                                            name="redirect_to"
+                                            value="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities"
+                                        >
+
+                                        <button
+                                            type="submit"
+                                            class="rounded-lg px-3 py-2
+                                                   text-xs font-black
+                                                   text-white
+                                                   {{ action.css_class }}"
+                                        >
+                                            {{ action.label }}
+                                        </button>
+                                    </form>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <dl
+                            class="mt-6 grid gap-4 border-t
+                                   border-slate-100 pt-5
+                                   sm:grid-cols-2 lg:grid-cols-5"
+                        >
+                            <div>
+                                <dt
+                                    class="text-xs font-bold uppercase
+                                           tracking-wider text-slate-400"
+                                >
+                                    Quantity
+                                </dt>
+
+                                <dd
+                                    class="mt-1 font-bold text-slate-800"
+                                >
+                                    {% if activity.quantity is not none %}
+                                        {{ activity.quantity }}
+                                        {{ activity.unit or "" }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt
+                                    class="text-xs font-bold uppercase
+                                           tracking-wider text-slate-400"
+                                >
+                                    Cost
+                                </dt>
+
+                                <dd
+                                    class="mt-1 font-bold text-slate-800"
+                                >
+                                    {% if activity.cost is not none %}
+                                        ₹{{ "%.2f" | format(activity.cost) }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt
+                                    class="text-xs font-bold uppercase
+                                           tracking-wider text-slate-400"
+                                >
+                                    Performed By
+                                </dt>
+
+                                <dd
+                                    class="mt-1 font-bold text-slate-800"
+                                >
+                                    {{ activity.performed_by or "—" }}
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt
+                                    class="text-xs font-bold uppercase
+                                           tracking-wider text-slate-400"
+                                >
+                                    Next Due
+                                </dt>
+
+                                <dd
+                                    class="mt-1 font-bold text-slate-800"
+                                >
+                                    {{ activity.next_due_date or "—" }}
+                                </dd>
+                            </div>
+
+                            <div>
+                                <dt
+                                    class="text-xs font-bold uppercase
+                                           tracking-wider text-slate-400"
+                                >
+                                    Notes
+                                </dt>
+
+                                <dd
+                                    class="mt-1 font-bold text-slate-800"
+                                >
+                                    {{ activity.notes or "—" }}
+                                </dd>
+                            </div>
+                        </dl>
+                    </article>
+                {% endfor %}
+            </section>
+        {% else %}
+            <section
+                class="rounded-3xl border-2 border-dashed
+                       border-slate-300 bg-white px-6 py-16
+                       text-center"
+            >
+                <h2
+                    class="text-2xl font-black text-slate-900"
+                >
+                    No tree activities found
+                </h2>
+
+                <p class="mt-3 text-slate-500">
+                    Record irrigation, fertiliser, inspection,
+                    treatment, pruning or harvesting activities.
+                </p>
+
+                <a
+                    href="/farms/{{ farm.id }}/trees/{{ tree.id }}/activities/new"
+                    class="mt-6 inline-flex rounded-xl
+                           bg-emerald-600 px-6 py-3
+                           text-sm font-black text-white
+                           hover:bg-emerald-700"
+                >
+                    Add First Activity
+                </a>
+            </section>
+        {% endif %}
+    </main>
+</body>
+</html>

@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Coconut Tree Labels | Messis AI</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        .label-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .tree-label {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        @media (min-width: 768px) {
+            .label-grid {
+                grid-template-columns:
+                    repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 8mm;
+            }
+
+            body {
+                background: #ffffff !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-container {
+                max-width: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .label-grid {
+                grid-template-columns:
+                    repeat(3, minmax(0, 1fr));
+                gap: 4mm;
+            }
+
+            .tree-label {
+                min-height: 57mm;
+                border: 1px solid #94a3b8 !important;
+                box-shadow: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen bg-slate-100 text-slate-800">
+    <header
+        class="no-print border-b border-slate-200 bg-white"
+    >
+        <div
+            class="mx-auto flex max-w-7xl flex-col gap-4
+                   px-4 py-5 sm:px-6 lg:flex-row
+                   lg:items-center lg:justify-between lg:px-8"
+        >
+            <div>
+                <a
+                    href="/farms/{{ farm.id }}/trees"
+                    class="text-sm font-bold text-emerald-700
+                           hover:text-emerald-900"
+                >
+                    ← Coconut Trees
+                </a>
+
+                <h1
+                    class="mt-2 text-2xl font-bold tracking-tight
+                           text-slate-950"
+                >
+                    Printable Tree Labels
+                </h1>
+
+                <p class="mt-1 text-sm text-slate-500">
+                    {{ farm.name }}
+                    · {{ filtered_count }}
+                    {% if filtered_count == 1 %}
+                        label
+                    {% else %}
+                        labels
+                    {% endif %}
+                </p>
+            </div>
+
+            <button
+                type="button"
+                onclick="window.print()"
+                class="inline-flex items-center justify-center
+                       rounded-xl bg-emerald-600 px-5 py-3
+                       text-sm font-bold text-white shadow-sm
+                       transition hover:bg-emerald-700"
+            >
+                Print Current Page
+            </button>
+        </div>
+    </header>
+
+    <main
+        class="print-container mx-auto max-w-7xl
+               px-4 py-8 sm:px-6 lg:px-8"
+    >
+        <section
+            class="no-print mb-6 rounded-2xl border
+                   border-slate-200 bg-white p-5 shadow-sm"
+        >
+            <form
+                method="get"
+                action="/farms/{{ farm.id }}/trees/labels"
+                class="grid gap-4 lg:grid-cols-12"
+            >
+                <div class="lg:col-span-4">
+                    <label
+                        for="q"
+                        class="block text-xs font-bold uppercase
+                               tracking-wider text-slate-500"
+                    >
+                        Search
+                    </label>
+
+                    <input
+                        id="q"
+                        name="q"
+                        type="search"
+                        value="{{ query_text }}"
+                        placeholder="Tree code, name, QR or location"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 px-4 py-3 text-sm
+                               outline-none focus:border-emerald-500"
+                    >
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label
+                        for="variety"
+                        class="block text-xs font-bold uppercase
+                               tracking-wider text-slate-500"
+                    >
+                        Variety
+                    </label>
+
+                    <select
+                        id="variety"
+                        name="variety"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 bg-white px-4 py-3
+                               text-sm outline-none
+                               focus:border-emerald-500"
+                    >
+                        <option value="">
+                            All varieties
+                        </option>
+
+                        {% for variety in tree_varieties %}
+                            <option
+                                value="{{ variety }}"
+                                {% if variety_filter == variety %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ variety }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label
+                        for="health_status"
+                        class="block text-xs font-bold uppercase
+                               tracking-wider text-slate-500"
+                    >
+                        Health
+                    </label>
+
+                    <select
+                        id="health_status"
+                        name="health_status"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 bg-white px-4 py-3
+                               text-sm outline-none
+                               focus:border-emerald-500"
+                    >
+                        <option value="">
+                            All statuses
+                        </option>
+
+                        {% for status in tree_health_statuses %}
+                            <option
+                                value="{{ status }}"
+                                {% if health_filter == status %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ status }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label
+                        for="activity"
+                        class="block text-xs font-bold uppercase
+                               tracking-wider text-slate-500"
+                    >
+                        Activity
+                    </label>
+
+                    <select
+                        id="activity"
+                        name="activity"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 bg-white px-4 py-3
+                               text-sm outline-none
+                               focus:border-emerald-500"
+                    >
+                        <option value="">
+                            All trees
+                        </option>
+
+                        <option
+                            value="active"
+                            {% if activity_filter == "active" %}
+                                selected
+                            {% endif %}
+                        >
+                            Active
+                        </option>
+
+                        <option
+                            value="inactive"
+                            {% if activity_filter == "inactive" %}
+                                selected
+                            {% endif %}
+                        >
+                            Inactive
+                        </option>
+                    </select>
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label
+                        for="page_size"
+                        class="block text-xs font-bold uppercase
+                               tracking-wider text-slate-500"
+                    >
+                        Labels per page
+                    </label>
+
+                    <select
+                        id="page_size"
+                        name="page_size"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 bg-white px-4 py-3
+                               text-sm outline-none
+                               focus:border-emerald-500"
+                    >
+                        {% for size in page_sizes %}
+                            <option
+                                value="{{ size }}"
+                                {% if page_size == size %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ size }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div
+                    class="flex flex-wrap items-center gap-3
+                           lg:col-span-12"
+                >
+                    <button
+                        type="submit"
+                        class="inline-flex items-center justify-center
+                               rounded-xl bg-emerald-600 px-5 py-3
+                               text-sm font-bold text-white
+                               hover:bg-emerald-700"
+                    >
+                        Apply Filters
+                    </button>
+
+                    <a
+                        href="/farms/{{ farm.id }}/trees/labels"
+                        class="inline-flex items-center justify-center
+                               rounded-xl border border-slate-300
+                               bg-white px-5 py-3 text-sm font-bold
+                               text-slate-700 hover:bg-slate-100"
+                    >
+                        Clear Filters
+                    </a>
+                </div>
+            </form>
+        </section>
+
+        {% if trees %}
+            <section class="label-grid">
+                {% for tree in trees %}
+                    <article
+                        class="tree-label flex min-h-56 flex-col
+                               overflow-hidden rounded-2xl border
+                               border-slate-300 bg-white shadow-sm"
+                    >
+                        <div
+                            class="flex items-start justify-between
+                                   gap-4 border-b border-slate-200
+                                   px-4 py-3"
+                        >
+                            <div class="min-w-0">
+                                <p
+                                    class="text-xs font-bold uppercase
+                                           tracking-wider
+                                           text-emerald-700"
+                                >
+                                    Messis AI
+                                </p>
+
+                                <h2
+                                    class="mt-1 truncate text-xl
+                                           font-black text-slate-950"
+                                >
+                                    {{ tree.tree_code }}
+                                </h2>
+
+                                {% if tree.tree_name %}
+                                    <p
+                                        class="mt-1 truncate text-sm
+                                               font-semibold
+                                               text-slate-600"
+                                    >
+                                        {{ tree.tree_name }}
+                                    </p>
+                                {% endif %}
+                            </div>
+
+                            <img
+                                src="/farms/{{ farm.id }}/trees/{{ tree.id }}/qr.png?box_size=6"
+                                alt="QR code for {{ tree.tree_code }}"
+                                loading="lazy"
+                                class="h-20 w-20 shrink-0 rounded-lg
+                                       border border-slate-300 bg-white
+                                       p-1"
+                            >
+                        </div>
+
+                        <div
+                            class="grid flex-1 grid-cols-2 gap-x-4
+                                   gap-y-3 px-4 py-4 text-sm"
+                        >
+                            <div>
+                                <p
+                                    class="text-xs font-bold uppercase
+                                           tracking-wider
+                                           text-slate-400"
+                                >
+                                    Farm
+                                </p>
+
+                                <p
+                                    class="mt-1 font-bold
+                                           text-slate-800"
+                                >
+                                    {{ farm.name }}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p
+                                    class="text-xs font-bold uppercase
+                                           tracking-wider
+                                           text-slate-400"
+                                >
+                                    Variety
+                                </p>
+
+                                <p
+                                    class="mt-1 font-bold
+                                           text-slate-800"
+                                >
+                                    {{ tree.variety }}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p
+                                    class="text-xs font-bold uppercase
+                                           tracking-wider
+                                           text-slate-400"
+                                >
+                                    Location
+                                </p>
+
+                                <p
+                                    class="mt-1 font-semibold
+                                           text-slate-700"
+                                >
+                                    {{ coconut_tree_label_location(tree) or "Not assigned" }}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p
+                                    class="text-xs font-bold uppercase
+                                           tracking-wider
+                                           text-slate-400"
+                                >
+                                    Health
+                                </p>
+
+                                <p
+                                    class="mt-1 font-semibold
+                                           text-slate-700"
+                                >
+                                    {{ tree.health_status }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div
+                            class="flex items-center justify-between
+                                   gap-3 border-t border-slate-200
+                                   bg-slate-50 px-4 py-3"
+                        >
+                            <div class="min-w-0">
+                                <p
+                                    class="text-[10px] font-bold
+                                           uppercase tracking-wider
+                                           text-slate-400"
+                                >
+                                    QR Code ID
+                                </p>
+
+                                <p
+                                    class="mt-0.5 truncate font-mono
+                                           text-xs font-bold
+                                           text-slate-700"
+                                >
+                                    {{ tree.qr_code_id or tree.tree_code }}
+                                </p>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <a
+                                    href="/farms/{{ farm.id }}/trees/{{ tree.id }}/qr.png?download=true&box_size=10"
+                                    class="no-print rounded-lg border
+                                           border-slate-300 bg-white
+                                           px-2 py-1 text-[10px]
+                                           font-bold text-slate-600
+                                           hover:bg-slate-100"
+                                >
+                                    Download QR
+                                </a>
+
+                                {% if tree.is_active %}
+                                    <span
+                                        class="rounded-full
+                                               bg-emerald-100 px-3 py-1
+                                               text-xs font-bold
+                                               text-emerald-700"
+                                    >
+                                        Active
+                                    </span>
+                                {% else %}
+                                    <span
+                                        class="rounded-full bg-slate-200
+                                               px-3 py-1 text-xs
+                                               font-bold text-slate-600"
+                                    >
+                                        Inactive
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </section>
+
+            <nav
+                class="no-print mt-6 flex flex-col gap-4
+                       rounded-2xl border border-slate-200
+                       bg-white px-5 py-4 shadow-sm
+                       sm:flex-row sm:items-center
+                       sm:justify-between"
+                aria-label="Tree label pagination"
+            >
+                <p class="text-sm font-medium text-slate-600">
+                    Showing
+                    <span class="font-bold text-slate-900">
+                        {{ pagination_start }}
+                    </span>
+                    to
+                    <span class="font-bold text-slate-900">
+                        {{ pagination_end }}
+                    </span>
+                    of
+                    <span class="font-bold text-slate-900">
+                        {{ filtered_count }}
+                    </span>
+                    labels
+                </p>
+
+                <div class="flex items-center gap-2">
+                    {% if page > 1 %}
+                        <a
+                            href="/farms/{{ farm.id }}/trees/labels?q={{ query_text | urlencode }}&variety={{ variety_filter | urlencode }}&health_status={{ health_filter | urlencode }}&activity={{ activity_filter | urlencode }}&page_size={{ page_size }}&page={{ page - 1 }}"
+                            class="rounded-xl border
+                                   border-slate-300 bg-white
+                                   px-4 py-2 text-sm font-bold
+                                   text-slate-700 hover:bg-slate-100"
+                        >
+                            Previous
+                        </a>
+                    {% else %}
+                        <span
+                            class="cursor-not-allowed rounded-xl
+                                   border border-slate-200
+                                   bg-slate-100 px-4 py-2
+                                   text-sm font-bold text-slate-400"
+                        >
+                            Previous
+                        </span>
+                    {% endif %}
+
+                    <span
+                        class="rounded-xl bg-emerald-50
+                               px-4 py-2 text-sm font-bold
+                               text-emerald-700"
+                    >
+                        Page {{ page }} of {{ total_pages }}
+                    </span>
+
+                    {% if page < total_pages %}
+                        <a
+                            href="/farms/{{ farm.id }}/trees/labels?q={{ query_text | urlencode }}&variety={{ variety_filter | urlencode }}&health_status={{ health_filter | urlencode }}&activity={{ activity_filter | urlencode }}&page_size={{ page_size }}&page={{ page + 1 }}"
+                            class="rounded-xl border
+                                   border-slate-300 bg-white
+                                   px-4 py-2 text-sm font-bold
+                                   text-slate-700 hover:bg-slate-100"
+                        >
+                            Next
+                        </a>
+                    {% else %}
+                        <span
+                            class="cursor-not-allowed rounded-xl
+                                   border border-slate-200
+                                   bg-slate-100 px-4 py-2
+                                   text-sm font-bold text-slate-400"
+                        >
+                            Next
+                        </span>
+                    {% endif %}
+                </div>
+            </nav>
+        {% else %}
+            <section
+                class="rounded-2xl border border-slate-200
+                       bg-white p-12 text-center shadow-sm"
+            >
+                <h2 class="text-lg font-bold text-slate-950">
+                    No labels available
+                </h2>
+
+                <p class="mt-2 text-sm text-slate-500">
+                    Change the filters or add coconut trees.
+                </p>
+            </section>
+        {% endif %}
+    </main>
+</body>
+</html>

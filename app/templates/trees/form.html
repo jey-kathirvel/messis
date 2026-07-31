@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {% if mode == "create" %}
+            Add Coconut Tree
+        {% else %}
+            Edit {{ tree.tree_code }}
+        {% endif %}
+        | Messis AI
+    </title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(16, 185, 129, 0.14),
+                    transparent 30rem
+                ),
+                #f8fafc;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-slate-800">
+    <header
+        class="border-b border-slate-200 bg-white/90 backdrop-blur"
+    >
+        <div
+            class="mx-auto flex max-w-5xl items-center justify-between
+                   gap-4 px-4 py-4 sm:px-6 lg:px-8"
+        >
+            <div>
+                <a
+                    href="/farms/{{ farm.id }}/trees"
+                    class="text-sm font-semibold text-emerald-700
+                           hover:text-emerald-900"
+                >
+                    ← Coconut Trees
+                </a>
+
+                <h1
+                    class="mt-1 text-2xl font-bold tracking-tight
+                           text-slate-950"
+                >
+                    {% if mode == "create" %}
+                        Add Coconut Tree
+                    {% else %}
+                        Edit Coconut Tree
+                    {% endif %}
+                </h1>
+
+                <p class="mt-1 text-sm text-slate-500">
+                    {{ farm.name }}
+                    {% if farm.location %}
+                        · {{ farm.location }}
+                    {% endif %}
+                </p>
+            </div>
+
+            <div class="text-right">
+                <p
+                    class="text-xs font-semibold uppercase tracking-wider
+                           text-slate-400"
+                >
+                    Signed in as
+                </p>
+
+                <p class="text-sm font-semibold text-slate-700">
+                    {{ user.display_name }}
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        {% if errors.get("database") %}
+            <div
+                class="mb-6 rounded-xl border border-red-200 bg-red-50
+                       px-4 py-3 text-sm font-medium text-red-700"
+            >
+                {{ errors["database"] }}
+            </div>
+        {% endif %}
+
+        <form
+            method="post"
+            action="{% if mode == 'create' %}/farms/{{ farm.id }}/trees/new{% else %}/farms/{{ farm.id }}/trees/{{ tree.id }}/edit{% endif %}"
+            class="overflow-hidden rounded-2xl border border-slate-200
+                   bg-white shadow-sm"
+            novalidate
+        >
+            <section class="border-b border-slate-200 px-6 py-5">
+                <h2 class="text-lg font-bold text-slate-950">
+                    Tree Identity
+                </h2>
+
+                <p class="mt-1 text-sm text-slate-500">
+                    Enter the unique identity and classification details.
+                </p>
+            </section>
+
+            <section
+                class="grid gap-6 px-6 py-6 md:grid-cols-2"
+            >
+                <div>
+                    <label
+                        for="tree_code"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        Tree Code
+                        <span class="text-red-500">*</span>
+                    </label>
+
+                    <input
+                        id="tree_code"
+                        name="tree_code"
+                        type="text"
+                        maxlength="50"
+                        required
+                        value="{{ values.get('tree_code', '') }}"
+                        placeholder="CTN-001"
+                        class="mt-2 w-full rounded-xl border px-4 py-3
+                               outline-none transition
+                               {% if errors.get('tree_code') %}
+                                   border-red-400 bg-red-50
+                                   focus:border-red-500
+                               {% else %}
+                                   border-slate-300
+                                   focus:border-emerald-500
+                               {% endif %}"
+                    >
+
+                    {% if errors.get("tree_code") %}
+                        <p class="mt-1 text-sm text-red-600">
+                            {{ errors["tree_code"] }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label
+                        for="tree_name"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        Tree Name
+                    </label>
+
+                    <input
+                        id="tree_name"
+                        name="tree_name"
+                        type="text"
+                        maxlength="120"
+                        value="{{ values.get('tree_name', '') }}"
+                        placeholder="East boundary tree"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 px-4 py-3 outline-none
+                               transition focus:border-emerald-500"
+                    >
+
+                    {% if errors.get("tree_name") %}
+                        <p class="mt-1 text-sm text-red-600">
+                            {{ errors["tree_name"] }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label
+                        for="qr_code_id"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        QR Code ID
+                    </label>
+
+                    <input
+                        id="qr_code_id"
+                        name="qr_code_id"
+                        type="text"
+                        maxlength="100"
+                        value="{{ values.get('qr_code_id', '') }}"
+                        placeholder="QR-CTN-001"
+                        class="mt-2 w-full rounded-xl border px-4 py-3
+                               outline-none transition
+                               {% if errors.get('qr_code_id') %}
+                                   border-red-400 bg-red-50
+                               {% else %}
+                                   border-slate-300
+                                   focus:border-emerald-500
+                               {% endif %}"
+                    >
+
+                    {% if errors.get("qr_code_id") %}
+                        <p class="mt-1 text-sm text-red-600">
+                            {{ errors["qr_code_id"] }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label
+                        for="variety"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        Variety
+                        <span class="text-red-500">*</span>
+                    </label>
+
+                    <select
+                        id="variety"
+                        name="variety"
+                        required
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 bg-white px-4 py-3
+                               outline-none transition
+                               focus:border-emerald-500"
+                    >
+                        {% for variety in tree_varieties %}
+                            <option
+                                value="{{ variety }}"
+                                {% if values.get("variety") == variety %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ variety }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    {% if errors.get("variety") %}
+                        <p class="mt-1 text-sm text-red-600">
+                            {{ errors["variety"] }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label
+                        for="planting_date"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        Planting Date
+                    </label>
+
+                    <input
+                        id="planting_date"
+                        name="planting_date"
+                        type="date"
+                        min="1900-01-01"
+                        value="{{ values.get('planting_date', '') }}"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 px-4 py-3 outline-none
+                               transition focus:border-emerald-500"
+                    >
+
+                    {% if errors.get("planting_date") %}
+                        <p class="mt-1 text-sm text-red-600">
+                            {{ errors["planting_date"] }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label
+                        for="health_status"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        Health Status
+                        <span class="text-red-500">*</span>
+                    </label>
+
+                    <select
+                        id="health_status"
+                        name="health_status"
+                        required
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 bg-white px-4 py-3
+                               outline-none transition
+                               focus:border-emerald-500"
+                    >
+                        {% for status in tree_health_statuses %}
+                            <option
+                                value="{{ status }}"
+                                {% if values.get("health_status") == status %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ status }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    {% if errors.get("health_status") %}
+                        <p class="mt-1 text-sm text-red-600">
+                            {{ errors["health_status"] }}
+                        </p>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section
+                class="border-y border-slate-200 bg-slate-50
+                       px-6 py-5"
+            >
+                <h2 class="text-lg font-bold text-slate-950">
+                    Farm Position
+                </h2>
+
+                <p class="mt-1 text-sm text-slate-500">
+                    Record where the tree is located within the farm.
+                </p>
+            </section>
+
+            <section
+                class="grid gap-6 px-6 py-6 md:grid-cols-3"
+            >
+                <div>
+                    <label
+                        for="block_name"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        Block
+                    </label>
+
+                    <input
+                        id="block_name"
+                        name="block_name"
+                        type="text"
+                        maxlength="80"
+                        value="{{ values.get('block_name', '') }}"
+                        placeholder="Block A"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 px-4 py-3 outline-none
+                               transition focus:border-emerald-500"
+                    >
+
+                    {% if errors.get("block_name") %}
+                        <p class="mt-1 text-sm text-red-600">
+                            {{ errors["block_name"] }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label
+                        for="row_number"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        Row
+                    </label>
+
+                    <input
+                        id="row_number"
+                        name="row_number"
+                        type="text"
+                        maxlength="40"
+                        value="{{ values.get('row_number', '') }}"
+                        placeholder="R1"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 px-4 py-3 outline-none
+                               transition focus:border-emerald-500"
+                    >
+
+                    {% if errors.get("row_number") %}
+                        <p class="mt-1 text-sm text-red-600">
+                            {{ errors["row_number"] }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label
+                        for="position_number"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        Position
+                    </label>
+
+                    <input
+                        id="position_number"
+                        name="position_number"
+                        type="text"
+                        maxlength="40"
+                        value="{{ values.get('position_number', '') }}"
+                        placeholder="P1"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 px-4 py-3 outline-none
+                               transition focus:border-emerald-500"
+                    >
+
+                    {% if errors.get("position_number") %}
+                        <p class="mt-1 text-sm text-red-600">
+                            {{ errors["position_number"] }}
+                        </p>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section
+                class="border-y border-slate-200 bg-slate-50
+                       px-6 py-5"
+            >
+                <h2 class="text-lg font-bold text-slate-950">
+                    Measurements
+                </h2>
+
+                <p class="mt-1 text-sm text-slate-500">
+                    Optional physical measurements for monitoring growth.
+                </p>
+            </section>
+
+            <section
+                class="grid gap-6 px-6 py-6 md:grid-cols-3"
+            >
+                <div>
+                    <label
+                        for="height_m"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        Height (metres)
+                    </label>
+
+                    <input
+                        id="height_m"
+                        name="height_m"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value="{{ values.get('height_m', '') }}"
+                        placeholder="12.50"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 px-4 py-3 outline-none
+                               transition focus:border-emerald-500"
+                    >
+
+                    {% if errors.get("height_m") %}
+                        <p class="mt-1 text-sm text-red-600">
+                            {{ errors["height_m"] }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label
+                        for="canopy_diameter_m"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        Canopy Diameter (m)
+                    </label>
+
+                    <input
+                        id="canopy_diameter_m"
+                        name="canopy_diameter_m"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value="{{ values.get('canopy_diameter_m', '') }}"
+                        placeholder="6.25"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 px-4 py-3 outline-none
+                               transition focus:border-emerald-500"
+                    >
+
+                    {% if errors.get("canopy_diameter_m") %}
+                        <p class="mt-1 text-sm text-red-600">
+                            {{ errors["canopy_diameter_m"] }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label
+                        for="trunk_girth_cm"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        Trunk Girth (cm)
+                    </label>
+
+                    <input
+                        id="trunk_girth_cm"
+                        name="trunk_girth_cm"
+                        type="number"
+                        min="0"
+                        max="5000"
+                        step="0.01"
+                        value="{{ values.get('trunk_girth_cm', '') }}"
+                        placeholder="88.40"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 px-4 py-3 outline-none
+                               transition focus:border-emerald-500"
+                    >
+
+                    {% if errors.get("trunk_girth_cm") %}
+                        <p class="mt-1 text-sm text-red-600">
+                            {{ errors["trunk_girth_cm"] }}
+                        </p>
+                    {% endif %}
+                </div>
+            </section>
+
+            <section
+                class="border-y border-slate-200 bg-slate-50
+                       px-6 py-5"
+            >
+                <h2 class="text-lg font-bold text-slate-950">
+                    Additional Details
+                </h2>
+            </section>
+
+            <section class="space-y-6 px-6 py-6">
+                <div>
+                    <label
+                        for="remarks"
+                        class="block text-sm font-semibold text-slate-700"
+                    >
+                        Remarks
+                    </label>
+
+                    <textarea
+                        id="remarks"
+                        name="remarks"
+                        rows="5"
+                        maxlength="5000"
+                        placeholder="Tree condition, history, or observations"
+                        class="mt-2 w-full rounded-xl border
+                               border-slate-300 px-4 py-3 outline-none
+                               transition focus:border-emerald-500"
+                    >{{ values.get("remarks", "") }}</textarea>
+
+                    {% if errors.get("remarks") %}
+                        <p class="mt-1 text-sm text-red-600">
+                            {{ errors["remarks"] }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <label
+                    class="flex cursor-pointer items-start gap-3
+                           rounded-xl border border-slate-200 bg-slate-50
+                           p-4"
+                >
+                    <input
+                        name="is_active"
+                        type="checkbox"
+                        {% if values.get("is_active", True) %}
+                            checked
+                        {% endif %}
+                        class="mt-1 h-4 w-4 rounded border-slate-300
+                               text-emerald-600"
+                    >
+
+                    <span>
+                        <span
+                            class="block text-sm font-semibold
+                                   text-slate-800"
+                        >
+                            Active Coconut Tree
+                        </span>
+
+                        <span class="mt-1 block text-sm text-slate-500">
+                            Inactive trees remain available for historical
+                            records.
+                        </span>
+                    </span>
+                </label>
+            </section>
+
+            <footer
+                class="flex flex-col-reverse gap-3 border-t
+                       border-slate-200 bg-slate-50 px-6 py-5
+                       sm:flex-row sm:justify-end"
+            >
+                <a
+                    href="/farms/{{ farm.id }}/trees"
+                    class="inline-flex items-center justify-center
+                           rounded-xl border border-slate-300 bg-white
+                           px-5 py-3 text-sm font-bold text-slate-700
+                           transition hover:bg-slate-100"
+                >
+                    Cancel
+                </a>
+
+                <button
+                    type="submit"
+                    class="inline-flex items-center justify-center
+                           rounded-xl bg-emerald-600 px-5 py-3
+                           text-sm font-bold text-white shadow-sm
+                           transition hover:bg-emerald-700"
+                >
+                    {% if mode == "create" %}
+                        Add Coconut Tree
+                    {% else %}
+                        Save Changes
+                    {% endif %}
+                </button>
+            </footer>
+        </form>
+    </main>
+</body>
+</html>

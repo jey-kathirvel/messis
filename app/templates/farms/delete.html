@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <meta name="theme-color" content="#991b1b">
+
+    <title>{{ page_title }} | Messis AI</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(239, 68, 68, 0.14),
+                    transparent 34rem
+                ),
+                linear-gradient(
+                    135deg,
+                    #fff7ed 0%,
+                    #fef2f2 50%,
+                    #f8fafc 100%
+                );
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-slate-800">
+    <header
+        class="border-b border-white/70 bg-white/85 backdrop-blur-xl"
+    >
+        <div
+            class="mx-auto flex max-w-5xl items-center justify-between
+                   gap-4 px-4 py-4 sm:px-6"
+        >
+            <a
+                href="/dashboard"
+                class="flex items-center gap-3"
+            >
+                <div
+                    class="flex h-11 w-11 items-center justify-center
+                           rounded-2xl bg-gradient-to-br
+                           from-emerald-600 to-green-800 text-xl"
+                >
+                    🌴
+                </div>
+
+                <div>
+                    <p class="font-black text-emerald-950">
+                        Messis AI
+                    </p>
+
+                    <p class="text-xs font-medium text-emerald-700">
+                        Smart Agriculture Management System
+                    </p>
+                </div>
+            </a>
+
+            <form method="post" action="/auth/logout">
+                <button
+                    type="submit"
+                    class="rounded-xl border border-slate-200 bg-white
+                           px-4 py-2 text-sm font-bold text-slate-700"
+                >
+                    Logout
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <main class="mx-auto max-w-2xl px-4 py-10 sm:px-6">
+        <a
+            href="/farms"
+            class="inline-flex items-center gap-2 rounded-xl px-3 py-2
+                   text-sm font-bold text-emerald-800
+                   hover:bg-emerald-100"
+        >
+            ← Back to Farms
+        </a>
+
+        <section
+            class="mt-6 overflow-hidden rounded-3xl border
+                   border-red-100 bg-white shadow-2xl
+                   shadow-red-950/10"
+        >
+            <div
+                class="bg-gradient-to-br from-red-950 via-red-800
+                       to-red-600 px-6 py-8 text-white sm:px-8"
+            >
+                <div
+                    class="flex h-14 w-14 items-center justify-center
+                           rounded-2xl bg-white/15 text-3xl"
+                >
+                    ⚠️
+                </div>
+
+                <h1 class="mt-5 text-3xl font-black">
+                    Delete farm
+                </h1>
+
+                <p class="mt-3 text-sm leading-6 text-red-50/90">
+                    This action permanently removes the farm record.
+                </p>
+            </div>
+
+            <div class="p-6 sm:p-8">
+                {% if error_message %}
+                    <div
+                        class="mb-6 rounded-2xl border border-red-200
+                               bg-red-50 px-5 py-4 text-sm font-semibold
+                               text-red-800"
+                    >
+                        {{ error_message }}
+                    </div>
+                {% endif %}
+
+                <div
+                    class="rounded-2xl border border-slate-200
+                           bg-slate-50 p-5"
+                >
+                    <p
+                        class="text-xs font-black uppercase
+                               tracking-[0.18em] text-slate-500"
+                    >
+                        Farm
+                    </p>
+
+                    <p class="mt-2 text-xl font-black text-slate-900">
+                        {{ farm.name }}
+                    </p>
+
+                    <div
+                        class="mt-4 grid grid-cols-2 gap-4 text-sm"
+                    >
+                        <div>
+                            <p class="font-semibold text-slate-500">
+                                Location
+                            </p>
+
+                            <p class="mt-1 font-bold text-slate-800">
+                                {{ farm.location or "Not provided" }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <p class="font-semibold text-slate-500">
+                                Trees
+                            </p>
+
+                            <p class="mt-1 font-bold text-slate-800">
+                                {{ farm.total_trees or 0 }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <form
+                    method="post"
+                    action="/farms/{{ farm.id }}/delete"
+                    class="mt-6"
+                >
+                    <label
+                        for="confirmation_name"
+                        class="block text-sm font-black text-slate-800"
+                    >
+                        Type
+                        <span class="text-red-700">
+                            {{ farm.name }}
+                        </span>
+                        to confirm
+                    </label>
+
+                    <input
+                        id="confirmation_name"
+                        name="confirmation_name"
+                        type="text"
+                        required
+                        autocomplete="off"
+                        class="mt-3 w-full rounded-2xl border
+                               border-slate-300 px-4 py-3.5
+                               font-semibold outline-none transition
+                               focus:border-red-500 focus:ring-4
+                               focus:ring-red-100"
+                    >
+
+                    <div
+                        class="mt-7 flex flex-col-reverse gap-3
+                               sm:flex-row sm:justify-end"
+                    >
+                        <a
+                            href="/farms"
+                            class="rounded-2xl border border-slate-200
+                                   bg-white px-5 py-3 text-center
+                                   text-sm font-black text-slate-700
+                                   hover:bg-slate-50"
+                        >
+                            Cancel
+                        </a>
+
+                        <button
+                            type="submit"
+                            class="rounded-2xl bg-red-700 px-6 py-3
+                                   text-sm font-black text-white
+                                   shadow-lg shadow-red-900/20
+                                   hover:bg-red-800"
+                        >
+                            Permanently Delete
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
