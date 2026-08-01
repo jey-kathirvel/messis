@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>Record Payment · Messis AI</title>
+
+    <style>
+        :root {
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            color: #17351f;
+            background: #f4fbf5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+        }
+
+        main {
+            width: min(680px, 100%);
+            margin: 20px auto;
+        }
+
+        a {
+            color: #166534;
+            font-weight: 900;
+            text-decoration: none;
+        }
+
+        .panel {
+            margin-top: 18px;
+            padding: clamp(22px, 5vw, 42px);
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(20, 83, 45, 0.1);
+        }
+
+        label {
+            display: block;
+            margin: 16px 0 7px;
+            font-weight: 800;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 13px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            font: inherit;
+        }
+
+        textarea {
+            min-height: 100px;
+        }
+
+        .balance {
+            padding: 16px;
+            margin: 18px 0;
+            border-radius: 15px;
+            background: #f0fdf4;
+        }
+
+        .balance strong {
+            display: block;
+            color: #166534;
+            font-size: 24px;
+        }
+
+        .error {
+            padding: 12px;
+            border-radius: 12px;
+            color: #991b1b;
+            background: #fee2e2;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 22px;
+            border: 0;
+            border-radius: 14px;
+            padding: 14px;
+            background: #15803d;
+            color: white;
+            font: inherit;
+            font-weight: 900;
+        }
+    </style>
+</head>
+
+<body>
+<main>
+    <a href="/sales/{{ sale.id }}/view">← Sale detail</a>
+
+    <section class="panel">
+        <h1>Record payment</h1>
+        <p>{{ sale.product_type }} · {{ farm.name }}</p>
+
+        <div class="balance">
+            <small>Current outstanding</small>
+            <strong>
+                ₹{{ '%.2f'|format(sale.balance_amount) }}
+            </strong>
+        </div>
+
+        {% if error_message %}
+            <div class="error">{{ error_message }}</div>
+        {% endif %}
+
+        <form
+            method="post"
+            action="/sales/{{ sale.id }}/payments/new"
+        >
+            <label for="payment_date">Payment date</label>
+            <input
+                id="payment_date"
+                name="payment_date"
+                type="date"
+                value="{{ form_data.payment_date }}"
+                required
+            >
+
+            <label for="amount">Amount</label>
+            <input
+                id="amount"
+                name="amount"
+                type="number"
+                min="0.01"
+                max="{{ sale.balance_amount }}"
+                step="0.01"
+                value="{{ form_data.amount }}"
+                required
+            >
+
+            <label for="payment_mode">Payment mode</label>
+            <select
+                id="payment_mode"
+                name="payment_mode"
+                required
+            >
+                {% for mode in payment_modes %}
+                    <option
+                        value="{{ mode }}"
+                        {% if form_data.payment_mode == mode %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ mode }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <label for="reference_number">
+                Reference number
+            </label>
+            <input
+                id="reference_number"
+                name="reference_number"
+                type="text"
+                maxlength="120"
+                value="{{ form_data.reference_number }}"
+            >
+
+            <label for="notes">Notes</label>
+            <textarea
+                id="notes"
+                name="notes"
+            >{{ form_data.notes }}</textarea>
+
+            <button type="submit">Save payment</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

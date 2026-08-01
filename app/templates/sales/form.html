@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>Record Sale · Messis AI</title>
+
+    <style>
+        :root {
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            color: #17351f;
+            background: #f4fbf5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        main {
+            width: min(900px, 100%);
+            margin: 20px auto;
+        }
+
+        .back {
+            color: #166534;
+            font-weight: 900;
+            text-decoration: none;
+        }
+
+        .panel {
+            margin-top: 18px;
+            padding: clamp(22px, 5vw, 42px);
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(20, 83, 45, 0.1);
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        .subtitle {
+            color: #64748b;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        label {
+            display: block;
+            margin: 16px 0 7px;
+            font-weight: 800;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 13px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            font: inherit;
+            background: white;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .totals {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .total-card {
+            padding: 15px;
+            border-radius: 15px;
+            background: #f0fdf4;
+        }
+
+        .total-card small {
+            display: block;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+
+        .total-card strong {
+            color: #166534;
+            font-size: 19px;
+        }
+
+        .error {
+            margin: 18px 0;
+            padding: 12px 14px;
+            border-radius: 12px;
+            color: #991b1b;
+            background: #fee2e2;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 24px;
+            border: 0;
+            border-radius: 14px;
+            padding: 14px 18px;
+            background: #15803d;
+            color: white;
+            font: inherit;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        @media (max-width: 760px) {
+            .grid,
+            .totals {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<main>
+    <a class="back" href="/sales/manage">← Sales</a>
+
+    <section class="panel">
+        <h1>Record coconut sale</h1>
+        <p class="subtitle">
+            Enter quantity, rate, deductions and payment received.
+        </p>
+
+        {% if error_message %}
+            <div class="error">{{ error_message }}</div>
+        {% endif %}
+
+        <form method="post" action="/sales/new">
+            <div class="grid">
+                <div>
+                    <label for="sale_date">Sale date</label>
+                    <input
+                        id="sale_date"
+                        name="sale_date"
+                        type="date"
+                        value="{{ form_data.sale_date }}"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label for="farm_id">Farm</label>
+                    <select id="farm_id" name="farm_id" required>
+                        <option value="">Select farm</option>
+
+                        {% for farm in farms %}
+                            <option
+                                value="{{ farm.id }}"
+                                {% if form_data.farm_id|string == farm.id|string %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ farm.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="harvest_record_id">
+                        Harvest record
+                    </label>
+                    <select
+                        id="harvest_record_id"
+                        name="harvest_record_id"
+                    >
+                        <option value="">Not linked</option>
+
+                        {% for record in harvest_records %}
+                            <option
+                                value="{{ record.id }}"
+                                data-farm-id="{{ record.farm_id }}"
+                                {% if form_data.harvest_record_id|string == record.id|string %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ record.harvest_date.strftime('%d %b %Y') }}
+                                · {{ record.total_coconuts }} coconuts
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="buyer_id">Buyer</label>
+                    <select id="buyer_id" name="buyer_id">
+                        <option value="">Direct or cash buyer</option>
+
+                        {% for buyer in buyers %}
+                            <option
+                                value="{{ buyer.id }}"
+                                {% if form_data.buyer_id|string == buyer.id|string %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ buyer.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="product_type">Product</label>
+                    <select
+                        id="product_type"
+                        name="product_type"
+                        required
+                    >
+                        {% for product in product_types %}
+                            <option
+                                value="{{ product }}"
+                                {% if form_data.product_type == product %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ product }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="unit">Unit</label>
+                    <select id="unit" name="unit" required>
+                        {% for unit in units %}
+                            <option
+                                value="{{ unit }}"
+                                {% if form_data.unit == unit %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ unit }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="quantity">Quantity</label>
+                    <input
+                        class="calculation"
+                        id="quantity"
+                        name="quantity"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value="{{ form_data.quantity }}"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label for="rate">Rate</label>
+                    <input
+                        class="calculation"
+                        id="rate"
+                        name="rate"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="{{ form_data.rate }}"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label for="transport_deduction">
+                        Transport deduction
+                    </label>
+                    <input
+                        class="calculation deduction"
+                        id="transport_deduction"
+                        name="transport_deduction"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="{{ form_data.transport_deduction }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="commission_deduction">
+                        Commission deduction
+                    </label>
+                    <input
+                        class="calculation deduction"
+                        id="commission_deduction"
+                        name="commission_deduction"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="{{ form_data.commission_deduction }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="other_deduction">
+                        Other deduction
+                    </label>
+                    <input
+                        class="calculation deduction"
+                        id="other_deduction"
+                        name="other_deduction"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="{{ form_data.other_deduction }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="paid_amount">
+                        Initial paid amount
+                    </label>
+                    <input
+                        class="calculation"
+                        id="paid_amount"
+                        name="paid_amount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="{{ form_data.paid_amount }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="payment_due_date">
+                        Payment due date
+                    </label>
+                    <input
+                        id="payment_due_date"
+                        name="payment_due_date"
+                        type="date"
+                        value="{{ form_data.payment_due_date }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="reference_number">
+                        Reference number
+                    </label>
+                    <input
+                        id="reference_number"
+                        name="reference_number"
+                        type="text"
+                        maxlength="120"
+                        value="{{ form_data.reference_number }}"
+                    >
+                </div>
+            </div>
+
+            <div class="totals">
+                <div class="total-card">
+                    <small>Gross amount</small>
+                    <strong id="gross_amount">₹0.00</strong>
+                </div>
+
+                <div class="total-card">
+                    <small>Total deductions</small>
+                    <strong id="deduction_total">₹0.00</strong>
+                </div>
+
+                <div class="total-card">
+                    <small>Net amount</small>
+                    <strong id="net_amount">₹0.00</strong>
+                </div>
+
+                <div class="total-card">
+                    <small>Balance</small>
+                    <strong id="balance_amount">₹0.00</strong>
+                </div>
+            </div>
+
+            <label for="notes">Notes</label>
+            <textarea
+                id="notes"
+                name="notes"
+                maxlength="5000"
+            >{{ form_data.notes }}</textarea>
+
+            <button type="submit">Save sale</button>
+        </form>
+    </section>
+</main>
+
+<script>
+    const quantity = document.getElementById("quantity");
+    const rate = document.getElementById("rate");
+    const paid = document.getElementById("paid_amount");
+
+    const deductions = [
+        ...document.querySelectorAll(".deduction")
+    ];
+
+    function valueOf(input) {
+        return Number(input.value || 0);
+    }
+
+    function currency(value) {
+        return "₹" + Math.max(value, 0).toFixed(2);
+    }
+
+    function refreshTotals() {
+        const gross = valueOf(quantity) * valueOf(rate);
+
+        const deductionTotal = deductions.reduce(
+            (sum, input) => sum + valueOf(input),
+            0
+        );
+
+        const net = gross - deductionTotal;
+        const balance = net - valueOf(paid);
+
+        document.getElementById("gross_amount").textContent =
+            currency(gross);
+
+        document.getElementById("deduction_total").textContent =
+            currency(deductionTotal);
+
+        document.getElementById("net_amount").textContent =
+            currency(net);
+
+        document.getElementById("balance_amount").textContent =
+            currency(balance);
+    }
+
+    document.querySelectorAll(".calculation").forEach(
+        input => input.addEventListener(
+            "input",
+            refreshTotals
+        )
+    );
+
+    refreshTotals();
+</script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>Expense Detail · Messis AI</title>
+
+    <style>
+        :root {
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            color: #17351f;
+            background: #f4fbf5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        main {
+            width: min(860px, 100%);
+            margin: 20px auto;
+        }
+
+        a {
+            color: #166534;
+            font-weight: 900;
+            text-decoration: none;
+        }
+
+        .panel {
+            margin-top: 18px;
+            padding: clamp(22px, 5vw, 42px);
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(20, 83, 45, 0.09);
+        }
+
+        .heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        .subtitle {
+            color: #64748b;
+        }
+
+        .amount {
+            color: #b91c1c;
+            font-size: 30px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 24px;
+        }
+
+        .item {
+            padding: 16px;
+            border-radius: 15px;
+            background: #f8fafc;
+        }
+
+        .item small {
+            display: block;
+            margin-bottom: 6px;
+            color: #64748b;
+        }
+
+        .notes {
+            margin-top: 20px;
+            padding: 18px;
+            border-radius: 15px;
+            background: #f0fdf4;
+            white-space: pre-wrap;
+        }
+
+        form {
+            margin-top: 22px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 12px;
+            padding: 11px 16px;
+            background: #dc2626;
+            color: white;
+            font: inherit;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        @media (max-width: 620px) {
+            .heading {
+                flex-direction: column;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<main>
+    <a href="/expenses/manage">← Expenses</a>
+
+    <section class="panel">
+        <div class="heading">
+            <div>
+                <h1>{{ expense.description }}</h1>
+                <p class="subtitle">
+                    {{ expense.expense_date.strftime('%d %b %Y') }}
+                </p>
+            </div>
+
+            <div class="amount">
+                ₹{{ '%.2f'|format(expense.amount) }}
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="item">
+                <small>Category</small>
+                <strong>{{ category.name }}</strong>
+            </div>
+
+            <div class="item">
+                <small>Farm</small>
+                <strong>
+                    {{ farm.name if farm else 'General expense' }}
+                </strong>
+            </div>
+
+            <div class="item">
+                <small>Vendor</small>
+                <strong>
+                    {{ vendor.name if vendor else 'Not specified' }}
+                </strong>
+            </div>
+
+            <div class="item">
+                <small>Payment mode</small>
+                <strong>{{ expense.payment_mode }}</strong>
+            </div>
+
+            <div class="item">
+                <small>Reference</small>
+                <strong>
+                    {{ expense.reference_number or 'Not provided' }}
+                </strong>
+            </div>
+
+            <div class="item">
+                <small>Expense type</small>
+                <strong>
+                    {% if expense.is_recurring %}
+                        Recurring
+                    {% else %}
+                        One-time
+                    {% endif %}
+                </strong>
+            </div>
+        </div>
+
+        {% if expense.notes %}
+            <div class="notes">{{ expense.notes }}</div>
+        {% endif %}
+
+        <form
+            method="post"
+            action="/expenses/{{ expense.id }}/delete-ui"
+            onsubmit="return confirm('Delete this expense permanently?');"
+        >
+            <button type="submit">Delete expense</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>Profitability · Messis AI</title>
+
+    <style>
+        :root {
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            color: #17351f;
+            background: #f4fbf5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(34, 197, 94, 0.14),
+                    transparent 34%
+                ),
+                #f4fbf5;
+        }
+
+        header {
+            padding: 20px clamp(18px, 5vw, 72px);
+            color: white;
+            background: linear-gradient(135deg, #14532d, #15803d);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: clamp(26px, 4vw, 40px);
+        }
+
+        header p {
+            margin: 7px 0 0;
+            color: #dcfce7;
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        nav a {
+            padding: 9px 14px;
+            color: white;
+            text-decoration: none;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            font-weight: 800;
+        }
+
+        main {
+            width: min(1180px, calc(100% - 32px));
+            margin: 28px auto 60px;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            padding: 18px;
+            margin-bottom: 22px;
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 18px;
+        }
+
+        .filters label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .filters select,
+        .filters input {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 11px;
+            font: inherit;
+            background: white;
+        }
+
+        .filter-action {
+            display: flex;
+            align-items: end;
+        }
+
+        .button {
+            width: 100%;
+            padding: 11px 16px;
+            border: 0;
+            border-radius: 12px;
+            color: white;
+            background: #15803d;
+            font: inherit;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            padding: 18px;
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 18px;
+            box-shadow: 0 12px 34px rgba(20, 83, 45, 0.07);
+        }
+
+        .summary-card strong {
+            display: block;
+            font-size: 27px;
+            color: #15803d;
+        }
+
+        .summary-card.loss strong {
+            color: #b91c1c;
+        }
+
+        .summary-card span {
+            color: #64748b;
+        }
+
+        .farm-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .farm-card {
+            padding: 20px;
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 20px;
+            box-shadow: 0 14px 38px rgba(20, 83, 45, 0.07);
+        }
+
+        .farm-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .farm-head h3 {
+            margin: 0;
+        }
+
+        .farm-head p {
+            margin: 6px 0 0;
+            color: #64748b;
+        }
+
+        .profit {
+            font-size: 23px;
+            font-weight: 900;
+            color: #15803d;
+            white-space: nowrap;
+        }
+
+        .profit.loss {
+            color: #b91c1c;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 17px;
+        }
+
+        .metric {
+            padding: 13px;
+            background: #f8fafc;
+            border-radius: 14px;
+        }
+
+        .metric small {
+            display: block;
+            margin-bottom: 5px;
+            color: #64748b;
+        }
+
+        .farm-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 17px;
+        }
+
+        .detail-link {
+            padding: 10px 14px;
+            color: #166534;
+            background: #dcfce7;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 900;
+        }
+
+        .empty {
+            padding: 52px 20px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.7);
+            border: 2px dashed #bbf7d0;
+            border-radius: 22px;
+        }
+
+        @media (max-width: 920px) {
+            .filters,
+            .summary-grid,
+            .metrics {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 560px) {
+            .filters,
+            .summary-grid,
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .farm-head {
+                flex-direction: column;
+            }
+
+            .detail-link {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<header>
+    <h1>Farm Profitability</h1>
+    <p>Compare sales, expenses, harvest cost and net profit.</p>
+
+    <nav>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/farms">Farms</a>
+        <a href="/harvest-records/manage">Harvests</a>
+        <a href="/expenses/manage">Expenses</a>
+        <a href="/sales/manage">Sales</a>
+        <a href="/profitability/manage">Profitability</a>
+    </nav>
+</header>
+
+<main>
+    <section class="toolbar">
+        <div>
+            <h2>Business performance</h2>
+            <p>All values are calculated only from your own farm data.</p>
+        </div>
+    </section>
+
+    <form
+        class="filters"
+        method="get"
+        action="/profitability/manage"
+    >
+        <div>
+            <label for="farm_id">Farm</label>
+            <select id="farm_id" name="farm_id">
+                <option value="">All farms</option>
+
+                {% for farm in farms %}
+                    <option
+                        value="{{ farm.id }}"
+                        {% if filters.farm_id|string == farm.id|string %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ farm.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="date_from">From date</label>
+            <input
+                id="date_from"
+                name="date_from"
+                type="date"
+                value="{{ filters.date_from }}"
+            >
+        </div>
+
+        <div>
+            <label for="date_to">To date</label>
+            <input
+                id="date_to"
+                name="date_to"
+                type="date"
+                value="{{ filters.date_to }}"
+            >
+        </div>
+
+        <div class="filter-action">
+            <button class="button" type="submit">
+                Apply filter
+            </button>
+        </div>
+    </form>
+
+    <section class="summary-grid">
+        <article class="summary-card">
+            <strong>₹{{ '%.2f'|format(summary.revenue) }}</strong>
+            <span>Total revenue</span>
+        </article>
+
+        <article class="summary-card">
+            <strong>₹{{ '%.2f'|format(summary.total_cost) }}</strong>
+            <span>Total cost</span>
+        </article>
+
+        <article
+            class="summary-card {% if summary.net_profit < 0 %}loss{% endif %}"
+        >
+            <strong>₹{{ '%.2f'|format(summary.net_profit) }}</strong>
+            <span>Net profit</span>
+        </article>
+
+        <article class="summary-card">
+            <strong>
+                {{ '%.2f'|format(summary.profitability_percentage) }}%
+            </strong>
+            <span>Return on cost</span>
+        </article>
+    </section>
+
+    {% if results %}
+        <section class="farm-grid">
+            {% for item in results %}
+                <article class="farm-card">
+                    <div class="farm-head">
+                        <div>
+                            <h3>{{ item.farm_name }}</h3>
+                            <p>
+                                {{ item.total_farm_trees }} trees
+                                · {{ item.total_coconuts }} coconuts
+                            </p>
+                        </div>
+
+                        <div
+                            class="profit {% if item.net_profit < 0 %}loss{% endif %}"
+                        >
+                            ₹{{ '%.2f'|format(item.net_profit) }}
+                        </div>
+                    </div>
+
+                    <div class="metrics">
+                        <div class="metric">
+                            <small>Revenue</small>
+                            <strong>
+                                ₹{{ '%.2f'|format(item.revenue) }}
+                            </strong>
+                        </div>
+
+                        <div class="metric">
+                            <small>Operating expense</small>
+                            <strong>
+                                ₹{{ '%.2f'|format(item.operating_expense) }}
+                            </strong>
+                        </div>
+
+                        <div class="metric">
+                            <small>Harvest cost</small>
+                            <strong>
+                                ₹{{ '%.2f'|format(item.harvest_cost) }}
+                            </strong>
+                        </div>
+
+                        <div class="metric">
+                            <small>Profit per tree</small>
+                            <strong>
+                                ₹{{ '%.2f'|format(item.profit_per_tree) }}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="farm-footer">
+                        <span>
+                            Profit per coconut:
+                            <strong>
+                                ₹{{ '%.2f'|format(item.profit_per_coconut) }}
+                            </strong>
+                        </span>
+
+                        <a
+                            class="detail-link"
+                            href="/farms/{{ item.farm_id }}/profitability/view{% if query_string %}?{{ query_string }}{% endif %}"
+                        >
+                            View analysis
+                        </a>
+                    </div>
+                </article>
+            {% endfor %}
+        </section>
+    {% else %}
+        <section class="empty">
+            <h2>No profitability data</h2>
+            <p>Add harvest records, expenses and sales to see results.</p>
+        </section>
+    {% endif %}
+</main>
+</body>
+</html>

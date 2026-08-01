@@ -15,7 +15,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
 from app.database import Base, engine, get_db
-from app.models import AuditLog, CoconutTree, Farm, HarvestCycle, User
+from app.models import AuditLog, Buyer, CoconutTree, Expense, ExpenseCategory, Farm, HarvestCycle, HarvestRecord, Sale, SalePayment, User, Vendor
 from app.security import hash_passcode, valid_passcode, verify_passcode
 from app.version import APP_VERSION, RELEASE_NAME
 
@@ -2526,6 +2526,4261 @@ def harvest_cycle_detail_page(
             "current_user": user,
             "farm": farm,
             "cycle": cycle,
+        },
+    )
+
+
+
+# PATCH-HARVEST-002B: HARVEST RECORDING BACKEND
+
+
+def parse_non_negative_decimal(
+    value: object,
+    field_name: str,
+) -> Decimal:
+    try:
+        parsed = Decimal(str(value or "0").strip())
+    except (InvalidOperation, ValueError):
+        raise HTTPException(
+            status_code=422,
+            detail=f"{field_name} must be a valid number.",
+        )
+
+    if not parsed.is_finite() or parsed < 0:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{field_name} cannot be negative.",
+        )
+
+    return parsed.quantize(Decimal("0.01"))
+
+
+def require_owned_harvest_record(
+    record_id: int,
+    user: User,
+    db: Session,
+) -> HarvestRecord:
+    record = db.scalar(
+        select(HarvestRecord).where(
+            HarvestRecord.id == record_id,
+            HarvestRecord.owner_id == user.id,
+        )
+    )
+
+    if record is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Harvest record not found.",
+        )
+
+    return record
+
+
+@app.get(
+    "/harvest-records",
+    response_class=JSONResponse,
+)
+def harvest_record_list(
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    records = db.scalars(
+        select(HarvestRecord)
+        .where(HarvestRecord.owner_id == user.id)
+        .order_by(
+            HarvestRecord.harvest_date.desc(),
+            HarvestRecord.id.desc(),
+        )
+    ).all()
+
+    items = []
+
+    for record in records:
+        farm = db.scalar(
+            select(Farm).where(
+                Farm.id == record.farm_id,
+                Farm.owner_id == user.id,
+            )
+        )
+
+        items.append(
+            {
+                "id": record.id,
+                "farm_id": record.farm_id,
+                "farm_name": farm.name if farm else None,
+                "harvest_cycle_id": record.harvest_cycle_id,
+                "harvest_date": record.harvest_date.isoformat(),
+                "trees_harvested": record.trees_harvested,
+                "mature_coconuts": record.mature_coconuts,
+                "tender_coconuts": record.tender_coconuts,
+                "damaged_coconuts": record.damaged_coconuts,
+                "total_coconuts": record.total_coconuts,
+                "estimated_weight_kg": (
+                    str(record.estimated_weight_kg)
+                    if record.estimated_weight_kg is not None
+                    else None
+                ),
+                "labour_count": record.labour_count,
+                "total_harvest_cost": (
+                    str(record.total_harvest_cost)
+                ),
+                "buyer_or_destination": (
+                    record.buyer_or_destination
+                ),
+            }
+        )
+
+    return {
+        "count": len(items),
+        "items": items,
+    }
+
+
+@app.post(
+    "/farms/{farm_id}/harvest-records",
+    response_class=JSONResponse,
+)
+def create_harvest_record(
+    farm_id: int,
+    request: Request,
+    harvest_date: date = Form(...),
+    harvest_cycle_id: int | None = Form(None),
+    trees_harvested: int = Form(0),
+    mature_coconuts: int = Form(0),
+    tender_coconuts: int = Form(0),
+    damaged_coconuts: int = Form(0),
+    estimated_weight_kg: str = Form(""),
+    labour_count: int = Form(0),
+    labour_cost: str = Form("0"),
+    climbing_cost: str = Form("0"),
+    transport_cost: str = Form("0"),
+    other_cost: str = Form("0"),
+    buyer_or_destination: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farm = require_owned_farm(
+        db=db,
+        farm_id=farm_id,
+        owner_id=user.id,
+    )
+
+    for field_name, value in {
+        "trees_harvested": trees_harvested,
+        "mature_coconuts": mature_coconuts,
+        "tender_coconuts": tender_coconuts,
+        "damaged_coconuts": damaged_coconuts,
+        "labour_count": labour_count,
+    }.items():
+        if value < 0:
+            raise HTTPException(
+                status_code=422,
+                detail=f"{field_name} cannot be negative.",
+            )
+
+    if trees_harvested > int(farm.total_trees or 0):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Trees harvested cannot exceed "
+                "the farm total tree count."
+            ),
+        )
+
+    cycle = None
+
+    if harvest_cycle_id is not None:
+        cycle = db.scalar(
+            select(HarvestCycle).where(
+                HarvestCycle.id == harvest_cycle_id,
+                HarvestCycle.farm_id == farm.id,
+                HarvestCycle.owner_id == user.id,
+            )
+        )
+
+        if cycle is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Harvest cycle not found.",
+            )
+
+        if cycle.status == "Cancelled":
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "A cancelled harvest cycle "
+                    "cannot be completed."
+                ),
+            )
+
+    weight = (
+        parse_non_negative_decimal(
+            estimated_weight_kg,
+            "Estimated weight",
+        )
+        if estimated_weight_kg.strip()
+        else None
+    )
+
+    parsed_labour_cost = parse_non_negative_decimal(
+        labour_cost,
+        "Labour cost",
+    )
+    parsed_climbing_cost = parse_non_negative_decimal(
+        climbing_cost,
+        "Climbing cost",
+    )
+    parsed_transport_cost = parse_non_negative_decimal(
+        transport_cost,
+        "Transport cost",
+    )
+    parsed_other_cost = parse_non_negative_decimal(
+        other_cost,
+        "Other cost",
+    )
+
+    total_coconuts = (
+        mature_coconuts
+        + tender_coconuts
+        + damaged_coconuts
+    )
+
+    total_harvest_cost = (
+        parsed_labour_cost
+        + parsed_climbing_cost
+        + parsed_transport_cost
+        + parsed_other_cost
+    )
+
+    record = HarvestRecord(
+        owner_id=user.id,
+        farm_id=farm.id,
+        harvest_cycle_id=(
+            cycle.id if cycle is not None else None
+        ),
+        harvest_date=harvest_date,
+        trees_harvested=trees_harvested,
+        mature_coconuts=mature_coconuts,
+        tender_coconuts=tender_coconuts,
+        damaged_coconuts=damaged_coconuts,
+        total_coconuts=total_coconuts,
+        estimated_weight_kg=weight,
+        labour_count=labour_count,
+        labour_cost=parsed_labour_cost,
+        climbing_cost=parsed_climbing_cost,
+        transport_cost=parsed_transport_cost,
+        other_cost=parsed_other_cost,
+        total_harvest_cost=total_harvest_cost,
+        buyer_or_destination=normalize_optional_text(
+            buyer_or_destination
+        ),
+        notes=normalize_optional_text(notes),
+    )
+
+    try:
+        db.add(record)
+        db.flush()
+
+        if cycle is not None:
+            cycle.status = "Completed"
+            cycle.actual_harvest_date = harvest_date
+
+        audit(
+            db,
+            request,
+            "harvest_record_created",
+            user.id,
+            (
+                f"Harvest record ID: {record.id}; "
+                f"Farm ID: {farm.id}; "
+                f"Cycle ID: {record.harvest_cycle_id}; "
+                f"Harvest date: {harvest_date}; "
+                f"Trees: {trees_harvested}; "
+                f"Total coconuts: {total_coconuts}; "
+                f"Total cost: {total_harvest_cost}"
+            ),
+        )
+
+        db.commit()
+        db.refresh(record)
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to create harvest record.",
+        )
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "id": record.id,
+            "farm_id": record.farm_id,
+            "harvest_cycle_id": record.harvest_cycle_id,
+            "harvest_date": record.harvest_date.isoformat(),
+            "trees_harvested": record.trees_harvested,
+            "mature_coconuts": record.mature_coconuts,
+            "tender_coconuts": record.tender_coconuts,
+            "damaged_coconuts": record.damaged_coconuts,
+            "total_coconuts": record.total_coconuts,
+            "estimated_weight_kg": (
+                str(record.estimated_weight_kg)
+                if record.estimated_weight_kg is not None
+                else None
+            ),
+            "labour_count": record.labour_count,
+            "labour_cost": str(record.labour_cost),
+            "climbing_cost": str(record.climbing_cost),
+            "transport_cost": str(record.transport_cost),
+            "other_cost": str(record.other_cost),
+            "total_harvest_cost": (
+                str(record.total_harvest_cost)
+            ),
+            "buyer_or_destination": (
+                record.buyer_or_destination
+            ),
+            "notes": record.notes,
+        },
+    )
+
+
+@app.get(
+    "/harvest-records/{record_id}",
+    response_class=JSONResponse,
+)
+def harvest_record_detail(
+    record_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    record = require_owned_harvest_record(
+        record_id=record_id,
+        user=user,
+        db=db,
+    )
+
+    farm = require_owned_farm(
+        db=db,
+        farm_id=record.farm_id,
+        owner_id=user.id,
+    )
+
+    yield_per_tree = (
+        round(
+            record.total_coconuts
+            / record.trees_harvested,
+            2,
+        )
+        if record.trees_harvested > 0
+        else 0
+    )
+
+    damaged_percentage = (
+        round(
+            record.damaged_coconuts
+            / record.total_coconuts
+            * 100,
+            2,
+        )
+        if record.total_coconuts > 0
+        else 0
+    )
+
+    cost_per_coconut = (
+        (
+            record.total_harvest_cost
+            / Decimal(record.total_coconuts)
+        ).quantize(Decimal("0.01"))
+        if record.total_coconuts > 0
+        else Decimal("0.00")
+    )
+
+    return {
+        "id": record.id,
+        "farm": {
+            "id": farm.id,
+            "name": farm.name,
+        },
+        "harvest_cycle_id": record.harvest_cycle_id,
+        "harvest_date": record.harvest_date.isoformat(),
+        "trees_harvested": record.trees_harvested,
+        "mature_coconuts": record.mature_coconuts,
+        "tender_coconuts": record.tender_coconuts,
+        "damaged_coconuts": record.damaged_coconuts,
+        "total_coconuts": record.total_coconuts,
+        "estimated_weight_kg": (
+            str(record.estimated_weight_kg)
+            if record.estimated_weight_kg is not None
+            else None
+        ),
+        "labour_count": record.labour_count,
+        "labour_cost": str(record.labour_cost),
+        "climbing_cost": str(record.climbing_cost),
+        "transport_cost": str(record.transport_cost),
+        "other_cost": str(record.other_cost),
+        "total_harvest_cost": (
+            str(record.total_harvest_cost)
+        ),
+        "buyer_or_destination": (
+            record.buyer_or_destination
+        ),
+        "notes": record.notes,
+        "metrics": {
+            "yield_per_tree": yield_per_tree,
+            "damaged_percentage": damaged_percentage,
+            "cost_per_coconut": str(cost_per_coconut),
+        },
+    }
+
+
+
+# PATCH-HARVEST-002C: HARVEST RECORDING UI
+
+
+@app.get(
+    "/harvest-records/manage",
+    response_class=HTMLResponse,
+)
+def harvest_record_management_page(
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    records = db.scalars(
+        select(HarvestRecord)
+        .where(HarvestRecord.owner_id == user.id)
+        .order_by(
+            HarvestRecord.harvest_date.desc(),
+            HarvestRecord.id.desc(),
+        )
+    ).all()
+
+    farm_names = {
+        farm.id: farm.name
+        for farm in farms
+    }
+
+    rows = [
+        {
+            "record": record,
+            "farm_name": farm_names.get(
+                record.farm_id,
+                "Farm",
+            ),
+        }
+        for record in records
+    ]
+
+    totals = {
+        "records": len(records),
+        "coconuts": sum(
+            int(record.total_coconuts or 0)
+            for record in records
+        ),
+        "trees": sum(
+            int(record.trees_harvested or 0)
+            for record in records
+        ),
+        "cost": sum(
+            Decimal(record.total_harvest_cost or 0)
+            for record in records
+        ),
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="harvest_records/list.html",
+        context={
+            "current_user": user,
+            "farms": farms,
+            "records": rows,
+            "totals": totals,
+        },
+    )
+
+
+@app.get(
+    "/farms/{farm_id}/harvest-records/new",
+    response_class=HTMLResponse,
+)
+def harvest_record_create_page(
+    farm_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farm = require_owned_farm(
+        db=db,
+        farm_id=farm_id,
+        owner_id=user.id,
+    )
+
+    cycles = db.scalars(
+        select(HarvestCycle)
+        .where(
+            HarvestCycle.owner_id == user.id,
+            HarvestCycle.farm_id == farm.id,
+            HarvestCycle.status.notin_(
+                ["Completed", "Cancelled"]
+            ),
+        )
+        .order_by(
+            HarvestCycle.planned_harvest_date.asc()
+        )
+    ).all()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="harvest_records/form.html",
+        context={
+            "current_user": user,
+            "farm": farm,
+            "cycles": cycles,
+            "error_message": None,
+            "form_data": {
+                "harvest_date": date.today().isoformat(),
+                "harvest_cycle_id": "",
+                "trees_harvested": 0,
+                "mature_coconuts": 0,
+                "tender_coconuts": 0,
+                "damaged_coconuts": 0,
+                "estimated_weight_kg": "",
+                "labour_count": 0,
+                "labour_cost": "0",
+                "climbing_cost": "0",
+                "transport_cost": "0",
+                "other_cost": "0",
+                "buyer_or_destination": "",
+                "notes": "",
+            },
+        },
+    )
+
+
+@app.post(
+    "/farms/{farm_id}/harvest-records/new",
+    response_class=HTMLResponse,
+)
+def harvest_record_create_html(
+    farm_id: int,
+    request: Request,
+    harvest_date: date = Form(...),
+    harvest_cycle_id: str = Form(""),
+    trees_harvested: int = Form(0),
+    mature_coconuts: int = Form(0),
+    tender_coconuts: int = Form(0),
+    damaged_coconuts: int = Form(0),
+    estimated_weight_kg: str = Form(""),
+    labour_count: int = Form(0),
+    labour_cost: str = Form("0"),
+    climbing_cost: str = Form("0"),
+    transport_cost: str = Form("0"),
+    other_cost: str = Form("0"),
+    buyer_or_destination: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farm = require_owned_farm(
+        db=db,
+        farm_id=farm_id,
+        owner_id=user.id,
+    )
+
+    cycles = db.scalars(
+        select(HarvestCycle)
+        .where(
+            HarvestCycle.owner_id == user.id,
+            HarvestCycle.farm_id == farm.id,
+            HarvestCycle.status.notin_(
+                ["Completed", "Cancelled"]
+            ),
+        )
+        .order_by(
+            HarvestCycle.planned_harvest_date.asc()
+        )
+    ).all()
+
+    form_data = {
+        "harvest_date": harvest_date.isoformat(),
+        "harvest_cycle_id": harvest_cycle_id,
+        "trees_harvested": trees_harvested,
+        "mature_coconuts": mature_coconuts,
+        "tender_coconuts": tender_coconuts,
+        "damaged_coconuts": damaged_coconuts,
+        "estimated_weight_kg": estimated_weight_kg,
+        "labour_count": labour_count,
+        "labour_cost": labour_cost,
+        "climbing_cost": climbing_cost,
+        "transport_cost": transport_cost,
+        "other_cost": other_cost,
+        "buyer_or_destination": buyer_or_destination,
+        "notes": notes,
+    }
+
+    def render_error(
+        message: str,
+        status_code: int = 422,
+    ):
+        return templates.TemplateResponse(
+            request=request,
+            name="harvest_records/form.html",
+            context={
+                "current_user": user,
+                "farm": farm,
+                "cycles": cycles,
+                "error_message": message,
+                "form_data": form_data,
+            },
+            status_code=status_code,
+        )
+
+    numeric_values = {
+        "Trees harvested": trees_harvested,
+        "Mature coconuts": mature_coconuts,
+        "Tender coconuts": tender_coconuts,
+        "Damaged coconuts": damaged_coconuts,
+        "Labour count": labour_count,
+    }
+
+    for label, value in numeric_values.items():
+        if value < 0:
+            return render_error(
+                f"{label} cannot be negative."
+            )
+
+    if trees_harvested > int(farm.total_trees or 0):
+        return render_error(
+            "Trees harvested cannot exceed the farm total."
+        )
+
+    cycle = None
+
+    if harvest_cycle_id.strip():
+        try:
+            selected_cycle_id = int(
+                harvest_cycle_id.strip()
+            )
+        except ValueError:
+            return render_error(
+                "Invalid harvest cycle."
+            )
+
+        cycle = db.scalar(
+            select(HarvestCycle).where(
+                HarvestCycle.id == selected_cycle_id,
+                HarvestCycle.farm_id == farm.id,
+                HarvestCycle.owner_id == user.id,
+            )
+        )
+
+        if cycle is None:
+            return render_error(
+                "Harvest cycle not found.",
+                404,
+            )
+
+    try:
+        weight = (
+            parse_non_negative_decimal(
+                estimated_weight_kg,
+                "Estimated weight",
+            )
+            if estimated_weight_kg.strip()
+            else None
+        )
+
+        parsed_labour = parse_non_negative_decimal(
+            labour_cost,
+            "Labour cost",
+        )
+        parsed_climbing = parse_non_negative_decimal(
+            climbing_cost,
+            "Climbing cost",
+        )
+        parsed_transport = parse_non_negative_decimal(
+            transport_cost,
+            "Transport cost",
+        )
+        parsed_other = parse_non_negative_decimal(
+            other_cost,
+            "Other cost",
+        )
+    except HTTPException as exc:
+        return render_error(str(exc.detail))
+
+    total_coconuts = (
+        mature_coconuts
+        + tender_coconuts
+        + damaged_coconuts
+    )
+
+    total_cost = (
+        parsed_labour
+        + parsed_climbing
+        + parsed_transport
+        + parsed_other
+    )
+
+    record = HarvestRecord(
+        owner_id=user.id,
+        farm_id=farm.id,
+        harvest_cycle_id=(
+            cycle.id if cycle else None
+        ),
+        harvest_date=harvest_date,
+        trees_harvested=trees_harvested,
+        mature_coconuts=mature_coconuts,
+        tender_coconuts=tender_coconuts,
+        damaged_coconuts=damaged_coconuts,
+        total_coconuts=total_coconuts,
+        estimated_weight_kg=weight,
+        labour_count=labour_count,
+        labour_cost=parsed_labour,
+        climbing_cost=parsed_climbing,
+        transport_cost=parsed_transport,
+        other_cost=parsed_other,
+        total_harvest_cost=total_cost,
+        buyer_or_destination=normalize_optional_text(
+            buyer_or_destination
+        ),
+        notes=normalize_optional_text(notes),
+    )
+
+    try:
+        db.add(record)
+        db.flush()
+
+        if cycle is not None:
+            cycle.status = "Completed"
+            cycle.actual_harvest_date = harvest_date
+
+        audit(
+            db,
+            request,
+            "harvest_record_created",
+            user.id,
+            (
+                f"Harvest record ID: {record.id}; "
+                f"Farm ID: {farm.id}; "
+                f"Total coconuts: {total_coconuts}; "
+                f"Total cost: {total_cost}"
+            ),
+        )
+
+        db.commit()
+        db.refresh(record)
+    except SQLAlchemyError:
+        db.rollback()
+
+        return render_error(
+            "Unable to save harvest record.",
+            500,
+        )
+
+    return RedirectResponse(
+        url=f"/harvest-records/{record.id}/view",
+        status_code=303,
+    )
+
+
+@app.get(
+    "/harvest-records/{record_id}/view",
+    response_class=HTMLResponse,
+)
+def harvest_record_detail_page(
+    record_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    record = require_owned_harvest_record(
+        record_id=record_id,
+        user=user,
+        db=db,
+    )
+
+    farm = require_owned_farm(
+        db=db,
+        farm_id=record.farm_id,
+        owner_id=user.id,
+    )
+
+    metrics = {
+        "yield_per_tree": (
+            round(
+                record.total_coconuts
+                / record.trees_harvested,
+                2,
+            )
+            if record.trees_harvested > 0
+            else 0
+        ),
+        "damaged_percentage": (
+            round(
+                record.damaged_coconuts
+                / record.total_coconuts
+                * 100,
+                2,
+            )
+            if record.total_coconuts > 0
+            else 0
+        ),
+        "cost_per_coconut": (
+            (
+                record.total_harvest_cost
+                / Decimal(record.total_coconuts)
+            ).quantize(Decimal("0.01"))
+            if record.total_coconuts > 0
+            else Decimal("0.00")
+        ),
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="harvest_records/detail.html",
+        context={
+            "current_user": user,
+            "farm": farm,
+            "record": record,
+            "metrics": metrics,
+        },
+    )
+
+
+
+# PATCH-EXPENSE-001B: EXPENSE MANAGEMENT BACKEND
+
+EXPENSE_PAYMENT_MODES = {
+    "Cash",
+    "UPI",
+    "Bank Transfer",
+    "Credit",
+    "Other",
+}
+
+
+def require_owned_expense(
+    expense_id: int,
+    user: User,
+    db: Session,
+) -> Expense:
+    expense = db.scalar(
+        select(Expense).where(
+            Expense.id == expense_id,
+            Expense.owner_id == user.id,
+        )
+    )
+
+    if expense is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Expense not found.",
+        )
+
+    return expense
+
+
+def require_available_expense_category(
+    category_id: int,
+    user: User,
+    db: Session,
+) -> ExpenseCategory:
+    category = db.scalar(
+        select(ExpenseCategory).where(
+            ExpenseCategory.id == category_id,
+            ExpenseCategory.is_active.is_(True),
+            or_(
+                ExpenseCategory.owner_id.is_(None),
+                ExpenseCategory.owner_id == user.id,
+            ),
+        )
+    )
+
+    if category is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Expense category not found.",
+        )
+
+    return category
+
+
+def require_owned_vendor(
+    vendor_id: int,
+    user: User,
+    db: Session,
+) -> Vendor:
+    vendor = db.scalar(
+        select(Vendor).where(
+            Vendor.id == vendor_id,
+            Vendor.owner_id == user.id,
+            Vendor.is_active.is_(True),
+        )
+    )
+
+    if vendor is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Vendor not found.",
+        )
+
+    return vendor
+
+
+@app.get(
+    "/expense-categories",
+    response_class=JSONResponse,
+)
+def expense_category_list(
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    categories = db.scalars(
+        select(ExpenseCategory)
+        .where(
+            ExpenseCategory.is_active.is_(True),
+            or_(
+                ExpenseCategory.owner_id.is_(None),
+                ExpenseCategory.owner_id == user.id,
+            ),
+        )
+        .order_by(
+            ExpenseCategory.is_system.desc(),
+            func.lower(ExpenseCategory.name),
+        )
+    ).all()
+
+    return {
+        "count": len(categories),
+        "items": [
+            {
+                "id": category.id,
+                "name": category.name,
+                "is_system": category.is_system,
+            }
+            for category in categories
+        ],
+    }
+
+
+@app.post(
+    "/expense-categories",
+    response_class=JSONResponse,
+)
+def create_expense_category(
+    request: Request,
+    name: str = Form(...),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    normalized_name = name.strip()
+
+    if not normalized_name:
+        raise HTTPException(
+            status_code=422,
+            detail="Category name is required.",
+        )
+
+    if len(normalized_name) > 100:
+        raise HTTPException(
+            status_code=422,
+            detail="Category name cannot exceed 100 characters.",
+        )
+
+    duplicate = db.scalar(
+        select(ExpenseCategory.id).where(
+            ExpenseCategory.owner_id == user.id,
+            func.lower(ExpenseCategory.name)
+            == normalized_name.lower(),
+        )
+    )
+
+    if duplicate is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This expense category already exists.",
+        )
+
+    category = ExpenseCategory(
+        owner_id=user.id,
+        name=normalized_name,
+        is_system=False,
+        is_active=True,
+    )
+
+    try:
+        db.add(category)
+        db.flush()
+
+        audit(
+            db,
+            request,
+            "expense_category_created",
+            user.id,
+            (
+                f"Category ID: {category.id}; "
+                f"Name: {category.name}"
+            ),
+        )
+
+        db.commit()
+        db.refresh(category)
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to create expense category.",
+        )
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "id": category.id,
+            "name": category.name,
+            "is_system": category.is_system,
+        },
+    )
+
+
+@app.get(
+    "/vendors",
+    response_class=JSONResponse,
+)
+def vendor_list(
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    vendors = db.scalars(
+        select(Vendor)
+        .where(
+            Vendor.owner_id == user.id,
+            Vendor.is_active.is_(True),
+        )
+        .order_by(func.lower(Vendor.name))
+    ).all()
+
+    return {
+        "count": len(vendors),
+        "items": [
+            {
+                "id": vendor.id,
+                "name": vendor.name,
+                "mobile_number": vendor.mobile_number,
+                "email": vendor.email,
+                "address": vendor.address,
+                "notes": vendor.notes,
+            }
+            for vendor in vendors
+        ],
+    }
+
+
+@app.post(
+    "/vendors",
+    response_class=JSONResponse,
+)
+def create_vendor(
+    request: Request,
+    name: str = Form(...),
+    mobile_number: str = Form(""),
+    email: str = Form(""),
+    address: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    normalized_name = name.strip()
+
+    if not normalized_name:
+        raise HTTPException(
+            status_code=422,
+            detail="Vendor name is required.",
+        )
+
+    if len(normalized_name) > 160:
+        raise HTTPException(
+            status_code=422,
+            detail="Vendor name cannot exceed 160 characters.",
+        )
+
+    duplicate = db.scalar(
+        select(Vendor.id).where(
+            Vendor.owner_id == user.id,
+            func.lower(Vendor.name) == normalized_name.lower(),
+        )
+    )
+
+    if duplicate is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This vendor already exists.",
+        )
+
+    vendor = Vendor(
+        owner_id=user.id,
+        name=normalized_name,
+        mobile_number=normalize_optional_text(
+            mobile_number
+        ),
+        email=normalize_optional_text(email),
+        address=normalize_optional_text(address),
+        notes=normalize_optional_text(notes),
+        is_active=True,
+    )
+
+    try:
+        db.add(vendor)
+        db.flush()
+
+        audit(
+            db,
+            request,
+            "vendor_created",
+            user.id,
+            (
+                f"Vendor ID: {vendor.id}; "
+                f"Name: {vendor.name}"
+            ),
+        )
+
+        db.commit()
+        db.refresh(vendor)
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to create vendor.",
+        )
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "id": vendor.id,
+            "name": vendor.name,
+            "mobile_number": vendor.mobile_number,
+            "email": vendor.email,
+            "address": vendor.address,
+            "notes": vendor.notes,
+        },
+    )
+
+
+@app.get(
+    "/expenses",
+    response_class=JSONResponse,
+)
+def expense_list(
+    farm_id: int | None = None,
+    category_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    statement = select(Expense).where(
+        Expense.owner_id == user.id
+    )
+
+    if farm_id is not None:
+        require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+        statement = statement.where(
+            Expense.farm_id == farm_id
+        )
+
+    if category_id is not None:
+        require_available_expense_category(
+            category_id=category_id,
+            user=user,
+            db=db,
+        )
+        statement = statement.where(
+            Expense.category_id == category_id
+        )
+
+    if date_from is not None:
+        statement = statement.where(
+            Expense.expense_date >= date_from
+        )
+
+    if date_to is not None:
+        statement = statement.where(
+            Expense.expense_date <= date_to
+        )
+
+    expenses = db.scalars(
+        statement.order_by(
+            Expense.expense_date.desc(),
+            Expense.id.desc(),
+        )
+    ).all()
+
+    category_ids = {
+        expense.category_id
+        for expense in expenses
+    }
+
+    vendor_ids = {
+        expense.vendor_id
+        for expense in expenses
+        if expense.vendor_id is not None
+    }
+
+    farm_ids = {
+        expense.farm_id
+        for expense in expenses
+        if expense.farm_id is not None
+    }
+
+    categories = {
+        category.id: category.name
+        for category in db.scalars(
+            select(ExpenseCategory).where(
+                ExpenseCategory.id.in_(category_ids)
+            )
+        ).all()
+    } if category_ids else {}
+
+    vendors = {
+        vendor.id: vendor.name
+        for vendor in db.scalars(
+            select(Vendor).where(
+                Vendor.id.in_(vendor_ids),
+                Vendor.owner_id == user.id,
+            )
+        ).all()
+    } if vendor_ids else {}
+
+    farms = {
+        farm.id: farm.name
+        for farm in db.scalars(
+            select(Farm).where(
+                Farm.id.in_(farm_ids),
+                Farm.owner_id == user.id,
+            )
+        ).all()
+    } if farm_ids else {}
+
+    total_amount = sum(
+        Decimal(expense.amount or 0)
+        for expense in expenses
+    )
+
+    return {
+        "count": len(expenses),
+        "total_amount": str(total_amount),
+        "items": [
+            {
+                "id": expense.id,
+                "farm_id": expense.farm_id,
+                "farm_name": farms.get(expense.farm_id),
+                "category_id": expense.category_id,
+                "category_name": categories.get(
+                    expense.category_id
+                ),
+                "vendor_id": expense.vendor_id,
+                "vendor_name": vendors.get(
+                    expense.vendor_id
+                ),
+                "expense_date": (
+                    expense.expense_date.isoformat()
+                ),
+                "description": expense.description,
+                "amount": str(expense.amount),
+                "payment_mode": expense.payment_mode,
+                "reference_number": (
+                    expense.reference_number
+                ),
+                "is_recurring": expense.is_recurring,
+                "notes": expense.notes,
+            }
+            for expense in expenses
+        ],
+    }
+
+
+@app.post(
+    "/expenses",
+    response_class=JSONResponse,
+)
+def create_expense(
+    request: Request,
+    expense_date: date = Form(...),
+    category_id: int = Form(...),
+    description: str = Form(...),
+    amount: str = Form(...),
+    farm_id: int | None = Form(None),
+    vendor_id: int | None = Form(None),
+    payment_mode: str = Form("Cash"),
+    reference_number: str = Form(""),
+    is_recurring: bool = Form(False),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    normalized_description = description.strip()
+
+    if not normalized_description:
+        raise HTTPException(
+            status_code=422,
+            detail="Expense description is required.",
+        )
+
+    if len(normalized_description) > 255:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Expense description cannot exceed "
+                "255 characters."
+            ),
+        )
+
+    parsed_amount = parse_non_negative_decimal(
+        amount,
+        "Expense amount",
+    )
+
+    if parsed_amount <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail="Expense amount must be greater than zero.",
+        )
+
+    if payment_mode not in EXPENSE_PAYMENT_MODES:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid payment mode.",
+        )
+
+    category = require_available_expense_category(
+        category_id=category_id,
+        user=user,
+        db=db,
+    )
+
+    farm = None
+
+    if farm_id is not None:
+        farm = require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+
+    vendor = None
+
+    if vendor_id is not None:
+        vendor = require_owned_vendor(
+            vendor_id=vendor_id,
+            user=user,
+            db=db,
+        )
+
+    expense = Expense(
+        owner_id=user.id,
+        farm_id=farm.id if farm else None,
+        category_id=category.id,
+        vendor_id=vendor.id if vendor else None,
+        expense_date=expense_date,
+        description=normalized_description,
+        amount=parsed_amount,
+        payment_mode=payment_mode,
+        reference_number=normalize_optional_text(
+            reference_number
+        ),
+        is_recurring=bool(is_recurring),
+        notes=normalize_optional_text(notes),
+    )
+
+    try:
+        db.add(expense)
+        db.flush()
+
+        audit(
+            db,
+            request,
+            "expense_created",
+            user.id,
+            (
+                f"Expense ID: {expense.id}; "
+                f"Date: {expense.expense_date}; "
+                f"Category: {category.name}; "
+                f"Farm ID: {expense.farm_id}; "
+                f"Amount: {expense.amount}; "
+                f"Payment mode: {expense.payment_mode}"
+            ),
+        )
+
+        db.commit()
+        db.refresh(expense)
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to create expense.",
+        )
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "id": expense.id,
+            "expense_date": expense.expense_date.isoformat(),
+            "farm_id": expense.farm_id,
+            "category_id": expense.category_id,
+            "category_name": category.name,
+            "vendor_id": expense.vendor_id,
+            "description": expense.description,
+            "amount": str(expense.amount),
+            "payment_mode": expense.payment_mode,
+            "reference_number": (
+                expense.reference_number
+            ),
+            "is_recurring": expense.is_recurring,
+            "notes": expense.notes,
+        },
+    )
+
+
+@app.get(
+    "/expenses/{expense_id}",
+    response_class=JSONResponse,
+)
+def expense_detail(
+    expense_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    expense = require_owned_expense(
+        expense_id=expense_id,
+        user=user,
+        db=db,
+    )
+
+    category = require_available_expense_category(
+        category_id=expense.category_id,
+        user=user,
+        db=db,
+    )
+
+    farm = None
+
+    if expense.farm_id is not None:
+        farm = require_owned_farm(
+            db=db,
+            farm_id=expense.farm_id,
+            owner_id=user.id,
+        )
+
+    vendor = None
+
+    if expense.vendor_id is not None:
+        vendor = db.scalar(
+            select(Vendor).where(
+                Vendor.id == expense.vendor_id,
+                Vendor.owner_id == user.id,
+            )
+        )
+
+    return {
+        "id": expense.id,
+        "expense_date": expense.expense_date.isoformat(),
+        "farm": (
+            {
+                "id": farm.id,
+                "name": farm.name,
+            }
+            if farm
+            else None
+        ),
+        "category": {
+            "id": category.id,
+            "name": category.name,
+        },
+        "vendor": (
+            {
+                "id": vendor.id,
+                "name": vendor.name,
+            }
+            if vendor
+            else None
+        ),
+        "description": expense.description,
+        "amount": str(expense.amount),
+        "payment_mode": expense.payment_mode,
+        "reference_number": expense.reference_number,
+        "is_recurring": expense.is_recurring,
+        "notes": expense.notes,
+        "created_at": (
+            expense.created_at.isoformat()
+            if expense.created_at
+            else None
+        ),
+        "updated_at": (
+            expense.updated_at.isoformat()
+            if expense.updated_at
+            else None
+        ),
+    }
+
+
+@app.post(
+    "/expenses/{expense_id}/delete",
+    response_class=JSONResponse,
+)
+def delete_expense(
+    expense_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    expense = require_owned_expense(
+        expense_id=expense_id,
+        user=user,
+        db=db,
+    )
+
+    deleted_detail = (
+        f"Expense ID: {expense.id}; "
+        f"Date: {expense.expense_date}; "
+        f"Farm ID: {expense.farm_id}; "
+        f"Amount: {expense.amount}; "
+        f"Description: {expense.description}"
+    )
+
+    try:
+        audit(
+            db,
+            request,
+            "expense_deleted",
+            user.id,
+            deleted_detail,
+        )
+
+        db.delete(expense)
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to delete expense.",
+        )
+
+    return {
+        "status": "deleted",
+        "expense_id": expense_id,
+    }
+
+
+
+# PATCH-EXPENSE-001C: EXPENSE MANAGEMENT UI
+
+
+@app.get(
+    "/expenses/manage",
+    response_class=HTMLResponse,
+)
+def expense_management_page(
+    request: Request,
+    farm_id: int | None = None,
+    category_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    categories = db.scalars(
+        select(ExpenseCategory)
+        .where(
+            ExpenseCategory.is_active.is_(True),
+            or_(
+                ExpenseCategory.owner_id.is_(None),
+                ExpenseCategory.owner_id == user.id,
+            ),
+        )
+        .order_by(func.lower(ExpenseCategory.name))
+    ).all()
+
+    statement = select(Expense).where(
+        Expense.owner_id == user.id
+    )
+
+    if farm_id is not None:
+        require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+        statement = statement.where(
+            Expense.farm_id == farm_id
+        )
+
+    if category_id is not None:
+        require_available_expense_category(
+            category_id=category_id,
+            user=user,
+            db=db,
+        )
+        statement = statement.where(
+            Expense.category_id == category_id
+        )
+
+    if date_from is not None:
+        statement = statement.where(
+            Expense.expense_date >= date_from
+        )
+
+    if date_to is not None:
+        statement = statement.where(
+            Expense.expense_date <= date_to
+        )
+
+    expenses = db.scalars(
+        statement.order_by(
+            Expense.expense_date.desc(),
+            Expense.id.desc(),
+        )
+    ).all()
+
+    farm_names = {
+        farm.id: farm.name
+        for farm in farms
+    }
+
+    category_names = {
+        category.id: category.name
+        for category in categories
+    }
+
+    vendor_ids = {
+        expense.vendor_id
+        for expense in expenses
+        if expense.vendor_id is not None
+    }
+
+    vendors = {
+        vendor.id: vendor.name
+        for vendor in db.scalars(
+            select(Vendor).where(
+                Vendor.owner_id == user.id,
+                Vendor.id.in_(vendor_ids),
+            )
+        ).all()
+    } if vendor_ids else {}
+
+    rows = [
+        {
+            "expense": expense,
+            "farm_name": farm_names.get(expense.farm_id),
+            "category_name": category_names.get(
+                expense.category_id,
+                "Category",
+            ),
+            "vendor_name": vendors.get(expense.vendor_id),
+        }
+        for expense in expenses
+    ]
+
+    today = date.today()
+    month_start = today.replace(day=1)
+
+    totals = {
+        "count": len(expenses),
+        "amount": sum(
+            Decimal(expense.amount or 0)
+            for expense in expenses
+        ),
+        "month_amount": sum(
+            Decimal(expense.amount or 0)
+            for expense in expenses
+            if expense.expense_date >= month_start
+        ),
+        "recurring": sum(
+            bool(expense.is_recurring)
+            for expense in expenses
+        ),
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="expenses/list.html",
+        context={
+            "current_user": user,
+            "farms": farms,
+            "categories": categories,
+            "expenses": rows,
+            "totals": totals,
+            "filters": {
+                "farm_id": farm_id or "",
+                "category_id": category_id or "",
+                "date_from": (
+                    date_from.isoformat()
+                    if date_from
+                    else ""
+                ),
+                "date_to": (
+                    date_to.isoformat()
+                    if date_to
+                    else ""
+                ),
+            },
+        },
+    )
+
+
+@app.get(
+    "/expenses/new",
+    response_class=HTMLResponse,
+)
+def expense_create_page(
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    categories = db.scalars(
+        select(ExpenseCategory)
+        .where(
+            ExpenseCategory.is_active.is_(True),
+            or_(
+                ExpenseCategory.owner_id.is_(None),
+                ExpenseCategory.owner_id == user.id,
+            ),
+        )
+        .order_by(func.lower(ExpenseCategory.name))
+    ).all()
+
+    vendors = db.scalars(
+        select(Vendor)
+        .where(
+            Vendor.owner_id == user.id,
+            Vendor.is_active.is_(True),
+        )
+        .order_by(func.lower(Vendor.name))
+    ).all()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="expenses/form.html",
+        context={
+            "current_user": user,
+            "farms": farms,
+            "categories": categories,
+            "vendors": vendors,
+            "payment_modes": sorted(
+                EXPENSE_PAYMENT_MODES
+            ),
+            "error_message": None,
+            "form_data": {
+                "expense_date": date.today().isoformat(),
+                "farm_id": "",
+                "category_id": "",
+                "vendor_id": "",
+                "description": "",
+                "amount": "",
+                "payment_mode": "Cash",
+                "reference_number": "",
+                "is_recurring": False,
+                "notes": "",
+            },
+        },
+    )
+
+
+@app.post(
+    "/expenses/new",
+    response_class=HTMLResponse,
+)
+def expense_create_html(
+    request: Request,
+    expense_date: date = Form(...),
+    category_id: int = Form(...),
+    description: str = Form(...),
+    amount: str = Form(...),
+    farm_id: str = Form(""),
+    vendor_id: str = Form(""),
+    payment_mode: str = Form("Cash"),
+    reference_number: str = Form(""),
+    is_recurring: bool = Form(False),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    categories = db.scalars(
+        select(ExpenseCategory)
+        .where(
+            ExpenseCategory.is_active.is_(True),
+            or_(
+                ExpenseCategory.owner_id.is_(None),
+                ExpenseCategory.owner_id == user.id,
+            ),
+        )
+        .order_by(func.lower(ExpenseCategory.name))
+    ).all()
+
+    vendors = db.scalars(
+        select(Vendor)
+        .where(
+            Vendor.owner_id == user.id,
+            Vendor.is_active.is_(True),
+        )
+        .order_by(func.lower(Vendor.name))
+    ).all()
+
+    form_data = {
+        "expense_date": expense_date.isoformat(),
+        "farm_id": farm_id,
+        "category_id": category_id,
+        "vendor_id": vendor_id,
+        "description": description,
+        "amount": amount,
+        "payment_mode": payment_mode,
+        "reference_number": reference_number,
+        "is_recurring": is_recurring,
+        "notes": notes,
+    }
+
+    def render_error(
+        message: str,
+        status_code: int = 422,
+    ):
+        return templates.TemplateResponse(
+            request=request,
+            name="expenses/form.html",
+            context={
+                "current_user": user,
+                "farms": farms,
+                "categories": categories,
+                "vendors": vendors,
+                "payment_modes": sorted(
+                    EXPENSE_PAYMENT_MODES
+                ),
+                "error_message": message,
+                "form_data": form_data,
+            },
+            status_code=status_code,
+        )
+
+    normalized_description = description.strip()
+
+    if not normalized_description:
+        return render_error(
+            "Expense description is required."
+        )
+
+    try:
+        parsed_amount = parse_non_negative_decimal(
+            amount,
+            "Expense amount",
+        )
+    except HTTPException as exc:
+        return render_error(str(exc.detail))
+
+    if parsed_amount <= 0:
+        return render_error(
+            "Expense amount must be greater than zero."
+        )
+
+    if payment_mode not in EXPENSE_PAYMENT_MODES:
+        return render_error("Invalid payment mode.")
+
+    try:
+        category = require_available_expense_category(
+            category_id=category_id,
+            user=user,
+            db=db,
+        )
+    except HTTPException:
+        return render_error(
+            "Expense category not found.",
+            404,
+        )
+
+    farm = None
+
+    if farm_id.strip():
+        try:
+            selected_farm_id = int(farm_id)
+        except ValueError:
+            return render_error("Invalid farm.")
+
+        try:
+            farm = require_owned_farm(
+                db=db,
+                farm_id=selected_farm_id,
+                owner_id=user.id,
+            )
+        except HTTPException:
+            return render_error("Farm not found.", 404)
+
+    vendor = None
+
+    if vendor_id.strip():
+        try:
+            selected_vendor_id = int(vendor_id)
+        except ValueError:
+            return render_error("Invalid vendor.")
+
+        try:
+            vendor = require_owned_vendor(
+                vendor_id=selected_vendor_id,
+                user=user,
+                db=db,
+            )
+        except HTTPException:
+            return render_error("Vendor not found.", 404)
+
+    expense = Expense(
+        owner_id=user.id,
+        farm_id=farm.id if farm else None,
+        category_id=category.id,
+        vendor_id=vendor.id if vendor else None,
+        expense_date=expense_date,
+        description=normalized_description,
+        amount=parsed_amount,
+        payment_mode=payment_mode,
+        reference_number=normalize_optional_text(
+            reference_number
+        ),
+        is_recurring=bool(is_recurring),
+        notes=normalize_optional_text(notes),
+    )
+
+    try:
+        db.add(expense)
+        db.flush()
+
+        audit(
+            db,
+            request,
+            "expense_created",
+            user.id,
+            (
+                f"Expense ID: {expense.id}; "
+                f"Date: {expense.expense_date}; "
+                f"Category: {category.name}; "
+                f"Amount: {expense.amount}"
+            ),
+        )
+
+        db.commit()
+        db.refresh(expense)
+    except SQLAlchemyError:
+        db.rollback()
+
+        return render_error(
+            "Unable to save expense.",
+            500,
+        )
+
+    return RedirectResponse(
+        url=f"/expenses/{expense.id}/view",
+        status_code=303,
+    )
+
+
+@app.get(
+    "/expenses/{expense_id}/view",
+    response_class=HTMLResponse,
+)
+def expense_detail_page(
+    expense_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    expense = require_owned_expense(
+        expense_id=expense_id,
+        user=user,
+        db=db,
+    )
+
+    category = require_available_expense_category(
+        category_id=expense.category_id,
+        user=user,
+        db=db,
+    )
+
+    farm = None
+
+    if expense.farm_id is not None:
+        farm = require_owned_farm(
+            db=db,
+            farm_id=expense.farm_id,
+            owner_id=user.id,
+        )
+
+    vendor = None
+
+    if expense.vendor_id is not None:
+        vendor = db.scalar(
+            select(Vendor).where(
+                Vendor.id == expense.vendor_id,
+                Vendor.owner_id == user.id,
+            )
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="expenses/detail.html",
+        context={
+            "current_user": user,
+            "expense": expense,
+            "category": category,
+            "farm": farm,
+            "vendor": vendor,
+        },
+    )
+
+
+@app.post(
+    "/expenses/{expense_id}/delete-ui",
+)
+def expense_delete_html(
+    expense_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    expense = require_owned_expense(
+        expense_id=expense_id,
+        user=user,
+        db=db,
+    )
+
+    deleted_detail = (
+        f"Expense ID: {expense.id}; "
+        f"Date: {expense.expense_date}; "
+        f"Amount: {expense.amount}; "
+        f"Description: {expense.description}"
+    )
+
+    try:
+        audit(
+            db,
+            request,
+            "expense_deleted",
+            user.id,
+            deleted_detail,
+        )
+
+        db.delete(expense)
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to delete expense.",
+        )
+
+    return RedirectResponse(
+        url="/expenses/manage",
+        status_code=303,
+    )
+
+
+
+# PATCH-SALES-001B: SALES MANAGEMENT BACKEND
+
+SALE_PRODUCT_TYPES = {
+    "Mature Coconut",
+    "Tender Coconut",
+    "Copra",
+    "Coconut Husk",
+    "Coconut Shell",
+    "Coconut Oil",
+    "Seedling",
+    "Other",
+}
+
+SALE_UNITS = {
+    "Number",
+    "Kilogram",
+    "Quintal",
+    "Litre",
+    "Bag",
+    "Lot",
+}
+
+SALE_PAYMENT_MODES = {
+    "Cash",
+    "UPI",
+    "Bank Transfer",
+    "Cheque",
+    "Other",
+}
+
+
+def require_owned_buyer(
+    buyer_id: int,
+    user: User,
+    db: Session,
+) -> Buyer:
+    buyer = db.scalar(
+        select(Buyer).where(
+            Buyer.id == buyer_id,
+            Buyer.owner_id == user.id,
+            Buyer.is_active.is_(True),
+        )
+    )
+
+    if buyer is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Buyer not found.",
+        )
+
+    return buyer
+
+
+def require_owned_sale(
+    sale_id: int,
+    user: User,
+    db: Session,
+) -> Sale:
+    sale = db.scalar(
+        select(Sale).where(
+            Sale.id == sale_id,
+            Sale.owner_id == user.id,
+        )
+    )
+
+    if sale is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Sale not found.",
+        )
+
+    return sale
+
+
+def sale_payment_status(
+    net_amount: Decimal,
+    paid_amount: Decimal,
+    payment_due_date: date | None = None,
+) -> str:
+    if paid_amount >= net_amount:
+        return "Paid"
+
+    if (
+        payment_due_date is not None
+        and payment_due_date < date.today()
+    ):
+        return "Overdue"
+
+    if paid_amount > 0:
+        return "Partially Paid"
+
+    return "Unpaid"
+
+
+@app.get(
+    "/buyers",
+    response_class=JSONResponse,
+)
+def buyer_list(
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    buyers = db.scalars(
+        select(Buyer)
+        .where(
+            Buyer.owner_id == user.id,
+            Buyer.is_active.is_(True),
+        )
+        .order_by(func.lower(Buyer.name))
+    ).all()
+
+    return {
+        "count": len(buyers),
+        "items": [
+            {
+                "id": buyer.id,
+                "name": buyer.name,
+                "mobile_number": buyer.mobile_number,
+                "email": buyer.email,
+                "address": buyer.address,
+                "notes": buyer.notes,
+            }
+            for buyer in buyers
+        ],
+    }
+
+
+@app.post(
+    "/buyers",
+    response_class=JSONResponse,
+)
+def create_buyer(
+    request: Request,
+    name: str = Form(...),
+    mobile_number: str = Form(""),
+    email: str = Form(""),
+    address: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    normalized_name = name.strip()
+
+    if not normalized_name:
+        raise HTTPException(
+            status_code=422,
+            detail="Buyer name is required.",
+        )
+
+    if len(normalized_name) > 160:
+        raise HTTPException(
+            status_code=422,
+            detail="Buyer name cannot exceed 160 characters.",
+        )
+
+    duplicate = db.scalar(
+        select(Buyer.id).where(
+            Buyer.owner_id == user.id,
+            func.lower(Buyer.name) == normalized_name.lower(),
+        )
+    )
+
+    if duplicate is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This buyer already exists.",
+        )
+
+    buyer = Buyer(
+        owner_id=user.id,
+        name=normalized_name,
+        mobile_number=normalize_optional_text(
+            mobile_number
+        ),
+        email=normalize_optional_text(email),
+        address=normalize_optional_text(address),
+        notes=normalize_optional_text(notes),
+        is_active=True,
+    )
+
+    try:
+        db.add(buyer)
+        db.flush()
+
+        audit(
+            db,
+            request,
+            "buyer_created",
+            user.id,
+            (
+                f"Buyer ID: {buyer.id}; "
+                f"Name: {buyer.name}"
+            ),
+        )
+
+        db.commit()
+        db.refresh(buyer)
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to create buyer.",
+        )
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "id": buyer.id,
+            "name": buyer.name,
+            "mobile_number": buyer.mobile_number,
+            "email": buyer.email,
+            "address": buyer.address,
+            "notes": buyer.notes,
+        },
+    )
+
+
+@app.get(
+    "/sales",
+    response_class=JSONResponse,
+)
+def sale_list(
+    farm_id: int | None = None,
+    buyer_id: int | None = None,
+    payment_status: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    statement = select(Sale).where(
+        Sale.owner_id == user.id
+    )
+
+    if farm_id is not None:
+        require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+        statement = statement.where(
+            Sale.farm_id == farm_id
+        )
+
+    if buyer_id is not None:
+        require_owned_buyer(
+            buyer_id=buyer_id,
+            user=user,
+            db=db,
+        )
+        statement = statement.where(
+            Sale.buyer_id == buyer_id
+        )
+
+    if payment_status:
+        if payment_status not in {
+            "Unpaid",
+            "Partially Paid",
+            "Paid",
+            "Overdue",
+        }:
+            raise HTTPException(
+                status_code=422,
+                detail="Invalid payment status.",
+            )
+
+        statement = statement.where(
+            Sale.payment_status == payment_status
+        )
+
+    if date_from is not None:
+        statement = statement.where(
+            Sale.sale_date >= date_from
+        )
+
+    if date_to is not None:
+        statement = statement.where(
+            Sale.sale_date <= date_to
+        )
+
+    sales = db.scalars(
+        statement.order_by(
+            Sale.sale_date.desc(),
+            Sale.id.desc(),
+        )
+    ).all()
+
+    farm_ids = {
+        sale.farm_id
+        for sale in sales
+    }
+
+    buyer_ids = {
+        sale.buyer_id
+        for sale in sales
+        if sale.buyer_id is not None
+    }
+
+    farms = {
+        farm.id: farm.name
+        for farm in db.scalars(
+            select(Farm).where(
+                Farm.owner_id == user.id,
+                Farm.id.in_(farm_ids),
+            )
+        ).all()
+    } if farm_ids else {}
+
+    buyers = {
+        buyer.id: buyer.name
+        for buyer in db.scalars(
+            select(Buyer).where(
+                Buyer.owner_id == user.id,
+                Buyer.id.in_(buyer_ids),
+            )
+        ).all()
+    } if buyer_ids else {}
+
+    today = date.today()
+    changed = False
+
+    for sale in sales:
+        current_status = sale_payment_status(
+            Decimal(sale.net_amount),
+            Decimal(sale.paid_amount),
+            sale.payment_due_date,
+        )
+
+        if sale.payment_status != current_status:
+            sale.payment_status = current_status
+            changed = True
+
+    if changed:
+        db.commit()
+
+    total_net = sum(
+        Decimal(sale.net_amount or 0)
+        for sale in sales
+    )
+
+    total_paid = sum(
+        Decimal(sale.paid_amount or 0)
+        for sale in sales
+    )
+
+    total_balance = sum(
+        Decimal(sale.balance_amount or 0)
+        for sale in sales
+    )
+
+    return {
+        "count": len(sales),
+        "total_net_amount": str(total_net),
+        "total_paid_amount": str(total_paid),
+        "total_balance_amount": str(total_balance),
+        "as_of_date": today.isoformat(),
+        "items": [
+            {
+                "id": sale.id,
+                "farm_id": sale.farm_id,
+                "farm_name": farms.get(sale.farm_id),
+                "harvest_record_id": (
+                    sale.harvest_record_id
+                ),
+                "buyer_id": sale.buyer_id,
+                "buyer_name": buyers.get(sale.buyer_id),
+                "sale_date": sale.sale_date.isoformat(),
+                "product_type": sale.product_type,
+                "quantity": str(sale.quantity),
+                "unit": sale.unit,
+                "rate": str(sale.rate),
+                "gross_amount": str(sale.gross_amount),
+                "net_amount": str(sale.net_amount),
+                "paid_amount": str(sale.paid_amount),
+                "balance_amount": str(sale.balance_amount),
+                "payment_status": sale.payment_status,
+                "payment_due_date": (
+                    sale.payment_due_date.isoformat()
+                    if sale.payment_due_date
+                    else None
+                ),
+            }
+            for sale in sales
+        ],
+    }
+
+
+@app.post(
+    "/sales",
+    response_class=JSONResponse,
+)
+def create_sale(
+    request: Request,
+    sale_date: date = Form(...),
+    farm_id: int = Form(...),
+    product_type: str = Form(...),
+    quantity: str = Form(...),
+    unit: str = Form("Number"),
+    rate: str = Form(...),
+    harvest_record_id: int | None = Form(None),
+    buyer_id: int | None = Form(None),
+    transport_deduction: str = Form("0"),
+    commission_deduction: str = Form("0"),
+    other_deduction: str = Form("0"),
+    paid_amount: str = Form("0"),
+    payment_due_date: date | None = Form(None),
+    reference_number: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farm = require_owned_farm(
+        db=db,
+        farm_id=farm_id,
+        owner_id=user.id,
+    )
+
+    normalized_product = product_type.strip()
+
+    if normalized_product not in SALE_PRODUCT_TYPES:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid product type.",
+        )
+
+    if unit not in SALE_UNITS:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid sale unit.",
+        )
+
+    parsed_quantity = parse_non_negative_decimal(
+        quantity,
+        "Quantity",
+    )
+    parsed_rate = parse_non_negative_decimal(
+        rate,
+        "Rate",
+    )
+
+    if parsed_quantity <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail="Quantity must be greater than zero.",
+        )
+
+    deductions = {
+        "transport": parse_non_negative_decimal(
+            transport_deduction,
+            "Transport deduction",
+        ),
+        "commission": parse_non_negative_decimal(
+            commission_deduction,
+            "Commission deduction",
+        ),
+        "other": parse_non_negative_decimal(
+            other_deduction,
+            "Other deduction",
+        ),
+    }
+
+    parsed_paid_amount = parse_non_negative_decimal(
+        paid_amount,
+        "Paid amount",
+    )
+
+    buyer = None
+
+    if buyer_id is not None:
+        buyer = require_owned_buyer(
+            buyer_id=buyer_id,
+            user=user,
+            db=db,
+        )
+
+    harvest_record = None
+
+    if harvest_record_id is not None:
+        harvest_record = db.scalar(
+            select(HarvestRecord).where(
+                HarvestRecord.id == harvest_record_id,
+                HarvestRecord.owner_id == user.id,
+                HarvestRecord.farm_id == farm.id,
+            )
+        )
+
+        if harvest_record is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Harvest record not found.",
+            )
+
+    gross_amount = (
+        parsed_quantity * parsed_rate
+    ).quantize(Decimal("0.01"))
+
+    total_deductions = (
+        deductions["transport"]
+        + deductions["commission"]
+        + deductions["other"]
+    )
+
+    if total_deductions > gross_amount:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Total deductions cannot exceed "
+                "the gross amount."
+            ),
+        )
+
+    net_amount = gross_amount - total_deductions
+
+    if parsed_paid_amount > net_amount:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Paid amount cannot exceed "
+                "the net sale amount."
+            ),
+        )
+
+    balance_amount = net_amount - parsed_paid_amount
+
+    status = sale_payment_status(
+        net_amount,
+        parsed_paid_amount,
+        payment_due_date,
+    )
+
+    sale = Sale(
+        owner_id=user.id,
+        farm_id=farm.id,
+        harvest_record_id=(
+            harvest_record.id
+            if harvest_record
+            else None
+        ),
+        buyer_id=buyer.id if buyer else None,
+        sale_date=sale_date,
+        product_type=normalized_product,
+        quantity=parsed_quantity,
+        unit=unit,
+        rate=parsed_rate,
+        gross_amount=gross_amount,
+        transport_deduction=deductions["transport"],
+        commission_deduction=deductions["commission"],
+        other_deduction=deductions["other"],
+        net_amount=net_amount,
+        paid_amount=parsed_paid_amount,
+        balance_amount=balance_amount,
+        payment_status=status,
+        payment_due_date=payment_due_date,
+        reference_number=normalize_optional_text(
+            reference_number
+        ),
+        notes=normalize_optional_text(notes),
+    )
+
+    try:
+        db.add(sale)
+        db.flush()
+
+        if parsed_paid_amount > 0:
+            initial_payment = SalePayment(
+                owner_id=user.id,
+                sale_id=sale.id,
+                payment_date=sale_date,
+                amount=parsed_paid_amount,
+                payment_mode="Cash",
+                notes="Initial sale payment",
+            )
+            db.add(initial_payment)
+
+        audit(
+            db,
+            request,
+            "sale_created",
+            user.id,
+            (
+                f"Sale ID: {sale.id}; "
+                f"Farm ID: {sale.farm_id}; "
+                f"Buyer ID: {sale.buyer_id}; "
+                f"Product: {sale.product_type}; "
+                f"Quantity: {sale.quantity} {sale.unit}; "
+                f"Net amount: {sale.net_amount}; "
+                f"Paid: {sale.paid_amount}; "
+                f"Balance: {sale.balance_amount}"
+            ),
+        )
+
+        db.commit()
+        db.refresh(sale)
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to create sale.",
+        )
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "id": sale.id,
+            "farm_id": sale.farm_id,
+            "harvest_record_id": (
+                sale.harvest_record_id
+            ),
+            "buyer_id": sale.buyer_id,
+            "sale_date": sale.sale_date.isoformat(),
+            "product_type": sale.product_type,
+            "quantity": str(sale.quantity),
+            "unit": sale.unit,
+            "rate": str(sale.rate),
+            "gross_amount": str(sale.gross_amount),
+            "transport_deduction": str(
+                sale.transport_deduction
+            ),
+            "commission_deduction": str(
+                sale.commission_deduction
+            ),
+            "other_deduction": str(
+                sale.other_deduction
+            ),
+            "net_amount": str(sale.net_amount),
+            "paid_amount": str(sale.paid_amount),
+            "balance_amount": str(sale.balance_amount),
+            "payment_status": sale.payment_status,
+            "payment_due_date": (
+                sale.payment_due_date.isoformat()
+                if sale.payment_due_date
+                else None
+            ),
+            "reference_number": (
+                sale.reference_number
+            ),
+            "notes": sale.notes,
+        },
+    )
+
+
+@app.get(
+    "/sales/{sale_id}",
+    response_class=JSONResponse,
+)
+def sale_detail(
+    sale_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    sale = require_owned_sale(
+        sale_id=sale_id,
+        user=user,
+        db=db,
+    )
+
+    farm = require_owned_farm(
+        db=db,
+        farm_id=sale.farm_id,
+        owner_id=user.id,
+    )
+
+    buyer = None
+
+    if sale.buyer_id is not None:
+        buyer = db.scalar(
+            select(Buyer).where(
+                Buyer.id == sale.buyer_id,
+                Buyer.owner_id == user.id,
+            )
+        )
+
+    payments = db.scalars(
+        select(SalePayment)
+        .where(
+            SalePayment.owner_id == user.id,
+            SalePayment.sale_id == sale.id,
+        )
+        .order_by(
+            SalePayment.payment_date.desc(),
+            SalePayment.id.desc(),
+        )
+    ).all()
+
+    current_status = sale_payment_status(
+        Decimal(sale.net_amount),
+        Decimal(sale.paid_amount),
+        sale.payment_due_date,
+    )
+
+    if sale.payment_status != current_status:
+        sale.payment_status = current_status
+        db.commit()
+
+    return {
+        "id": sale.id,
+        "farm": {
+            "id": farm.id,
+            "name": farm.name,
+        },
+        "buyer": (
+            {
+                "id": buyer.id,
+                "name": buyer.name,
+            }
+            if buyer
+            else None
+        ),
+        "harvest_record_id": sale.harvest_record_id,
+        "sale_date": sale.sale_date.isoformat(),
+        "product_type": sale.product_type,
+        "quantity": str(sale.quantity),
+        "unit": sale.unit,
+        "rate": str(sale.rate),
+        "gross_amount": str(sale.gross_amount),
+        "transport_deduction": str(
+            sale.transport_deduction
+        ),
+        "commission_deduction": str(
+            sale.commission_deduction
+        ),
+        "other_deduction": str(
+            sale.other_deduction
+        ),
+        "net_amount": str(sale.net_amount),
+        "paid_amount": str(sale.paid_amount),
+        "balance_amount": str(sale.balance_amount),
+        "payment_status": sale.payment_status,
+        "payment_due_date": (
+            sale.payment_due_date.isoformat()
+            if sale.payment_due_date
+            else None
+        ),
+        "reference_number": sale.reference_number,
+        "notes": sale.notes,
+        "payments": [
+            {
+                "id": payment.id,
+                "payment_date": (
+                    payment.payment_date.isoformat()
+                ),
+                "amount": str(payment.amount),
+                "payment_mode": payment.payment_mode,
+                "reference_number": (
+                    payment.reference_number
+                ),
+                "notes": payment.notes,
+            }
+            for payment in payments
+        ],
+    }
+
+
+@app.post(
+    "/sales/{sale_id}/payments",
+    response_class=JSONResponse,
+)
+def create_sale_payment(
+    sale_id: int,
+    request: Request,
+    payment_date: date = Form(...),
+    amount: str = Form(...),
+    payment_mode: str = Form("Cash"),
+    reference_number: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    sale = require_owned_sale(
+        sale_id=sale_id,
+        user=user,
+        db=db,
+    )
+
+    parsed_amount = parse_non_negative_decimal(
+        amount,
+        "Payment amount",
+    )
+
+    if parsed_amount <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail="Payment amount must be greater than zero.",
+        )
+
+    if payment_mode not in SALE_PAYMENT_MODES:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid payment mode.",
+        )
+
+    current_balance = Decimal(
+        sale.balance_amount or 0
+    )
+
+    if parsed_amount > current_balance:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Payment amount cannot exceed "
+                "the current balance."
+            ),
+        )
+
+    payment = SalePayment(
+        owner_id=user.id,
+        sale_id=sale.id,
+        payment_date=payment_date,
+        amount=parsed_amount,
+        payment_mode=payment_mode,
+        reference_number=normalize_optional_text(
+            reference_number
+        ),
+        notes=normalize_optional_text(notes),
+    )
+
+    new_paid_amount = (
+        Decimal(sale.paid_amount or 0)
+        + parsed_amount
+    )
+
+    new_balance_amount = (
+        Decimal(sale.net_amount)
+        - new_paid_amount
+    )
+
+    try:
+        db.add(payment)
+        db.flush()
+
+        sale.paid_amount = new_paid_amount
+        sale.balance_amount = new_balance_amount
+        sale.payment_status = sale_payment_status(
+            Decimal(sale.net_amount),
+            new_paid_amount,
+            sale.payment_due_date,
+        )
+
+        audit(
+            db,
+            request,
+            "sale_payment_created",
+            user.id,
+            (
+                f"Payment ID: {payment.id}; "
+                f"Sale ID: {sale.id}; "
+                f"Amount: {payment.amount}; "
+                f"Mode: {payment.payment_mode}; "
+                f"Balance: {sale.balance_amount}"
+            ),
+        )
+
+        db.commit()
+        db.refresh(payment)
+        db.refresh(sale)
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to record sale payment.",
+        )
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "id": payment.id,
+            "sale_id": payment.sale_id,
+            "payment_date": (
+                payment.payment_date.isoformat()
+            ),
+            "amount": str(payment.amount),
+            "payment_mode": payment.payment_mode,
+            "reference_number": (
+                payment.reference_number
+            ),
+            "sale_paid_amount": str(sale.paid_amount),
+            "sale_balance_amount": str(
+                sale.balance_amount
+            ),
+            "sale_payment_status": (
+                sale.payment_status
+            ),
+        },
+    )
+
+
+@app.post(
+    "/sales/{sale_id}/delete",
+    response_class=JSONResponse,
+)
+def delete_sale(
+    sale_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    sale = require_owned_sale(
+        sale_id=sale_id,
+        user=user,
+        db=db,
+    )
+
+    detail = (
+        f"Sale ID: {sale.id}; "
+        f"Date: {sale.sale_date}; "
+        f"Product: {sale.product_type}; "
+        f"Net amount: {sale.net_amount}; "
+        f"Paid: {sale.paid_amount}; "
+        f"Balance: {sale.balance_amount}"
+    )
+
+    try:
+        audit(
+            db,
+            request,
+            "sale_deleted",
+            user.id,
+            detail,
+        )
+
+        db.delete(sale)
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to delete sale.",
+        )
+
+    return {
+        "status": "deleted",
+        "sale_id": sale_id,
+    }
+
+
+
+# PATCH-SALES-001C: SALES MANAGEMENT UI
+
+
+@app.get(
+    "/sales/manage",
+    response_class=HTMLResponse,
+)
+def sales_management_page(
+    request: Request,
+    farm_id: int | None = None,
+    buyer_id: int | None = None,
+    payment_status: str | None = None,
+    date_from: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    buyers = db.scalars(
+        select(Buyer)
+        .where(
+            Buyer.owner_id == user.id,
+            Buyer.is_active.is_(True),
+        )
+        .order_by(func.lower(Buyer.name))
+    ).all()
+
+    statement = select(Sale).where(
+        Sale.owner_id == user.id
+    )
+
+    if farm_id is not None:
+        require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+        statement = statement.where(
+            Sale.farm_id == farm_id
+        )
+
+    if buyer_id is not None:
+        require_owned_buyer(
+            buyer_id=buyer_id,
+            user=user,
+            db=db,
+        )
+        statement = statement.where(
+            Sale.buyer_id == buyer_id
+        )
+
+    if payment_status:
+        statement = statement.where(
+            Sale.payment_status == payment_status
+        )
+
+    if date_from is not None:
+        statement = statement.where(
+            Sale.sale_date >= date_from
+        )
+
+    sales = db.scalars(
+        statement.order_by(
+            Sale.sale_date.desc(),
+            Sale.id.desc(),
+        )
+    ).all()
+
+    farm_names = {
+        farm.id: farm.name
+        for farm in farms
+    }
+
+    buyer_names = {
+        buyer.id: buyer.name
+        for buyer in buyers
+    }
+
+    rows = [
+        {
+            "sale": sale,
+            "farm_name": farm_names.get(
+                sale.farm_id,
+                "Farm",
+            ),
+            "buyer_name": buyer_names.get(
+                sale.buyer_id
+            ),
+        }
+        for sale in sales
+    ]
+
+    totals = {
+        "count": len(sales),
+        "net": sum(
+            Decimal(sale.net_amount or 0)
+            for sale in sales
+        ),
+        "paid": sum(
+            Decimal(sale.paid_amount or 0)
+            for sale in sales
+        ),
+        "balance": sum(
+            Decimal(sale.balance_amount or 0)
+            for sale in sales
+        ),
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="sales/list.html",
+        context={
+            "current_user": user,
+            "farms": farms,
+            "buyers": buyers,
+            "sales": rows,
+            "totals": totals,
+            "payment_statuses": [
+                "Unpaid",
+                "Partially Paid",
+                "Paid",
+                "Overdue",
+            ],
+            "filters": {
+                "farm_id": farm_id or "",
+                "buyer_id": buyer_id or "",
+                "payment_status": payment_status or "",
+                "date_from": (
+                    date_from.isoformat()
+                    if date_from
+                    else ""
+                ),
+            },
+        },
+    )
+
+
+@app.get(
+    "/sales/new",
+    response_class=HTMLResponse,
+)
+def sale_create_page(
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    buyers = db.scalars(
+        select(Buyer)
+        .where(
+            Buyer.owner_id == user.id,
+            Buyer.is_active.is_(True),
+        )
+        .order_by(func.lower(Buyer.name))
+    ).all()
+
+    harvest_records = db.scalars(
+        select(HarvestRecord)
+        .where(HarvestRecord.owner_id == user.id)
+        .order_by(
+            HarvestRecord.harvest_date.desc()
+        )
+    ).all()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="sales/form.html",
+        context={
+            "current_user": user,
+            "farms": farms,
+            "buyers": buyers,
+            "harvest_records": harvest_records,
+            "product_types": sorted(
+                SALE_PRODUCT_TYPES
+            ),
+            "units": sorted(SALE_UNITS),
+            "error_message": None,
+            "form_data": {
+                "sale_date": date.today().isoformat(),
+                "farm_id": "",
+                "harvest_record_id": "",
+                "buyer_id": "",
+                "product_type": "Mature Coconut",
+                "quantity": "",
+                "unit": "Number",
+                "rate": "",
+                "transport_deduction": "0",
+                "commission_deduction": "0",
+                "other_deduction": "0",
+                "paid_amount": "0",
+                "payment_due_date": "",
+                "reference_number": "",
+                "notes": "",
+            },
+        },
+    )
+
+
+@app.post(
+    "/sales/new",
+)
+def sale_create_html(
+    request: Request,
+    sale_date: date = Form(...),
+    farm_id: int = Form(...),
+    product_type: str = Form(...),
+    quantity: str = Form(...),
+    unit: str = Form("Number"),
+    rate: str = Form(...),
+    harvest_record_id: str = Form(""),
+    buyer_id: str = Form(""),
+    transport_deduction: str = Form("0"),
+    commission_deduction: str = Form("0"),
+    other_deduction: str = Form("0"),
+    paid_amount: str = Form("0"),
+    payment_due_date: str = Form(""),
+    reference_number: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farm = require_owned_farm(
+        db=db,
+        farm_id=farm_id,
+        owner_id=user.id,
+    )
+
+    parsed_quantity = parse_non_negative_decimal(
+        quantity,
+        "Quantity",
+    )
+    parsed_rate = parse_non_negative_decimal(
+        rate,
+        "Rate",
+    )
+    transport = parse_non_negative_decimal(
+        transport_deduction,
+        "Transport deduction",
+    )
+    commission = parse_non_negative_decimal(
+        commission_deduction,
+        "Commission deduction",
+    )
+    other = parse_non_negative_decimal(
+        other_deduction,
+        "Other deduction",
+    )
+    paid = parse_non_negative_decimal(
+        paid_amount,
+        "Paid amount",
+    )
+
+    gross = (
+        parsed_quantity * parsed_rate
+    ).quantize(Decimal("0.01"))
+
+    deductions = transport + commission + other
+    net = gross - deductions
+
+    if parsed_quantity <= 0 or net < 0 or paid > net:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid sale amounts.",
+        )
+
+    buyer = None
+
+    if buyer_id.strip():
+        buyer = require_owned_buyer(
+            buyer_id=int(buyer_id),
+            user=user,
+            db=db,
+        )
+
+    harvest_record = None
+
+    if harvest_record_id.strip():
+        harvest_record = db.scalar(
+            select(HarvestRecord).where(
+                HarvestRecord.id == int(
+                    harvest_record_id
+                ),
+                HarvestRecord.owner_id == user.id,
+                HarvestRecord.farm_id == farm.id,
+            )
+        )
+
+        if harvest_record is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Harvest record not found.",
+            )
+
+    due_date = (
+        date.fromisoformat(payment_due_date)
+        if payment_due_date.strip()
+        else None
+    )
+
+    sale = Sale(
+        owner_id=user.id,
+        farm_id=farm.id,
+        harvest_record_id=(
+            harvest_record.id
+            if harvest_record
+            else None
+        ),
+        buyer_id=buyer.id if buyer else None,
+        sale_date=sale_date,
+        product_type=product_type,
+        quantity=parsed_quantity,
+        unit=unit,
+        rate=parsed_rate,
+        gross_amount=gross,
+        transport_deduction=transport,
+        commission_deduction=commission,
+        other_deduction=other,
+        net_amount=net,
+        paid_amount=paid,
+        balance_amount=net - paid,
+        payment_status=sale_payment_status(
+            net,
+            paid,
+            due_date,
+        ),
+        payment_due_date=due_date,
+        reference_number=normalize_optional_text(
+            reference_number
+        ),
+        notes=normalize_optional_text(notes),
+    )
+
+    try:
+        db.add(sale)
+        db.flush()
+
+        if paid > 0:
+            db.add(
+                SalePayment(
+                    owner_id=user.id,
+                    sale_id=sale.id,
+                    payment_date=sale_date,
+                    amount=paid,
+                    payment_mode="Cash",
+                    notes="Initial sale payment",
+                )
+            )
+
+        audit(
+            db,
+            request,
+            "sale_created",
+            user.id,
+            (
+                f"Sale ID: {sale.id}; "
+                f"Farm ID: {farm.id}; "
+                f"Net: {net}; Balance: {net - paid}"
+            ),
+        )
+
+        db.commit()
+        db.refresh(sale)
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to save sale.",
+        )
+
+    return RedirectResponse(
+        url=f"/sales/{sale.id}/view",
+        status_code=303,
+    )
+
+
+@app.get(
+    "/sales/{sale_id}/view",
+    response_class=HTMLResponse,
+)
+def sale_detail_page(
+    sale_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    sale = require_owned_sale(
+        sale_id=sale_id,
+        user=user,
+        db=db,
+    )
+
+    farm = require_owned_farm(
+        db=db,
+        farm_id=sale.farm_id,
+        owner_id=user.id,
+    )
+
+    buyer = None
+
+    if sale.buyer_id is not None:
+        buyer = db.scalar(
+            select(Buyer).where(
+                Buyer.id == sale.buyer_id,
+                Buyer.owner_id == user.id,
+            )
+        )
+
+    payments = db.scalars(
+        select(SalePayment)
+        .where(
+            SalePayment.owner_id == user.id,
+            SalePayment.sale_id == sale.id,
+        )
+        .order_by(
+            SalePayment.payment_date.desc()
+        )
+    ).all()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="sales/detail.html",
+        context={
+            "current_user": user,
+            "sale": sale,
+            "farm": farm,
+            "buyer": buyer,
+            "payments": payments,
+        },
+    )
+
+
+@app.get(
+    "/sales/{sale_id}/payments/new",
+    response_class=HTMLResponse,
+)
+def sale_payment_create_page(
+    sale_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    sale = require_owned_sale(
+        sale_id=sale_id,
+        user=user,
+        db=db,
+    )
+
+    farm = require_owned_farm(
+        db=db,
+        farm_id=sale.farm_id,
+        owner_id=user.id,
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="sales/payment.html",
+        context={
+            "current_user": user,
+            "sale": sale,
+            "farm": farm,
+            "payment_modes": sorted(
+                SALE_PAYMENT_MODES
+            ),
+            "error_message": None,
+            "form_data": {
+                "payment_date": date.today().isoformat(),
+                "amount": "",
+                "payment_mode": "Cash",
+                "reference_number": "",
+                "notes": "",
+            },
+        },
+    )
+
+
+@app.post(
+    "/sales/{sale_id}/payments/new",
+)
+def sale_payment_create_html(
+    sale_id: int,
+    request: Request,
+    payment_date: date = Form(...),
+    amount: str = Form(...),
+    payment_mode: str = Form("Cash"),
+    reference_number: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    sale = require_owned_sale(
+        sale_id=sale_id,
+        user=user,
+        db=db,
+    )
+
+    parsed_amount = parse_non_negative_decimal(
+        amount,
+        "Payment amount",
+    )
+
+    if (
+        parsed_amount <= 0
+        or parsed_amount > Decimal(
+            sale.balance_amount or 0
+        )
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid payment amount.",
+        )
+
+    payment = SalePayment(
+        owner_id=user.id,
+        sale_id=sale.id,
+        payment_date=payment_date,
+        amount=parsed_amount,
+        payment_mode=payment_mode,
+        reference_number=normalize_optional_text(
+            reference_number
+        ),
+        notes=normalize_optional_text(notes),
+    )
+
+    try:
+        db.add(payment)
+        db.flush()
+
+        sale.paid_amount = (
+            Decimal(sale.paid_amount or 0)
+            + parsed_amount
+        )
+        sale.balance_amount = (
+            Decimal(sale.net_amount)
+            - Decimal(sale.paid_amount)
+        )
+        sale.payment_status = sale_payment_status(
+            Decimal(sale.net_amount),
+            Decimal(sale.paid_amount),
+            sale.payment_due_date,
+        )
+
+        audit(
+            db,
+            request,
+            "sale_payment_created",
+            user.id,
+            (
+                f"Sale ID: {sale.id}; "
+                f"Amount: {parsed_amount}; "
+                f"Balance: {sale.balance_amount}"
+            ),
+        )
+
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to save payment.",
+        )
+
+    return RedirectResponse(
+        url=f"/sales/{sale.id}/view",
+        status_code=303,
+    )
+
+
+@app.post(
+    "/sales/{sale_id}/delete-ui",
+)
+def sale_delete_html(
+    sale_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    sale = require_owned_sale(
+        sale_id=sale_id,
+        user=user,
+        db=db,
+    )
+
+    try:
+        audit(
+            db,
+            request,
+            "sale_deleted",
+            user.id,
+            (
+                f"Sale ID: {sale.id}; "
+                f"Net: {sale.net_amount}"
+            ),
+        )
+
+        db.delete(sale)
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to delete sale.",
+        )
+
+    return RedirectResponse(
+        url="/sales/manage",
+        status_code=303,
+    )
+
+
+
+# PATCH-PROFIT-001A: FARM PROFITABILITY BACKEND
+
+
+def decimal_or_zero(value: object) -> Decimal:
+    if value is None:
+        return Decimal("0.00")
+
+    return Decimal(str(value)).quantize(
+        Decimal("0.01")
+    )
+
+
+def profitability_percentage(
+    profit: Decimal,
+    total_cost: Decimal,
+) -> Decimal:
+    if total_cost <= 0:
+        return Decimal("0.00")
+
+    return (
+        profit
+        / total_cost
+        * Decimal("100")
+    ).quantize(Decimal("0.01"))
+
+
+def calculate_farm_profitability(
+    farm: Farm,
+    owner_id: int,
+    db: Session,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> dict[str, object]:
+    sale_statement = select(
+        func.coalesce(
+            func.sum(Sale.net_amount),
+            0,
+        )
+    ).where(
+        Sale.owner_id == owner_id,
+        Sale.farm_id == farm.id,
+    )
+
+    expense_statement = select(
+        func.coalesce(
+            func.sum(Expense.amount),
+            0,
+        )
+    ).where(
+        Expense.owner_id == owner_id,
+        Expense.farm_id == farm.id,
+    )
+
+    harvest_cost_statement = select(
+        func.coalesce(
+            func.sum(
+                HarvestRecord.total_harvest_cost
+            ),
+            0,
+        )
+    ).where(
+        HarvestRecord.owner_id == owner_id,
+        HarvestRecord.farm_id == farm.id,
+    )
+
+    coconut_statement = select(
+        func.coalesce(
+            func.sum(
+                HarvestRecord.total_coconuts
+            ),
+            0,
+        )
+    ).where(
+        HarvestRecord.owner_id == owner_id,
+        HarvestRecord.farm_id == farm.id,
+    )
+
+    harvested_tree_statement = select(
+        func.coalesce(
+            func.sum(
+                HarvestRecord.trees_harvested
+            ),
+            0,
+        )
+    ).where(
+        HarvestRecord.owner_id == owner_id,
+        HarvestRecord.farm_id == farm.id,
+    )
+
+    if date_from is not None:
+        sale_statement = sale_statement.where(
+            Sale.sale_date >= date_from
+        )
+        expense_statement = expense_statement.where(
+            Expense.expense_date >= date_from
+        )
+        harvest_cost_statement = (
+            harvest_cost_statement.where(
+                HarvestRecord.harvest_date >= date_from
+            )
+        )
+        coconut_statement = coconut_statement.where(
+            HarvestRecord.harvest_date >= date_from
+        )
+        harvested_tree_statement = (
+            harvested_tree_statement.where(
+                HarvestRecord.harvest_date >= date_from
+            )
+        )
+
+    if date_to is not None:
+        sale_statement = sale_statement.where(
+            Sale.sale_date <= date_to
+        )
+        expense_statement = expense_statement.where(
+            Expense.expense_date <= date_to
+        )
+        harvest_cost_statement = (
+            harvest_cost_statement.where(
+                HarvestRecord.harvest_date <= date_to
+            )
+        )
+        coconut_statement = coconut_statement.where(
+            HarvestRecord.harvest_date <= date_to
+        )
+        harvested_tree_statement = (
+            harvested_tree_statement.where(
+                HarvestRecord.harvest_date <= date_to
+            )
+        )
+
+    revenue = decimal_or_zero(
+        db.scalar(sale_statement)
+    )
+
+    operating_expense = decimal_or_zero(
+        db.scalar(expense_statement)
+    )
+
+    harvest_cost = decimal_or_zero(
+        db.scalar(harvest_cost_statement)
+    )
+
+    total_coconuts = int(
+        db.scalar(coconut_statement) or 0
+    )
+
+    harvested_trees = int(
+        db.scalar(harvested_tree_statement) or 0
+    )
+
+    total_cost = (
+        operating_expense + harvest_cost
+    ).quantize(Decimal("0.01"))
+
+    net_profit = (
+        revenue - total_cost
+    ).quantize(Decimal("0.01"))
+
+    total_farm_trees = int(
+        farm.total_trees or 0
+    )
+
+    revenue_per_tree = (
+        revenue / Decimal(total_farm_trees)
+    ).quantize(Decimal("0.01")) if total_farm_trees > 0 else Decimal("0.00")
+
+    cost_per_tree = (
+        total_cost / Decimal(total_farm_trees)
+    ).quantize(Decimal("0.01")) if total_farm_trees > 0 else Decimal("0.00")
+
+    profit_per_tree = (
+        net_profit / Decimal(total_farm_trees)
+    ).quantize(Decimal("0.01")) if total_farm_trees > 0 else Decimal("0.00")
+
+    revenue_per_coconut = (
+        revenue / Decimal(total_coconuts)
+    ).quantize(Decimal("0.01")) if total_coconuts > 0 else Decimal("0.00")
+
+    cost_per_coconut = (
+        total_cost / Decimal(total_coconuts)
+    ).quantize(Decimal("0.01")) if total_coconuts > 0 else Decimal("0.00")
+
+    profit_per_coconut = (
+        net_profit / Decimal(total_coconuts)
+    ).quantize(Decimal("0.01")) if total_coconuts > 0 else Decimal("0.00")
+
+    yield_per_harvested_tree = (
+        Decimal(total_coconuts)
+        / Decimal(harvested_trees)
+    ).quantize(Decimal("0.01")) if harvested_trees > 0 else Decimal("0.00")
+
+    return {
+        "farm_id": farm.id,
+        "farm_name": farm.name,
+        "total_farm_trees": total_farm_trees,
+        "harvested_trees": harvested_trees,
+        "total_coconuts": total_coconuts,
+        "revenue": revenue,
+        "operating_expense": operating_expense,
+        "harvest_cost": harvest_cost,
+        "total_cost": total_cost,
+        "net_profit": net_profit,
+        "profitability_percentage": (
+            profitability_percentage(
+                net_profit,
+                total_cost,
+            )
+        ),
+        "revenue_per_tree": revenue_per_tree,
+        "cost_per_tree": cost_per_tree,
+        "profit_per_tree": profit_per_tree,
+        "revenue_per_coconut": (
+            revenue_per_coconut
+        ),
+        "cost_per_coconut": cost_per_coconut,
+        "profit_per_coconut": (
+            profit_per_coconut
+        ),
+        "yield_per_harvested_tree": (
+            yield_per_harvested_tree
+        ),
+    }
+
+
+@app.get(
+    "/profitability",
+    response_class=JSONResponse,
+)
+def profitability_summary(
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    if (
+        date_from is not None
+        and date_to is not None
+        and date_from > date_to
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "From date cannot be later "
+                "than to date."
+            ),
+        )
+
+    farm_statement = select(Farm).where(
+        Farm.owner_id == user.id
+    )
+
+    if farm_id is not None:
+        farm = require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+
+        farms = [farm]
+    else:
+        farms = db.scalars(
+            farm_statement.order_by(
+                func.lower(Farm.name)
+            )
+        ).all()
+
+    farm_results = [
+        calculate_farm_profitability(
+            farm=farm,
+            owner_id=user.id,
+            db=db,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        for farm in farms
+    ]
+
+    total_revenue = sum(
+        item["revenue"]
+        for item in farm_results
+    )
+
+    total_operating_expense = sum(
+        item["operating_expense"]
+        for item in farm_results
+    )
+
+    total_harvest_cost = sum(
+        item["harvest_cost"]
+        for item in farm_results
+    )
+
+    total_cost = sum(
+        item["total_cost"]
+        for item in farm_results
+    )
+
+    net_profit = sum(
+        item["net_profit"]
+        for item in farm_results
+    )
+
+    total_coconuts = sum(
+        int(item["total_coconuts"])
+        for item in farm_results
+    )
+
+    return {
+        "date_from": (
+            date_from.isoformat()
+            if date_from
+            else None
+        ),
+        "date_to": (
+            date_to.isoformat()
+            if date_to
+            else None
+        ),
+        "farm_count": len(farm_results),
+        "summary": {
+            "revenue": str(
+                total_revenue.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "operating_expense": str(
+                total_operating_expense.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "harvest_cost": str(
+                total_harvest_cost.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "total_cost": str(
+                total_cost.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "net_profit": str(
+                net_profit.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "profitability_percentage": str(
+                profitability_percentage(
+                    net_profit,
+                    total_cost,
+                )
+            ),
+            "total_coconuts": total_coconuts,
+            "profit_per_coconut": str(
+                (
+                    net_profit
+                    / Decimal(total_coconuts)
+                ).quantize(
+                    Decimal("0.01")
+                )
+                if total_coconuts > 0
+                else Decimal("0.00")
+            ),
+        },
+        "farms": [
+            {
+                key: (
+                    str(value)
+                    if isinstance(value, Decimal)
+                    else value
+                )
+                for key, value in item.items()
+            }
+            for item in farm_results
+        ],
+    }
+
+
+@app.get(
+    "/farms/{farm_id}/profitability",
+    response_class=JSONResponse,
+)
+def farm_profitability_detail(
+    farm_id: int,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farm = require_owned_farm(
+        db=db,
+        farm_id=farm_id,
+        owner_id=user.id,
+    )
+
+    if (
+        date_from is not None
+        and date_to is not None
+        and date_from > date_to
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "From date cannot be later "
+                "than to date."
+            ),
+        )
+
+    result = calculate_farm_profitability(
+        farm=farm,
+        owner_id=user.id,
+        db=db,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    return {
+        key: (
+            str(value)
+            if isinstance(value, Decimal)
+            else value
+        )
+        for key, value in result.items()
+    }
+
+
+
+# PATCH-PROFIT-001B: FARM PROFITABILITY UI
+
+
+@app.get(
+    "/profitability/manage",
+    response_class=HTMLResponse,
+)
+def profitability_management_page(
+    request: Request,
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    if (
+        date_from is not None
+        and date_to is not None
+        and date_from > date_to
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="From date cannot be later than to date.",
+        )
+
+    all_farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    if farm_id is not None:
+        selected_farm = require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+        farms_for_result = [selected_farm]
+    else:
+        farms_for_result = all_farms
+
+    results = [
+        calculate_farm_profitability(
+            farm=farm,
+            owner_id=user.id,
+            db=db,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        for farm in farms_for_result
+    ]
+
+    total_revenue = sum(
+        item["revenue"]
+        for item in results
+    )
+
+    total_cost = sum(
+        item["total_cost"]
+        for item in results
+    )
+
+    net_profit = sum(
+        item["net_profit"]
+        for item in results
+    )
+
+    summary = {
+        "revenue": total_revenue,
+        "total_cost": total_cost,
+        "net_profit": net_profit,
+        "profitability_percentage": (
+            profitability_percentage(
+                net_profit,
+                total_cost,
+            )
+        ),
+    }
+
+    query_parts = []
+
+    if date_from is not None:
+        query_parts.append(
+            f"date_from={date_from.isoformat()}"
+        )
+
+    if date_to is not None:
+        query_parts.append(
+            f"date_to={date_to.isoformat()}"
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="profitability/summary.html",
+        context={
+            "current_user": user,
+            "farms": all_farms,
+            "results": results,
+            "summary": summary,
+            "query_string": "&".join(query_parts),
+            "filters": {
+                "farm_id": farm_id or "",
+                "date_from": (
+                    date_from.isoformat()
+                    if date_from
+                    else ""
+                ),
+                "date_to": (
+                    date_to.isoformat()
+                    if date_to
+                    else ""
+                ),
+            },
+        },
+    )
+
+
+@app.get(
+    "/farms/{farm_id}/profitability/view",
+    response_class=HTMLResponse,
+)
+def farm_profitability_detail_page(
+    farm_id: int,
+    request: Request,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    if (
+        date_from is not None
+        and date_to is not None
+        and date_from > date_to
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="From date cannot be later than to date.",
+        )
+
+    farm = require_owned_farm(
+        db=db,
+        farm_id=farm_id,
+        owner_id=user.id,
+    )
+
+    result = calculate_farm_profitability(
+        farm=farm,
+        owner_id=user.id,
+        db=db,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    query_parts = []
+
+    if date_from is not None:
+        query_parts.append(
+            f"date_from={date_from.isoformat()}"
+        )
+
+    if date_to is not None:
+        query_parts.append(
+            f"date_to={date_to.isoformat()}"
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="profitability/farm.html",
+        context={
+            "current_user": user,
+            "result": result,
+            "date_from": (
+                date_from.isoformat()
+                if date_from
+                else None
+            ),
+            "date_to": (
+                date_to.isoformat()
+                if date_to
+                else None
+            ),
+            "query_string": "&".join(query_parts),
         },
     )
 

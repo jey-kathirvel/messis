@@ -595,3 +595,459 @@ class HarvestRecord(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
     )
+
+# PATCH-EXPENSE-001A: EXPENSE DATABASE FOUNDATION
+
+
+class ExpenseCategory(Base):
+    __tablename__ = "expense_categories"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "owner_id",
+            "name",
+            name="uq_expense_categories_owner_name",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    owner_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
+        index=True,
+    )
+
+    name: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+    )
+
+    is_system: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+    )
+
+
+class Vendor(Base):
+    __tablename__ = "vendors"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "owner_id",
+            "name",
+            name="uq_vendors_owner_name",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    name: Mapped[str] = mapped_column(
+        String(160),
+        nullable=False,
+    )
+
+    mobile_number: Mapped[str | None] = mapped_column(
+        String(20),
+    )
+
+    email: Mapped[str | None] = mapped_column(
+        String(180),
+    )
+
+    address: Mapped[str | None] = mapped_column(
+        Text,
+    )
+
+    notes: Mapped[str | None] = mapped_column(
+        Text,
+    )
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+
+class Expense(Base):
+    __tablename__ = "expenses"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    farm_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "farms.id",
+            ondelete="SET NULL",
+        ),
+        index=True,
+    )
+
+    category_id: Mapped[int] = mapped_column(
+        ForeignKey(
+            "expense_categories.id",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+        index=True,
+    )
+
+    vendor_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "vendors.id",
+            ondelete="SET NULL",
+        ),
+        index=True,
+    )
+
+    expense_date: Mapped[date] = mapped_column(
+        Date,
+        nullable=False,
+        index=True,
+    )
+
+    description: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+    )
+
+    amount: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+    )
+
+    payment_mode: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="Cash",
+    )
+
+    reference_number: Mapped[str | None] = mapped_column(
+        String(120),
+    )
+
+    is_recurring: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    notes: Mapped[str | None] = mapped_column(
+        Text,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+# PATCH-SALES-001A: SALES DATABASE FOUNDATION
+
+
+class Buyer(Base):
+    __tablename__ = "buyers"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "owner_id",
+            "name",
+            name="uq_buyers_owner_name",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    name: Mapped[str] = mapped_column(
+        String(160),
+        nullable=False,
+    )
+
+    mobile_number: Mapped[str | None] = mapped_column(
+        String(20),
+    )
+
+    email: Mapped[str | None] = mapped_column(
+        String(180),
+    )
+
+    address: Mapped[str | None] = mapped_column(Text)
+
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+
+class Sale(Base):
+    __tablename__ = "sales"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    farm_id: Mapped[int] = mapped_column(
+        ForeignKey("farms.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+
+    harvest_record_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "harvest_records.id",
+            ondelete="SET NULL",
+        ),
+        index=True,
+    )
+
+    buyer_id: Mapped[int | None] = mapped_column(
+        ForeignKey("buyers.id", ondelete="SET NULL"),
+        index=True,
+    )
+
+    sale_date: Mapped[date] = mapped_column(
+        Date,
+        nullable=False,
+        index=True,
+    )
+
+    product_type: Mapped[str] = mapped_column(
+        String(60),
+        nullable=False,
+    )
+
+    quantity: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+    )
+
+    unit: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="Number",
+    )
+
+    rate: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+    )
+
+    gross_amount: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+    )
+
+    transport_deduction: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    commission_deduction: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    other_deduction: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    net_amount: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+    )
+
+    paid_amount: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    balance_amount: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    payment_status: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="Unpaid",
+        index=True,
+    )
+
+    payment_due_date: Mapped[date | None] = mapped_column(
+        Date,
+    )
+
+    reference_number: Mapped[str | None] = mapped_column(
+        String(120),
+    )
+
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+
+class SalePayment(Base):
+    __tablename__ = "sale_payments"
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+    )
+
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    sale_id: Mapped[int] = mapped_column(
+        ForeignKey("sales.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    payment_date: Mapped[date] = mapped_column(
+        Date,
+        nullable=False,
+        index=True,
+    )
+
+    amount: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+    )
+
+    payment_mode: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="Cash",
+    )
+
+    reference_number: Mapped[str | None] = mapped_column(
+        String(120),
+    )
+
+    notes: Mapped[str | None] = mapped_column(Text)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+    )

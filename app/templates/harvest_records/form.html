@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>Record Harvest · Messis AI</title>
+    <style>
+        :root {
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            color: #17351f;
+            background: #f4fbf5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            min-height: 100vh;
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(34, 197, 94, 0.14),
+                    transparent 35%
+                ),
+                #f4fbf5;
+        }
+
+        main {
+            width: min(860px, 100%);
+            margin: 20px auto;
+        }
+
+        .back {
+            color: #166534;
+            font-weight: 900;
+            text-decoration: none;
+        }
+
+        .panel {
+            margin-top: 18px;
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 24px;
+            padding: clamp(22px, 5vw, 42px);
+            box-shadow: 0 20px 60px rgba(20, 83, 45, 0.1);
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        .subtitle {
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        label {
+            display: block;
+            margin: 16px 0 7px;
+            font-weight: 800;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 13px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            font: inherit;
+            background: white;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .totals {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .total-card {
+            padding: 16px;
+            border-radius: 15px;
+            background: #f0fdf4;
+        }
+
+        .total-card small {
+            display: block;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+
+        .total-card strong {
+            color: #166534;
+            font-size: 21px;
+        }
+
+        .error {
+            margin: 18px 0;
+            background: #fee2e2;
+            color: #991b1b;
+            border-radius: 12px;
+            padding: 12px 14px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 24px;
+            border: 0;
+            border-radius: 14px;
+            padding: 14px 18px;
+            background: #15803d;
+            color: white;
+            font: inherit;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        @media (max-width: 660px) {
+            .grid,
+            .totals {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <a class="back" href="/harvest-records/manage">
+        ← Harvest records
+    </a>
+
+    <section class="panel">
+        <h1>Record completed harvest</h1>
+        <p class="subtitle">
+            Farm: <strong>{{ farm.name }}</strong>
+        </p>
+
+        {% if error_message %}
+            <div class="error">{{ error_message }}</div>
+        {% endif %}
+
+        <form
+            method="post"
+            action="/farms/{{ farm.id }}/harvest-records/new"
+        >
+            <div class="grid">
+                <div>
+                    <label for="harvest_date">Harvest date</label>
+                    <input
+                        id="harvest_date"
+                        name="harvest_date"
+                        type="date"
+                        value="{{ form_data.harvest_date }}"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label for="harvest_cycle_id">
+                        Linked harvest cycle
+                    </label>
+                    <select
+                        id="harvest_cycle_id"
+                        name="harvest_cycle_id"
+                    >
+                        <option value="">No linked cycle</option>
+
+                        {% for cycle in cycles %}
+                            <option
+                                value="{{ cycle.id }}"
+                                {% if
+                                    form_data.harvest_cycle_id|string
+                                    == cycle.id|string
+                                %}
+                                    selected
+                                {% endif %}
+                            >
+                                Cycle #{{ cycle.cycle_number }}
+                                · {{ cycle.planned_harvest_date.strftime('%d %b %Y') }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="trees_harvested">
+                        Trees harvested
+                    </label>
+                    <input
+                        id="trees_harvested"
+                        name="trees_harvested"
+                        type="number"
+                        min="0"
+                        max="{{ farm.total_trees }}"
+                        value="{{ form_data.trees_harvested }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="labour_count">Labour count</label>
+                    <input
+                        id="labour_count"
+                        name="labour_count"
+                        type="number"
+                        min="0"
+                        value="{{ form_data.labour_count }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="mature_coconuts">
+                        Mature coconuts
+                    </label>
+                    <input
+                        class="quantity"
+                        id="mature_coconuts"
+                        name="mature_coconuts"
+                        type="number"
+                        min="0"
+                        value="{{ form_data.mature_coconuts }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="tender_coconuts">
+                        Tender coconuts
+                    </label>
+                    <input
+                        class="quantity"
+                        id="tender_coconuts"
+                        name="tender_coconuts"
+                        type="number"
+                        min="0"
+                        value="{{ form_data.tender_coconuts }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="damaged_coconuts">
+                        Damaged coconuts
+                    </label>
+                    <input
+                        class="quantity"
+                        id="damaged_coconuts"
+                        name="damaged_coconuts"
+                        type="number"
+                        min="0"
+                        value="{{ form_data.damaged_coconuts }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="estimated_weight_kg">
+                        Estimated weight (kg)
+                    </label>
+                    <input
+                        id="estimated_weight_kg"
+                        name="estimated_weight_kg"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="{{ form_data.estimated_weight_kg }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="labour_cost">Labour cost</label>
+                    <input
+                        class="cost"
+                        id="labour_cost"
+                        name="labour_cost"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="{{ form_data.labour_cost }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="climbing_cost">Climbing cost</label>
+                    <input
+                        class="cost"
+                        id="climbing_cost"
+                        name="climbing_cost"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="{{ form_data.climbing_cost }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="transport_cost">Transport cost</label>
+                    <input
+                        class="cost"
+                        id="transport_cost"
+                        name="transport_cost"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="{{ form_data.transport_cost }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="other_cost">Other cost</label>
+                    <input
+                        class="cost"
+                        id="other_cost"
+                        name="other_cost"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value="{{ form_data.other_cost }}"
+                    >
+                </div>
+            </div>
+
+            <div class="totals">
+                <div class="total-card">
+                    <small>Total coconuts</small>
+                    <strong id="total_coconuts">0</strong>
+                </div>
+
+                <div class="total-card">
+                    <small>Total harvest cost</small>
+                    <strong id="total_cost">₹0.00</strong>
+                </div>
+            </div>
+
+            <label for="buyer_or_destination">
+                Buyer or destination
+            </label>
+            <input
+                id="buyer_or_destination"
+                name="buyer_or_destination"
+                type="text"
+                maxlength="180"
+                value="{{ form_data.buyer_or_destination }}"
+            >
+
+            <label for="notes">Notes</label>
+            <textarea
+                id="notes"
+                name="notes"
+                maxlength="5000"
+            >{{ form_data.notes }}</textarea>
+
+            <button type="submit">Save harvest record</button>
+        </form>
+    </section>
+</main>
+
+<script>
+    const quantityInputs = [
+        ...document.querySelectorAll(".quantity")
+    ];
+
+    const costInputs = [
+        ...document.querySelectorAll(".cost")
+    ];
+
+    function numberValue(input) {
+        return Number(input.value || 0);
+    }
+
+    function refreshTotals() {
+        const quantityTotal = quantityInputs.reduce(
+            (sum, input) => sum + numberValue(input),
+            0
+        );
+
+        const costTotal = costInputs.reduce(
+            (sum, input) => sum + numberValue(input),
+            0
+        );
+
+        document.getElementById("total_coconuts").textContent =
+            quantityTotal.toLocaleString();
+
+        document.getElementById("total_cost").textContent =
+            "₹" + costTotal.toFixed(2);
+    }
+
+    [...quantityInputs, ...costInputs].forEach(
+        input => input.addEventListener(
+            "input",
+            refreshTotals
+        )
+    );
+
+    refreshTotals();
+</script>
+</body>
+</html>

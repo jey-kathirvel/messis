@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>Harvest Record · Messis AI</title>
+    <style>
+        :root {
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            color: #17351f;
+            background: #f4fbf5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            min-height: 100vh;
+        }
+
+        main {
+            width: min(900px, 100%);
+            margin: 20px auto;
+        }
+
+        a {
+            color: #166534;
+            font-weight: 900;
+            text-decoration: none;
+        }
+
+        .panel {
+            margin-top: 18px;
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 24px;
+            padding: clamp(22px, 5vw, 42px);
+            box-shadow: 0 20px 60px rgba(20, 83, 45, 0.09);
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        .subtitle {
+            color: #64748b;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 24px;
+        }
+
+        .item {
+            border-radius: 15px;
+            background: #f8fafc;
+            padding: 16px;
+        }
+
+        .item small {
+            display: block;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 20px;
+        }
+
+        .metric {
+            background: #f0fdf4;
+            border-radius: 15px;
+            padding: 16px;
+        }
+
+        .metric small {
+            display: block;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+
+        .metric strong {
+            color: #166534;
+            font-size: 20px;
+        }
+
+        .notes {
+            margin-top: 20px;
+            padding: 18px;
+            border-radius: 15px;
+            background: #f8fafc;
+            white-space: pre-wrap;
+        }
+
+        @media (max-width: 720px) {
+            .grid,
+            .metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <a href="/harvest-records/manage">← Harvest records</a>
+
+    <section class="panel">
+        <h1>{{ farm.name }}</h1>
+        <p class="subtitle">
+            Harvested on
+            {{ record.harvest_date.strftime('%d %b %Y') }}
+        </p>
+
+        <div class="grid">
+            <div class="item">
+                <small>Trees harvested</small>
+                <strong>{{ record.trees_harvested }}</strong>
+            </div>
+
+            <div class="item">
+                <small>Mature coconuts</small>
+                <strong>{{ record.mature_coconuts }}</strong>
+            </div>
+
+            <div class="item">
+                <small>Tender coconuts</small>
+                <strong>{{ record.tender_coconuts }}</strong>
+            </div>
+
+            <div class="item">
+                <small>Damaged coconuts</small>
+                <strong>{{ record.damaged_coconuts }}</strong>
+            </div>
+
+            <div class="item">
+                <small>Total coconuts</small>
+                <strong>{{ record.total_coconuts }}</strong>
+            </div>
+
+            <div class="item">
+                <small>Total harvest cost</small>
+                <strong>
+                    ₹{{ '%.2f'|format(record.total_harvest_cost) }}
+                </strong>
+            </div>
+        </div>
+
+        <div class="metrics">
+            <div class="metric">
+                <small>Yield per tree</small>
+                <strong>{{ metrics.yield_per_tree }}</strong>
+            </div>
+
+            <div class="metric">
+                <small>Damage percentage</small>
+                <strong>{{ metrics.damaged_percentage }}%</strong>
+            </div>
+
+            <div class="metric">
+                <small>Cost per coconut</small>
+                <strong>₹{{ metrics.cost_per_coconut }}</strong>
+            </div>
+        </div>
+
+        {% if record.buyer_or_destination %}
+            <div class="notes">
+                <strong>Buyer or destination</strong><br>
+                {{ record.buyer_or_destination }}
+            </div>
+        {% endif %}
+
+        {% if record.notes %}
+            <div class="notes">{{ record.notes }}</div>
+        {% endif %}
+    </section>
+</main>
+</body>
+</html>
