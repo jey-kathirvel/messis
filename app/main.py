@@ -1,14 +1,22 @@
+import shutil
+import secrets
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+import json
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request as URLRequest
+from urllib.request import urlopen
+
 from secrets import compare_digest
 from urllib.parse import quote, urlsplit
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Request, File, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
@@ -9059,6 +9067,7973 @@ def analytics_management_page(
                 ),
             },
         },
+    )
+
+
+
+# PATCH-AI-001A: FARM RECOMMENDATION ENGINE FOUNDATION
+
+
+MESSIS_RECOMMENDATION_PRIORITIES = {
+    "critical": 4,
+    "high": 3,
+    "medium": 2,
+    "low": 1,
+    "info": 0,
+}
+
+
+def recommendation_item(
+    code: str,
+    category: str,
+    priority: str,
+    title: str,
+    message: str,
+    action: str,
+    action_url: str | None = None,
+    metric: dict[str, object] | None = None,
+) -> dict[str, object]:
+    return {
+        "code": code,
+        "category": category,
+        "priority": priority,
+        "priority_score": (
+            MESSIS_RECOMMENDATION_PRIORITIES[
+                priority
+            ]
+        ),
+        "title": title,
+        "message": message,
+        "recommended_action": action,
+        "action_url": action_url,
+        "metric": metric,
+    }
+
+
+def recommendation_decimal(
+    value: object,
+) -> Decimal:
+    if value is None:
+        return Decimal("0.00")
+
+    return Decimal(str(value)).quantize(
+        Decimal("0.01")
+    )
+
+
+def farm_recommendation_engine(
+    farm: Farm,
+    user: User,
+    db: Session,
+    date_from: date,
+    date_to: date,
+) -> dict[str, object]:
+    analytics = analytics_trends(
+        farm_id=farm.id,
+        date_from=date_from,
+        date_to=date_to,
+        user=user,
+        db=db,
+    )
+
+    summary = analytics["summary"]
+    monthly = analytics["monthly"]
+
+    recommendations: list[
+        dict[str, object]
+    ] = []
+
+    total_trees = int(
+        farm.total_trees or 0
+    )
+
+    total_coconuts = int(
+        summary["total_coconuts"] or 0
+    )
+
+    harvest_count = int(
+        summary["harvest_count"] or 0
+    )
+
+    sale_count = int(
+        summary["sale_count"] or 0
+    )
+
+    expense_count = int(
+        summary["expense_count"] or 0
+    )
+
+    yield_per_tree = recommendation_decimal(
+        summary["yield_per_tree"]
+    )
+
+    damage_percentage = (
+        recommendation_decimal(
+            summary["damage_percentage"]
+        )
+    )
+
+    revenue = recommendation_decimal(
+        summary["total_revenue"]
+    )
+
+    total_cost = recommendation_decimal(
+        summary["total_cost"]
+    )
+
+    net_profit = recommendation_decimal(
+        summary["net_profit"]
+    )
+
+    outstanding = recommendation_decimal(
+        summary["total_outstanding"]
+    )
+
+    profitability = recommendation_decimal(
+        summary[
+            "profitability_percentage"
+        ]
+    )
+
+    profit_per_coconut = (
+        recommendation_decimal(
+            summary["profit_per_coconut"]
+        )
+    )
+
+    today = date.today()
+
+    active_cycles = db.scalars(
+        select(HarvestCycle)
+        .where(
+            HarvestCycle.owner_id == user.id,
+            HarvestCycle.farm_id == farm.id,
+        )
+        .order_by(
+            HarvestCycle.planned_harvest_date.asc()
+        )
+    ).all()
+
+    overdue_cycles = []
+
+    due_cycles = []
+
+    for cycle in active_cycles:
+        if cycle.status in {
+            "Completed",
+            "Cancelled",
+        }:
+            continue
+
+        current_status = harvest_cycle_status(
+            cycle.planned_harvest_date,
+            cycle.minimum_due_date,
+            cycle.maximum_due_date,
+            today,
+        )
+
+        if current_status == "Overdue":
+            overdue_cycles.append(cycle)
+        elif current_status in {
+            "Due Soon",
+            "Due",
+        }:
+            due_cycles.append(cycle)
+
+    if overdue_cycles:
+        recommendations.append(
+            recommendation_item(
+                code="HARVEST_OVERDUE",
+                category="Harvest",
+                priority="critical",
+                title="Harvest activity is overdue",
+                message=(
+                    f"{len(overdue_cycles)} harvest "
+                    "cycle(s) have crossed the "
+                    "recommended harvest window."
+                ),
+                action=(
+                    "Review the overdue cycles and "
+                    "record or reschedule the harvest."
+                ),
+                action_url="/harvests/manage",
+                metric={
+                    "overdue_cycles": (
+                        len(overdue_cycles)
+                    ),
+                },
+            )
+        )
+    elif due_cycles:
+        recommendations.append(
+            recommendation_item(
+                code="HARVEST_DUE",
+                category="Harvest",
+                priority="high",
+                title="Prepare for the next harvest",
+                message=(
+                    f"{len(due_cycles)} harvest "
+                    "cycle(s) are due or approaching "
+                    "the planned date."
+                ),
+                action=(
+                    "Confirm labour, climbers, "
+                    "transport, and buyer readiness."
+                ),
+                action_url="/harvests/manage",
+                metric={
+                    "due_cycles": len(due_cycles),
+                },
+            )
+        )
+
+    if harvest_count == 0:
+        recommendations.append(
+            recommendation_item(
+                code="NO_HARVEST_DATA",
+                category="Data",
+                priority="high",
+                title="Harvest records are missing",
+                message=(
+                    "No completed harvest record was "
+                    "found for the selected period."
+                ),
+                action=(
+                    "Record harvested trees, coconut "
+                    "quantity, damage, and harvest cost."
+                ),
+                action_url=(
+                    "/harvest-records/manage"
+                ),
+            )
+        )
+
+    if total_trees > 0 and harvest_count > 0:
+        if yield_per_tree < Decimal("8.00"):
+            recommendations.append(
+                recommendation_item(
+                    code="LOW_YIELD_PER_TREE",
+                    category="Yield",
+                    priority="high",
+                    title="Yield per tree is low",
+                    message=(
+                        "Average yield is "
+                        f"{yield_per_tree} coconuts "
+                        "per harvested tree."
+                    ),
+                    action=(
+                        "Review irrigation frequency, "
+                        "soil nutrition, pest symptoms, "
+                        "and harvest timing."
+                    ),
+                    action_url=(
+                        "/analytics/manage"
+                        f"?farm_id={farm.id}"
+                    ),
+                    metric={
+                        "yield_per_tree": str(
+                            yield_per_tree
+                        ),
+                        "reference_level": "8.00",
+                    },
+                )
+            )
+        elif yield_per_tree >= Decimal("20.00"):
+            recommendations.append(
+                recommendation_item(
+                    code="STRONG_YIELD",
+                    category="Yield",
+                    priority="info",
+                    title="Yield performance is strong",
+                    message=(
+                        "Average yield reached "
+                        f"{yield_per_tree} coconuts "
+                        "per harvested tree."
+                    ),
+                    action=(
+                        "Continue the present farm "
+                        "practice and document what "
+                        "worked well."
+                    ),
+                    action_url=(
+                        "/analytics/manage"
+                        f"?farm_id={farm.id}"
+                    ),
+                    metric={
+                        "yield_per_tree": str(
+                            yield_per_tree
+                        ),
+                    },
+                )
+            )
+
+    if damage_percentage > Decimal("10.00"):
+        recommendations.append(
+            recommendation_item(
+                code="HIGH_DAMAGE_RATE",
+                category="Crop Quality",
+                priority="high",
+                title="Coconut damage rate is high",
+                message=(
+                    f"{damage_percentage}% of recorded "
+                    "coconuts were damaged."
+                ),
+                action=(
+                    "Inspect pest or disease symptoms, "
+                    "handling methods, storage, and "
+                    "harvest maturity."
+                ),
+                action_url=(
+                    "/harvest-records/manage"
+                ),
+                metric={
+                    "damage_percentage": str(
+                        damage_percentage
+                    ),
+                    "recommended_maximum": "10.00",
+                },
+            )
+        )
+    elif (
+        harvest_count > 0
+        and damage_percentage <= Decimal("3.00")
+    ):
+        recommendations.append(
+            recommendation_item(
+                code="GOOD_CROP_QUALITY",
+                category="Crop Quality",
+                priority="info",
+                title="Crop damage is under control",
+                message=(
+                    "Recorded damage is "
+                    f"{damage_percentage}%."
+                ),
+                action=(
+                    "Maintain the current harvesting "
+                    "and handling controls."
+                ),
+                metric={
+                    "damage_percentage": str(
+                        damage_percentage
+                    ),
+                },
+            )
+        )
+
+    if revenue > 0 and net_profit < 0:
+        recommendations.append(
+            recommendation_item(
+                code="NEGATIVE_PROFIT",
+                category="Finance",
+                priority="critical",
+                title="Farm is operating at a loss",
+                message=(
+                    f"Revenue is ₹{revenue}, while "
+                    f"total cost is ₹{total_cost}."
+                ),
+                action=(
+                    "Review the highest expense "
+                    "categories, harvest cost, sale "
+                    "rate, and deductions."
+                ),
+                action_url=(
+                    "/profitability/manage"
+                    f"?farm_id={farm.id}"
+                ),
+                metric={
+                    "revenue": str(revenue),
+                    "total_cost": str(total_cost),
+                    "net_profit": str(net_profit),
+                },
+            )
+        )
+    elif (
+        revenue > 0
+        and profitability < Decimal("20.00")
+    ):
+        recommendations.append(
+            recommendation_item(
+                code="LOW_PROFITABILITY",
+                category="Finance",
+                priority="high",
+                title="Profit margin needs attention",
+                message=(
+                    "Return on cost is "
+                    f"{profitability}%."
+                ),
+                action=(
+                    "Compare buyer rates, reduce "
+                    "avoidable deductions, and review "
+                    "farm-wise operating expenses."
+                ),
+                action_url=(
+                    "/profitability/manage"
+                    f"?farm_id={farm.id}"
+                ),
+                metric={
+                    "profitability_percentage": str(
+                        profitability
+                    ),
+                },
+            )
+        )
+    elif (
+        net_profit > 0
+        and profitability >= Decimal("50.00")
+    ):
+        recommendations.append(
+            recommendation_item(
+                code="HEALTHY_PROFITABILITY",
+                category="Finance",
+                priority="info",
+                title="Farm profitability is healthy",
+                message=(
+                    "Return on cost is "
+                    f"{profitability}%."
+                ),
+                action=(
+                    "Preserve the successful expense "
+                    "and sales practices."
+                ),
+                action_url=(
+                    "/profitability/manage"
+                    f"?farm_id={farm.id}"
+                ),
+                metric={
+                    "profitability_percentage": str(
+                        profitability
+                    ),
+                    "net_profit": str(net_profit),
+                },
+            )
+        )
+
+    if outstanding > 0:
+        outstanding_ratio = (
+            (
+                outstanding
+                / revenue
+                * Decimal("100")
+            ).quantize(Decimal("0.01"))
+            if revenue > 0
+            else Decimal("100.00")
+        )
+
+        priority = (
+            "high"
+            if outstanding_ratio
+            >= Decimal("40.00")
+            else "medium"
+        )
+
+        recommendations.append(
+            recommendation_item(
+                code="OUTSTANDING_COLLECTION",
+                category="Sales",
+                priority=priority,
+                title="Sale payment collection is pending",
+                message=(
+                    f"₹{outstanding} remains "
+                    "outstanding, representing "
+                    f"{outstanding_ratio}% of revenue."
+                ),
+                action=(
+                    "Follow up with buyers and record "
+                    "received payments."
+                ),
+                action_url="/sales/manage",
+                metric={
+                    "outstanding": str(
+                        outstanding
+                    ),
+                    "outstanding_percentage": str(
+                        outstanding_ratio
+                    ),
+                },
+            )
+        )
+
+    if sale_count == 0 and total_coconuts > 0:
+        recommendations.append(
+            recommendation_item(
+                code="HARVEST_WITHOUT_SALE",
+                category="Sales",
+                priority="high",
+                title="Harvest recorded without sales",
+                message=(
+                    f"{total_coconuts} coconuts were "
+                    "recorded, but no sale was entered "
+                    "for the period."
+                ),
+                action=(
+                    "Record the sale or destination "
+                    "of the harvested produce."
+                ),
+                action_url="/sales/new",
+                metric={
+                    "total_coconuts": (
+                        total_coconuts
+                    ),
+                },
+            )
+        )
+
+    if expense_count == 0 and harvest_count > 0:
+        recommendations.append(
+            recommendation_item(
+                code="MISSING_OPERATING_EXPENSES",
+                category="Data",
+                priority="medium",
+                title="Operating expenses may be incomplete",
+                message=(
+                    "Harvest activity exists, but no "
+                    "daily operating expense was "
+                    "recorded for the period."
+                ),
+                action=(
+                    "Review labour, fertilizer, "
+                    "irrigation, maintenance, and "
+                    "transport expenses."
+                ),
+                action_url="/expenses/new",
+            )
+        )
+
+    if (
+        total_coconuts > 0
+        and profit_per_coconut <= 0
+    ):
+        recommendations.append(
+            recommendation_item(
+                code="NON_PROFITABLE_UNIT",
+                category="Finance",
+                priority="high",
+                title="Profit per coconut is not positive",
+                message=(
+                    "Calculated profit per coconut is "
+                    f"₹{profit_per_coconut}."
+                ),
+                action=(
+                    "Review sale rates, deductions, "
+                    "harvest cost, and operating cost "
+                    "per coconut."
+                ),
+                action_url=(
+                    "/profitability/manage"
+                    f"?farm_id={farm.id}"
+                ),
+                metric={
+                    "profit_per_coconut": str(
+                        profit_per_coconut
+                    ),
+                },
+            )
+        )
+
+    recent_yield = [
+        int(
+            row["yield"][
+                "total_coconuts"
+            ]
+        )
+        for row in monthly[-3:]
+    ]
+
+    if (
+        len(recent_yield) == 3
+        and recent_yield[0] > 0
+        and recent_yield[1] < recent_yield[0]
+        and recent_yield[2] < recent_yield[1]
+    ):
+        decline = (
+            Decimal(
+                recent_yield[0]
+                - recent_yield[2]
+            )
+            / Decimal(recent_yield[0])
+            * Decimal("100")
+        ).quantize(Decimal("0.01"))
+
+        recommendations.append(
+            recommendation_item(
+                code="DECLINING_YIELD_TREND",
+                category="Yield",
+                priority="high",
+                title="Yield has declined for three periods",
+                message=(
+                    "Recorded monthly yield fell from "
+                    f"{recent_yield[0]} to "
+                    f"{recent_yield[2]} coconuts."
+                ),
+                action=(
+                    "Inspect water availability, soil "
+                    "nutrition, pest pressure, and "
+                    "tree health."
+                ),
+                action_url=(
+                    "/analytics/manage"
+                    f"?farm_id={farm.id}"
+                ),
+                metric={
+                    "decline_percentage": str(
+                        decline
+                    ),
+                    "previous_yield": (
+                        recent_yield[0]
+                    ),
+                    "latest_yield": (
+                        recent_yield[2]
+                    ),
+                },
+            )
+        )
+
+    if not recommendations:
+        recommendations.append(
+            recommendation_item(
+                code="NO_IMMEDIATE_RISK",
+                category="General",
+                priority="info",
+                title="No immediate risk detected",
+                message=(
+                    "The available farm records do not "
+                    "show a major operational or "
+                    "financial warning."
+                ),
+                action=(
+                    "Continue entering harvest, "
+                    "expense, sales, and payment data "
+                    "regularly."
+                ),
+                action_url="/dashboard",
+            )
+        )
+
+    recommendations.sort(
+        key=lambda item: (
+            int(item["priority_score"]),
+            item["category"],
+            item["title"],
+        ),
+        reverse=True,
+    )
+
+    priority_counts = {
+        priority: sum(
+            item["priority"] == priority
+            for item in recommendations
+        )
+        for priority in (
+            "critical",
+            "high",
+            "medium",
+            "low",
+            "info",
+        )
+    }
+
+    return {
+        "farm": {
+            "id": farm.id,
+            "name": farm.name,
+            "total_trees": total_trees,
+        },
+        "period": {
+            "date_from": date_from.isoformat(),
+            "date_to": date_to.isoformat(),
+        },
+        "summary": {
+            "recommendation_count": len(
+                recommendations
+            ),
+            "priority_counts": priority_counts,
+            "total_coconuts": total_coconuts,
+            "yield_per_tree": str(
+                yield_per_tree
+            ),
+            "damage_percentage": str(
+                damage_percentage
+            ),
+            "revenue": str(revenue),
+            "total_cost": str(total_cost),
+            "net_profit": str(net_profit),
+            "outstanding": str(outstanding),
+            "profitability_percentage": str(
+                profitability
+            ),
+            "profit_per_coconut": str(
+                profit_per_coconut
+            ),
+        },
+        "recommendations": recommendations,
+    }
+
+
+@app.get(
+    "/ai/recommendations",
+    response_class=JSONResponse,
+)
+def all_farm_recommendations(
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    resolved_from, resolved_to = (
+        analytics_resolve_period(
+            date_from=date_from,
+            date_to=date_to,
+        )
+    )
+
+    if farm_id is not None:
+        farms = [
+            require_owned_farm(
+                db=db,
+                farm_id=farm_id,
+                owner_id=user.id,
+            )
+        ]
+    else:
+        farms = db.scalars(
+            select(Farm)
+            .where(Farm.owner_id == user.id)
+            .order_by(func.lower(Farm.name))
+        ).all()
+
+    farm_results = [
+        farm_recommendation_engine(
+            farm=farm,
+            user=user,
+            db=db,
+            date_from=resolved_from,
+            date_to=resolved_to,
+        )
+        for farm in farms
+    ]
+
+    all_items = [
+        {
+            **item,
+            "farm_id": result["farm"]["id"],
+            "farm_name": result["farm"]["name"],
+        }
+        for result in farm_results
+        for item in result["recommendations"]
+    ]
+
+    all_items.sort(
+        key=lambda item: (
+            int(item["priority_score"]),
+            item["farm_name"],
+            item["title"],
+        ),
+        reverse=True,
+    )
+
+    return {
+        "period": {
+            "date_from": (
+                resolved_from.isoformat()
+            ),
+            "date_to": (
+                resolved_to.isoformat()
+            ),
+        },
+        "farm_count": len(farm_results),
+        "recommendation_count": len(
+            all_items
+        ),
+        "priority_counts": {
+            priority: sum(
+                item["priority"] == priority
+                for item in all_items
+            )
+            for priority in (
+                "critical",
+                "high",
+                "medium",
+                "low",
+                "info",
+            )
+        },
+        "recommendations": all_items,
+        "farms": farm_results,
+    }
+
+
+@app.get(
+    "/ai/farms/{farm_id}/recommendations",
+    response_class=JSONResponse,
+)
+def farm_recommendations(
+    farm_id: int,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    resolved_from, resolved_to = (
+        analytics_resolve_period(
+            date_from=date_from,
+            date_to=date_to,
+        )
+    )
+
+    farm = require_owned_farm(
+        db=db,
+        farm_id=farm_id,
+        owner_id=user.id,
+    )
+
+    return farm_recommendation_engine(
+        farm=farm,
+        user=user,
+        db=db,
+        date_from=resolved_from,
+        date_to=resolved_to,
+    )
+
+
+
+# PATCH-AI-001B: RECOMMENDATION CENTER UI
+
+
+@app.get(
+    "/ai/manage",
+    response_class=HTMLResponse,
+)
+def recommendation_management_page(
+    request: Request,
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    resolved_from, resolved_to = (
+        analytics_resolve_period(
+            date_from=date_from,
+            date_to=date_to,
+        )
+    )
+
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    if farm_id is not None:
+        selected_farm = require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+
+        analysed_farms = [selected_farm]
+    else:
+        analysed_farms = farms
+
+    farm_results = [
+        farm_recommendation_engine(
+            farm=farm,
+            user=user,
+            db=db,
+            date_from=resolved_from,
+            date_to=resolved_to,
+        )
+        for farm in analysed_farms
+    ]
+
+    all_recommendations = [
+        item
+        for result in farm_results
+        for item in result["recommendations"]
+    ]
+
+    priority_counts = {
+        priority: sum(
+            item["priority"] == priority
+            for item in all_recommendations
+        )
+        for priority in (
+            "critical",
+            "high",
+            "medium",
+            "low",
+            "info",
+        )
+    }
+
+    category_totals: dict[str, int] = {}
+
+    for item in all_recommendations:
+        category = str(
+            item.get("category") or "General"
+        )
+
+        category_totals[category] = (
+            category_totals.get(category, 0)
+            + 1
+        )
+
+    category_counts = sorted(
+        category_totals.items(),
+        key=lambda item: (
+            item[1],
+            item[0],
+        ),
+        reverse=True,
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="ai/recommendations.html",
+        context={
+            "current_user": user,
+            "farms": farms,
+            "farm_results": farm_results,
+            "farm_count": len(farm_results),
+            "recommendation_count": len(
+                all_recommendations
+            ),
+            "priority_counts": priority_counts,
+            "category_counts": category_counts,
+            "period": {
+                "date_from": (
+                    resolved_from.isoformat()
+                ),
+                "date_to": (
+                    resolved_to.isoformat()
+                ),
+            },
+            "filters": {
+                "farm_id": farm_id or "",
+                "date_from": (
+                    date_from.isoformat()
+                    if date_from
+                    else resolved_from.isoformat()
+                ),
+                "date_to": (
+                    date_to.isoformat()
+                    if date_to
+                    else resolved_to.isoformat()
+                ),
+            },
+        },
+    )
+
+
+
+# PATCH-WEATHER-001A: WEATHER DATA FOUNDATION
+
+
+MESSIS_WEATHER_PROVIDER = "Open-Meteo"
+
+MESSIS_WEATHER_PROVIDER_URL = (
+    "https://api.open-meteo.com/v1/forecast"
+)
+
+MESSIS_WEATHER_CODES = {
+    0: "Clear sky",
+    1: "Mainly clear",
+    2: "Partly cloudy",
+    3: "Overcast",
+    45: "Fog",
+    48: "Depositing rime fog",
+    51: "Light drizzle",
+    53: "Moderate drizzle",
+    55: "Dense drizzle",
+    56: "Light freezing drizzle",
+    57: "Dense freezing drizzle",
+    61: "Slight rain",
+    63: "Moderate rain",
+    65: "Heavy rain",
+    66: "Light freezing rain",
+    67: "Heavy freezing rain",
+    71: "Slight snowfall",
+    73: "Moderate snowfall",
+    75: "Heavy snowfall",
+    77: "Snow grains",
+    80: "Slight rain showers",
+    81: "Moderate rain showers",
+    82: "Violent rain showers",
+    85: "Slight snow showers",
+    86: "Heavy snow showers",
+    95: "Thunderstorm",
+    96: "Thunderstorm with slight hail",
+    99: "Thunderstorm with heavy hail",
+}
+
+
+def weather_decimal(
+    value: object,
+) -> Decimal:
+    if value is None:
+        return Decimal("0.00")
+
+    try:
+        return Decimal(str(value)).quantize(
+            Decimal("0.01")
+        )
+    except Exception:
+        return Decimal("0.00")
+
+
+def weather_code_description(
+    code: object,
+) -> str:
+    try:
+        parsed_code = int(code)
+    except (TypeError, ValueError):
+        return "Unknown"
+
+    return MESSIS_WEATHER_CODES.get(
+        parsed_code,
+        "Unknown",
+    )
+
+
+def validate_weather_coordinates(
+    latitude: float,
+    longitude: float,
+) -> None:
+    if not -90 <= latitude <= 90:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Latitude must be between "
+                "-90 and 90."
+            ),
+        )
+
+    if not -180 <= longitude <= 180:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Longitude must be between "
+                "-180 and 180."
+            ),
+        )
+
+
+def fetch_weather_forecast(
+    latitude: float,
+    longitude: float,
+    forecast_days: int = 7,
+) -> dict[str, object]:
+    validate_weather_coordinates(
+        latitude=latitude,
+        longitude=longitude,
+    )
+
+    if forecast_days < 1 or forecast_days > 16:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Forecast days must be between "
+                "1 and 16."
+            ),
+        )
+
+    parameters = {
+        "latitude": f"{latitude:.6f}",
+        "longitude": f"{longitude:.6f}",
+        "timezone": "auto",
+        "forecast_days": str(forecast_days),
+        "current": ",".join(
+            [
+                "temperature_2m",
+                "relative_humidity_2m",
+                "apparent_temperature",
+                "precipitation",
+                "rain",
+                "weather_code",
+                "cloud_cover",
+                "wind_speed_10m",
+                "wind_direction_10m",
+                "wind_gusts_10m",
+            ]
+        ),
+        "daily": ",".join(
+            [
+                "weather_code",
+                "temperature_2m_max",
+                "temperature_2m_min",
+                "apparent_temperature_max",
+                "apparent_temperature_min",
+                "precipitation_sum",
+                "rain_sum",
+                "precipitation_probability_max",
+                "wind_speed_10m_max",
+                "wind_gusts_10m_max",
+                "sunrise",
+                "sunset",
+                "et0_fao_evapotranspiration",
+            ]
+        ),
+    }
+
+    url = (
+        MESSIS_WEATHER_PROVIDER_URL
+        + "?"
+        + urlencode(parameters)
+    )
+
+    request = URLRequest(
+        url=url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": (
+                "Messis-AI/0.5 "
+                "(Smart Agriculture Management)"
+            ),
+        },
+        method="GET",
+    )
+
+    try:
+        with urlopen(
+            request,
+            timeout=12,
+        ) as response:
+            payload = json.loads(
+                response.read().decode("utf-8")
+            )
+    except HTTPError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Weather provider returned "
+                f"HTTP {exc.code}."
+            ),
+        ) from exc
+    except URLError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Weather provider is currently "
+                "unavailable."
+            ),
+        ) from exc
+    except TimeoutError as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="Weather provider timed out.",
+        ) from exc
+    except (
+        json.JSONDecodeError,
+        UnicodeDecodeError,
+    ) as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Weather provider returned an "
+                "invalid response."
+            ),
+        ) from exc
+
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Weather provider returned an "
+                "unexpected response."
+            ),
+        )
+
+    if payload.get("error"):
+        raise HTTPException(
+            status_code=502,
+            detail=str(
+                payload.get("reason")
+                or "Weather provider error."
+            ),
+        )
+
+    return payload
+
+
+def build_weather_advisories(
+    current: dict[str, object],
+    daily_rows: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    advisories: list[dict[str, object]] = []
+
+    current_temperature = weather_decimal(
+        current.get("temperature_2m")
+    )
+
+    current_wind = weather_decimal(
+        current.get("wind_speed_10m")
+    )
+
+    current_gust = weather_decimal(
+        current.get("wind_gusts_10m")
+    )
+
+    maximum_temperature = max(
+        (
+            weather_decimal(
+                row.get("temperature_max")
+            )
+            for row in daily_rows
+        ),
+        default=Decimal("0.00"),
+    )
+
+    maximum_rain_probability = max(
+        (
+            weather_decimal(
+                row.get(
+                    "precipitation_probability"
+                )
+            )
+            for row in daily_rows
+        ),
+        default=Decimal("0.00"),
+    )
+
+    forecast_rain = sum(
+        (
+            weather_decimal(
+                row.get("rain_sum")
+            )
+            for row in daily_rows
+        ),
+        Decimal("0.00"),
+    )
+
+    maximum_gust = max(
+        (
+            weather_decimal(
+                row.get("wind_gust_max")
+            )
+            for row in daily_rows
+        ),
+        default=Decimal("0.00"),
+    )
+
+    total_et0 = sum(
+        (
+            weather_decimal(
+                row.get("evapotranspiration")
+            )
+            for row in daily_rows
+        ),
+        Decimal("0.00"),
+    )
+
+    if (
+        current_temperature >= Decimal("36.00")
+        or maximum_temperature >= Decimal("38.00")
+    ):
+        advisories.append(
+            {
+                "code": "HEAT_STRESS",
+                "priority": "high",
+                "title": "Heat stress risk",
+                "message": (
+                    "High temperatures may increase "
+                    "moisture stress in coconut trees."
+                ),
+                "recommended_action": (
+                    "Check soil moisture and schedule "
+                    "irrigation during cooler hours."
+                ),
+                "metric": {
+                    "current_temperature": str(
+                        current_temperature
+                    ),
+                    "maximum_temperature": str(
+                        maximum_temperature
+                    ),
+                },
+            }
+        )
+
+    if (
+        maximum_rain_probability
+        >= Decimal("70.00")
+        or forecast_rain >= Decimal("20.00")
+    ):
+        advisories.append(
+            {
+                "code": "RAIN_EXPECTED",
+                "priority": "medium",
+                "title": "Rain is likely",
+                "message": (
+                    "Significant rainfall is possible "
+                    "during the forecast period."
+                ),
+                "recommended_action": (
+                    "Review irrigation plans and avoid "
+                    "unnecessary watering or spraying."
+                ),
+                "metric": {
+                    "rain_probability": str(
+                        maximum_rain_probability
+                    ),
+                    "forecast_rain_mm": str(
+                        forecast_rain
+                    ),
+                },
+            }
+        )
+
+    if (
+        current_wind >= Decimal("35.00")
+        or current_gust >= Decimal("45.00")
+        or maximum_gust >= Decimal("50.00")
+    ):
+        advisories.append(
+            {
+                "code": "STRONG_WIND",
+                "priority": "high",
+                "title": "Strong wind risk",
+                "message": (
+                    "Strong winds or gusts may affect "
+                    "harvest and climbing safety."
+                ),
+                "recommended_action": (
+                    "Avoid tree climbing during unsafe "
+                    "wind conditions and secure loose "
+                    "farm materials."
+                ),
+                "metric": {
+                    "current_wind_kmh": str(
+                        current_wind
+                    ),
+                    "current_gust_kmh": str(
+                        current_gust
+                    ),
+                    "maximum_gust_kmh": str(
+                        maximum_gust
+                    ),
+                },
+            }
+        )
+
+    if (
+        forecast_rain < Decimal("5.00")
+        and total_et0 >= Decimal("20.00")
+    ):
+        advisories.append(
+            {
+                "code": "IRRIGATION_ATTENTION",
+                "priority": "medium",
+                "title": "Irrigation may be required",
+                "message": (
+                    "Forecast rainfall is low while "
+                    "evapotranspiration demand is high."
+                ),
+                "recommended_action": (
+                    "Inspect soil moisture and plan "
+                    "irrigation based on actual field "
+                    "conditions."
+                ),
+                "metric": {
+                    "forecast_rain_mm": str(
+                        forecast_rain
+                    ),
+                    "forecast_et0_mm": str(
+                        total_et0
+                    ),
+                },
+            }
+        )
+
+    if not advisories:
+        advisories.append(
+            {
+                "code": "NO_WEATHER_ALERT",
+                "priority": "info",
+                "title": "No major weather alert",
+                "message": (
+                    "The current forecast does not "
+                    "show a major heat, rain, or wind "
+                    "warning."
+                ),
+                "recommended_action": (
+                    "Continue checking local field "
+                    "conditions before farm activities."
+                ),
+                "metric": None,
+            }
+        )
+
+    return advisories
+
+
+def normalize_weather_forecast(
+    payload: dict[str, object],
+) -> dict[str, object]:
+    current = dict(
+        payload.get("current") or {}
+    )
+
+    daily = dict(
+        payload.get("daily") or {}
+    )
+
+    dates = list(daily.get("time") or [])
+
+    def daily_value(
+        name: str,
+        index: int,
+    ) -> object:
+        values = list(
+            daily.get(name) or []
+        )
+
+        if index >= len(values):
+            return None
+
+        return values[index]
+
+    daily_rows = []
+
+    for index, forecast_date in enumerate(dates):
+        code = daily_value(
+            "weather_code",
+            index,
+        )
+
+        daily_rows.append(
+            {
+                "date": forecast_date,
+                "weather_code": code,
+                "condition": (
+                    weather_code_description(code)
+                ),
+                "temperature_max": daily_value(
+                    "temperature_2m_max",
+                    index,
+                ),
+                "temperature_min": daily_value(
+                    "temperature_2m_min",
+                    index,
+                ),
+                "apparent_temperature_max": (
+                    daily_value(
+                        "apparent_temperature_max",
+                        index,
+                    )
+                ),
+                "apparent_temperature_min": (
+                    daily_value(
+                        "apparent_temperature_min",
+                        index,
+                    )
+                ),
+                "precipitation_sum": daily_value(
+                    "precipitation_sum",
+                    index,
+                ),
+                "rain_sum": daily_value(
+                    "rain_sum",
+                    index,
+                ),
+                "precipitation_probability": (
+                    daily_value(
+                        (
+                            "precipitation_"
+                            "probability_max"
+                        ),
+                        index,
+                    )
+                ),
+                "wind_speed_max": daily_value(
+                    "wind_speed_10m_max",
+                    index,
+                ),
+                "wind_gust_max": daily_value(
+                    "wind_gusts_10m_max",
+                    index,
+                ),
+                "sunrise": daily_value(
+                    "sunrise",
+                    index,
+                ),
+                "sunset": daily_value(
+                    "sunset",
+                    index,
+                ),
+                "evapotranspiration": (
+                    daily_value(
+                        (
+                            "et0_fao_"
+                            "evapotranspiration"
+                        ),
+                        index,
+                    )
+                ),
+            }
+        )
+
+    current_code = current.get(
+        "weather_code"
+    )
+
+    current_summary = {
+        "time": current.get("time"),
+        "temperature": current.get(
+            "temperature_2m"
+        ),
+        "relative_humidity": current.get(
+            "relative_humidity_2m"
+        ),
+        "apparent_temperature": current.get(
+            "apparent_temperature"
+        ),
+        "precipitation": current.get(
+            "precipitation"
+        ),
+        "rain": current.get("rain"),
+        "weather_code": current_code,
+        "condition": weather_code_description(
+            current_code
+        ),
+        "cloud_cover": current.get(
+            "cloud_cover"
+        ),
+        "wind_speed": current.get(
+            "wind_speed_10m"
+        ),
+        "wind_direction": current.get(
+            "wind_direction_10m"
+        ),
+        "wind_gust": current.get(
+            "wind_gusts_10m"
+        ),
+    }
+
+    return {
+        "provider": MESSIS_WEATHER_PROVIDER,
+        "provider_attribution": (
+            "Weather data by Open-Meteo.com"
+        ),
+        "latitude": payload.get("latitude"),
+        "longitude": payload.get("longitude"),
+        "elevation": payload.get("elevation"),
+        "timezone": payload.get("timezone"),
+        "timezone_abbreviation": payload.get(
+            "timezone_abbreviation"
+        ),
+        "current": current_summary,
+        "daily": daily_rows,
+        "advisories": build_weather_advisories(
+            current=current_summary,
+            daily_rows=daily_rows,
+        ),
+        "generated_at": datetime.now(
+            timezone.utc
+        ).isoformat(),
+    }
+
+
+@app.get(
+    "/weather/forecast",
+    response_class=JSONResponse,
+)
+def weather_forecast(
+    latitude: float,
+    longitude: float,
+    forecast_days: int = 7,
+    user: User = Depends(current_user),
+):
+    payload = fetch_weather_forecast(
+        latitude=latitude,
+        longitude=longitude,
+        forecast_days=forecast_days,
+    )
+
+    normalized = normalize_weather_forecast(
+        payload
+    )
+
+    return {
+        "requested_by_user_id": user.id,
+        **normalized,
+    }
+
+
+@app.get(
+    "/weather/provider",
+    response_class=JSONResponse,
+)
+def weather_provider_information(
+    user: User = Depends(current_user),
+):
+    return {
+        "provider": MESSIS_WEATHER_PROVIDER,
+        "forecast_endpoint": (
+            "/weather/forecast"
+        ),
+        "requires_api_key": False,
+        "maximum_forecast_days": 16,
+        "coordinates_required": True,
+        "units": {
+            "temperature": "Celsius",
+            "wind_speed": "km/h",
+            "precipitation": "mm",
+            "evapotranspiration": "mm",
+        },
+        "attribution": (
+            "Weather data by Open-Meteo.com"
+        ),
+        "user_id": user.id,
+    }
+
+
+
+# PATCH-WEATHER-001B: FARM LOCATION AND WEATHER UI
+
+
+def get_farm_weather_location(
+    db: Session,
+    owner_id: int,
+    farm_id: int,
+) -> dict[str, object] | None:
+    row = db.execute(
+        text(
+            """
+            SELECT
+                id,
+                owner_id,
+                farm_id,
+                location_name,
+                latitude,
+                longitude,
+                created_at,
+                updated_at
+            FROM farm_weather_locations
+            WHERE owner_id = :owner_id
+              AND farm_id = :farm_id
+            """
+        ),
+        {
+            "owner_id": owner_id,
+            "farm_id": farm_id,
+        },
+    ).mappings().first()
+
+    if row is None:
+        return None
+
+    return dict(row)
+
+
+@app.get(
+    "/weather/manage",
+    response_class=HTMLResponse,
+)
+def weather_management_page(
+    request: Request,
+    farm_id: int | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    selected_farm = None
+    location = None
+
+    if farm_id is not None:
+        selected_farm = require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+
+        location = get_farm_weather_location(
+            db=db,
+            owner_id=user.id,
+            farm_id=selected_farm.id,
+        )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="weather/index.html",
+        context={
+            "current_user": user,
+            "farms": farms,
+            "selected_farm": selected_farm,
+            "location": location,
+        },
+    )
+
+
+@app.post(
+    "/weather/location",
+)
+def save_farm_weather_location(
+    request: Request,
+    farm_id: int = Form(...),
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    location_name: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farm = require_owned_farm(
+        db=db,
+        farm_id=farm_id,
+        owner_id=user.id,
+    )
+
+    validate_weather_coordinates(
+        latitude=latitude,
+        longitude=longitude,
+    )
+
+    normalized_name = (
+        location_name.strip()
+    )
+
+    if len(normalized_name) > 180:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Location name cannot exceed "
+                "180 characters."
+            ),
+        )
+
+    try:
+        db.execute(
+            text(
+                """
+                INSERT INTO farm_weather_locations (
+                    owner_id,
+                    farm_id,
+                    location_name,
+                    latitude,
+                    longitude,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    :owner_id,
+                    :farm_id,
+                    :location_name,
+                    :latitude,
+                    :longitude,
+                    NOW(),
+                    NOW()
+                )
+                ON CONFLICT (owner_id, farm_id)
+                DO UPDATE SET
+                    location_name =
+                        EXCLUDED.location_name,
+                    latitude =
+                        EXCLUDED.latitude,
+                    longitude =
+                        EXCLUDED.longitude,
+                    updated_at = NOW()
+                """
+            ),
+            {
+                "owner_id": user.id,
+                "farm_id": farm.id,
+                "location_name": (
+                    normalized_name or None
+                ),
+                "latitude": latitude,
+                "longitude": longitude,
+            },
+        )
+
+        audit(
+            db,
+            request,
+            "farm_weather_location_saved",
+            user.id,
+            (
+                f"Farm ID: {farm.id}; "
+                f"Latitude: {latitude}; "
+                f"Longitude: {longitude}"
+            ),
+        )
+
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Unable to save farm "
+                "weather location."
+            ),
+        )
+
+    return RedirectResponse(
+        url=(
+            "/weather/manage"
+            f"?farm_id={farm.id}"
+        ),
+        status_code=303,
+    )
+
+
+@app.get(
+    "/weather/farms/{farm_id}/location",
+    response_class=JSONResponse,
+)
+def farm_weather_location_api(
+    farm_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    farm = require_owned_farm(
+        db=db,
+        farm_id=farm_id,
+        owner_id=user.id,
+    )
+
+    location = get_farm_weather_location(
+        db=db,
+        owner_id=user.id,
+        farm_id=farm.id,
+    )
+
+    if location is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Weather location is not configured "
+                "for this farm."
+            ),
+        )
+
+    return {
+        "farm": {
+            "id": farm.id,
+            "name": farm.name,
+        },
+        "location": {
+            "location_name": (
+                location["location_name"]
+            ),
+            "latitude": str(
+                location["latitude"]
+            ),
+            "longitude": str(
+                location["longitude"]
+            ),
+            "updated_at": (
+                location["updated_at"]
+            ),
+        },
+    }
+
+
+
+# PATCH-WEATHER-001C: DASHBOARD WEATHER SUMMARY
+
+
+@app.get(
+    "/weather/dashboard-summary",
+    response_class=JSONResponse,
+)
+def dashboard_weather_summary(
+    farm_id: int | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    selected_farm = None
+    location = None
+
+    if farm_id is not None:
+        selected_farm = require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+
+        location = get_farm_weather_location(
+            db=db,
+            owner_id=user.id,
+            farm_id=selected_farm.id,
+        )
+    else:
+        row = db.execute(
+            text(
+                """
+                SELECT
+                    f.id AS farm_id,
+                    f.name AS farm_name,
+                    w.location_name,
+                    w.latitude,
+                    w.longitude
+                FROM farms AS f
+                INNER JOIN farm_weather_locations AS w
+                    ON w.farm_id = f.id
+                   AND w.owner_id = f.owner_id
+                WHERE f.owner_id = :owner_id
+                ORDER BY
+                    LOWER(f.name),
+                    f.id
+                LIMIT 1
+                """
+            ),
+            {
+                "owner_id": user.id,
+            },
+        ).mappings().first()
+
+        if row is not None:
+            selected_farm = require_owned_farm(
+                db=db,
+                farm_id=int(row["farm_id"]),
+                owner_id=user.id,
+            )
+
+            location = {
+                "farm_id": row["farm_id"],
+                "location_name": (
+                    row["location_name"]
+                ),
+                "latitude": row["latitude"],
+                "longitude": row["longitude"],
+            }
+
+    if selected_farm is None:
+        return {
+            "configured": False,
+            "reason": "NO_FARM",
+            "message": (
+                "Create a farm and configure its "
+                "weather location."
+            ),
+            "weather_url": "/weather/manage",
+        }
+
+    if location is None:
+        return {
+            "configured": False,
+            "reason": "LOCATION_NOT_CONFIGURED",
+            "farm": {
+                "id": selected_farm.id,
+                "name": selected_farm.name,
+            },
+            "message": (
+                "Weather location is not configured "
+                "for this farm."
+            ),
+            "weather_url": (
+                "/weather/manage"
+                f"?farm_id={selected_farm.id}"
+            ),
+        }
+
+    latitude = float(location["latitude"])
+    longitude = float(location["longitude"])
+
+    payload = fetch_weather_forecast(
+        latitude=latitude,
+        longitude=longitude,
+        forecast_days=3,
+    )
+
+    weather = normalize_weather_forecast(
+        payload
+    )
+
+    advisories = list(
+        weather.get("advisories") or []
+    )
+
+    priority_order = {
+        "critical": 5,
+        "high": 4,
+        "medium": 3,
+        "low": 2,
+        "info": 1,
+    }
+
+    advisories.sort(
+        key=lambda item: priority_order.get(
+            str(item.get("priority") or "info"),
+            0,
+        ),
+        reverse=True,
+    )
+
+    return {
+        "configured": True,
+        "farm": {
+            "id": selected_farm.id,
+            "name": selected_farm.name,
+        },
+        "location": {
+            "name": (
+                location.get("location_name")
+                if isinstance(location, dict)
+                else None
+            ),
+            "latitude": str(
+                location["latitude"]
+            ),
+            "longitude": str(
+                location["longitude"]
+            ),
+        },
+        "current": weather["current"],
+        "forecast": weather["daily"][:3],
+        "top_advisory": (
+            advisories[0]
+            if advisories
+            else None
+        ),
+        "weather_url": (
+            "/weather/manage"
+            f"?farm_id={selected_farm.id}"
+        ),
+        "provider": weather["provider"],
+        "provider_attribution": weather[
+            "provider_attribution"
+        ],
+        "generated_at": weather[
+            "generated_at"
+        ],
+    }
+
+
+
+# PATCH-NOTIFY-001A: ALERT AND NOTIFICATION FOUNDATION
+
+
+MESSIS_NOTIFICATION_PRIORITY_ORDER = {
+    "critical": 5,
+    "high": 4,
+    "medium": 3,
+    "low": 2,
+    "info": 1,
+}
+
+
+def notification_json_metadata(
+    value: object,
+) -> str:
+    try:
+        return json.dumps(
+            value or {},
+            ensure_ascii=False,
+            default=str,
+        )
+    except (TypeError, ValueError):
+        return "{}"
+
+
+def notification_row_to_dict(
+    row: object,
+) -> dict[str, object]:
+    item = dict(row)
+
+    metadata = item.get("metadata")
+
+    if isinstance(metadata, str):
+        try:
+            metadata = json.loads(metadata)
+        except json.JSONDecodeError:
+            metadata = {}
+
+    item["metadata"] = metadata or {}
+
+    for field in (
+        "created_at",
+        "updated_at",
+        "read_at",
+        "dismissed_at",
+        "expires_at",
+    ):
+        value = item.get(field)
+
+        if value is not None:
+            item[field] = value.isoformat()
+
+    return item
+
+
+def upsert_notification(
+    db: Session,
+    owner_id: int,
+    farm_id: int | None,
+    notification_type: str,
+    source_code: str,
+    deduplication_key: str,
+    priority: str,
+    category: str,
+    title: str,
+    message: str,
+    recommended_action: str | None,
+    action_url: str | None,
+    metadata: dict[str, object] | None = None,
+    expires_at: datetime | None = None,
+) -> None:
+    normalized_priority = (
+        priority
+        if priority
+        in MESSIS_NOTIFICATION_PRIORITY_ORDER
+        else "info"
+    )
+
+    db.execute(
+        text(
+            """
+            INSERT INTO notifications (
+                owner_id,
+                farm_id,
+                notification_type,
+                source_code,
+                deduplication_key,
+                priority,
+                category,
+                title,
+                message,
+                recommended_action,
+                action_url,
+                metadata,
+                is_read,
+                is_dismissed,
+                created_at,
+                updated_at,
+                expires_at
+            )
+            VALUES (
+                :owner_id,
+                :farm_id,
+                :notification_type,
+                :source_code,
+                :deduplication_key,
+                :priority,
+                :category,
+                :title,
+                :message,
+                :recommended_action,
+                :action_url,
+                CAST(:metadata AS JSONB),
+                FALSE,
+                FALSE,
+                NOW(),
+                NOW(),
+                :expires_at
+            )
+            ON CONFLICT (
+                owner_id,
+                deduplication_key
+            )
+            DO UPDATE SET
+                farm_id = EXCLUDED.farm_id,
+                notification_type =
+                    EXCLUDED.notification_type,
+                source_code =
+                    EXCLUDED.source_code,
+                priority = EXCLUDED.priority,
+                category = EXCLUDED.category,
+                title = EXCLUDED.title,
+                message = EXCLUDED.message,
+                recommended_action =
+                    EXCLUDED.recommended_action,
+                action_url =
+                    EXCLUDED.action_url,
+                metadata =
+                    EXCLUDED.metadata,
+                is_dismissed = FALSE,
+                dismissed_at = NULL,
+                updated_at = NOW(),
+                expires_at =
+                    EXCLUDED.expires_at
+            """
+        ),
+        {
+            "owner_id": owner_id,
+            "farm_id": farm_id,
+            "notification_type": (
+                notification_type
+            ),
+            "source_code": source_code,
+            "deduplication_key": (
+                deduplication_key
+            ),
+            "priority": normalized_priority,
+            "category": category,
+            "title": title,
+            "message": message,
+            "recommended_action": (
+                recommended_action
+            ),
+            "action_url": action_url,
+            "metadata": (
+                notification_json_metadata(
+                    metadata
+                )
+            ),
+            "expires_at": expires_at,
+        },
+    )
+
+
+def generate_owner_notifications(
+    user: User,
+    db: Session,
+) -> dict[str, int]:
+    today = date.today()
+
+    period_from, period_to = (
+        analytics_default_period()
+    )
+
+    generated = 0
+    ai_generated = 0
+    harvest_generated = 0
+    weather_generated = 0
+    payment_generated = 0
+
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    for farm in farms:
+        recommendation_result = (
+            farm_recommendation_engine(
+                farm=farm,
+                user=user,
+                db=db,
+                date_from=period_from,
+                date_to=period_to,
+            )
+        )
+
+        for item in recommendation_result[
+            "recommendations"
+        ]:
+            priority = str(
+                item.get("priority") or "info"
+            )
+
+            if priority not in {
+                "critical",
+                "high",
+            }:
+                continue
+
+            source_code = str(
+                item.get("code")
+                or "AI_RECOMMENDATION"
+            )
+
+            deduplication_key = (
+                f"ai:{farm.id}:{source_code}"
+            )
+
+            upsert_notification(
+                db=db,
+                owner_id=user.id,
+                farm_id=farm.id,
+                notification_type=(
+                    "ai_recommendation"
+                ),
+                source_code=source_code,
+                deduplication_key=(
+                    deduplication_key
+                ),
+                priority=priority,
+                category=str(
+                    item.get("category")
+                    or "General"
+                ),
+                title=str(
+                    item.get("title")
+                    or "Farm recommendation"
+                ),
+                message=str(
+                    item.get("message")
+                    or ""
+                ),
+                recommended_action=str(
+                    item.get(
+                        "recommended_action"
+                    )
+                    or ""
+                ),
+                action_url=(
+                    item.get("action_url")
+                ),
+                metadata={
+                    "farm_name": farm.name,
+                    "metric": (
+                        item.get("metric")
+                    ),
+                    "period_from": (
+                        period_from.isoformat()
+                    ),
+                    "period_to": (
+                        period_to.isoformat()
+                    ),
+                },
+            )
+
+            generated += 1
+            ai_generated += 1
+
+        cycles = db.scalars(
+            select(HarvestCycle)
+            .where(
+                HarvestCycle.owner_id
+                == user.id,
+                HarvestCycle.farm_id
+                == farm.id,
+            )
+            .order_by(
+                HarvestCycle
+                .planned_harvest_date
+                .asc()
+            )
+        ).all()
+
+        for cycle in cycles:
+            if cycle.status in {
+                "Completed",
+                "Cancelled",
+            }:
+                continue
+
+            current_status = (
+                harvest_cycle_status(
+                    cycle
+                    .planned_harvest_date,
+                    cycle.minimum_due_date,
+                    cycle.maximum_due_date,
+                    today,
+                )
+            )
+
+            if current_status not in {
+                "Due Soon",
+                "Due",
+                "Overdue",
+            }:
+                continue
+
+            priority = (
+                "critical"
+                if current_status
+                == "Overdue"
+                else "high"
+            )
+
+            source_code = (
+                "HARVEST_OVERDUE"
+                if current_status
+                == "Overdue"
+                else "HARVEST_DUE"
+            )
+
+            upsert_notification(
+                db=db,
+                owner_id=user.id,
+                farm_id=farm.id,
+                notification_type=(
+                    "harvest"
+                ),
+                source_code=source_code,
+                deduplication_key=(
+                    f"harvest:{cycle.id}:"
+                    f"{current_status}"
+                ),
+                priority=priority,
+                category="Harvest",
+                title=(
+                    f"{farm.name}: "
+                    f"{current_status}"
+                ),
+                message=(
+                    "Planned harvest date: "
+                    f"{cycle.planned_harvest_date}"
+                ),
+                recommended_action=(
+                    "Review the harvest cycle and "
+                    "record or reschedule the "
+                    "harvest."
+                ),
+                action_url="/harvests/manage",
+                metadata={
+                    "farm_name": farm.name,
+                    "harvest_cycle_id": (
+                        cycle.id
+                    ),
+                    "status": current_status,
+                    "planned_date": (
+                        cycle
+                        .planned_harvest_date
+                        .isoformat()
+                    ),
+                },
+            )
+
+            generated += 1
+            harvest_generated += 1
+
+        sales = db.scalars(
+            select(Sale).where(
+                Sale.owner_id == user.id,
+                Sale.farm_id == farm.id,
+                Sale.balance_amount > 0,
+            )
+        ).all()
+
+        outstanding = sum(
+            (
+                Decimal(
+                    str(
+                        sale.balance_amount
+                        or 0
+                    )
+                )
+                for sale in sales
+            ),
+            Decimal("0.00"),
+        )
+
+        if outstanding > 0:
+            priority = (
+                "high"
+                if outstanding
+                >= Decimal("10000.00")
+                else "medium"
+            )
+
+            upsert_notification(
+                db=db,
+                owner_id=user.id,
+                farm_id=farm.id,
+                notification_type="payment",
+                source_code=(
+                    "OUTSTANDING_PAYMENT"
+                ),
+                deduplication_key=(
+                    f"payment:{farm.id}:"
+                    "outstanding"
+                ),
+                priority=priority,
+                category="Sales",
+                title=(
+                    f"{farm.name}: "
+                    "Payment collection pending"
+                ),
+                message=(
+                    f"₹{outstanding.quantize(Decimal('0.01'))} "
+                    "remains outstanding."
+                ),
+                recommended_action=(
+                    "Follow up with buyers and "
+                    "record received payments."
+                ),
+                action_url="/sales/manage",
+                metadata={
+                    "farm_name": farm.name,
+                    "outstanding": str(
+                        outstanding.quantize(
+                            Decimal("0.01")
+                        )
+                    ),
+                    "sale_count": len(sales),
+                },
+            )
+
+            generated += 1
+            payment_generated += 1
+
+        location = get_farm_weather_location(
+            db=db,
+            owner_id=user.id,
+            farm_id=farm.id,
+        )
+
+        if location is None:
+            continue
+
+        try:
+            payload = fetch_weather_forecast(
+                latitude=float(
+                    location["latitude"]
+                ),
+                longitude=float(
+                    location["longitude"]
+                ),
+                forecast_days=3,
+            )
+
+            weather = (
+                normalize_weather_forecast(
+                    payload
+                )
+            )
+
+            for advisory in weather.get(
+                "advisories",
+                [],
+            ):
+                priority = str(
+                    advisory.get(
+                        "priority"
+                    )
+                    or "info"
+                )
+
+                if priority not in {
+                    "critical",
+                    "high",
+                    "medium",
+                }:
+                    continue
+
+                source_code = str(
+                    advisory.get("code")
+                    or "WEATHER_ALERT"
+                )
+
+                upsert_notification(
+                    db=db,
+                    owner_id=user.id,
+                    farm_id=farm.id,
+                    notification_type=(
+                        "weather"
+                    ),
+                    source_code=source_code,
+                    deduplication_key=(
+                        f"weather:{farm.id}:"
+                        f"{source_code}:"
+                        f"{today.isoformat()}"
+                    ),
+                    priority=priority,
+                    category="Weather",
+                    title=(
+                        f"{farm.name}: "
+                        f"{advisory.get('title')}"
+                    ),
+                    message=str(
+                        advisory.get(
+                            "message"
+                        )
+                        or ""
+                    ),
+                    recommended_action=str(
+                        advisory.get(
+                            "recommended_action"
+                        )
+                        or ""
+                    ),
+                    action_url=(
+                        "/weather/manage"
+                        f"?farm_id={farm.id}"
+                    ),
+                    metadata={
+                        "farm_name": (
+                            farm.name
+                        ),
+                        "metric": advisory.get(
+                            "metric"
+                        ),
+                        "forecast_date": (
+                            today.isoformat()
+                        ),
+                    },
+                    expires_at=(
+                        datetime.now(
+                            timezone.utc
+                        )
+                        + timedelta(days=2)
+                    ),
+                )
+
+                generated += 1
+                weather_generated += 1
+        except HTTPException:
+            pass
+
+    db.execute(
+        text(
+            """
+            DELETE FROM notifications
+            WHERE owner_id = :owner_id
+              AND is_dismissed = TRUE
+              AND dismissed_at
+                  < NOW() - INTERVAL '90 days'
+            """
+        ),
+        {
+            "owner_id": user.id,
+        },
+    )
+
+    db.execute(
+        text(
+            """
+            UPDATE notifications
+            SET
+                is_dismissed = TRUE,
+                dismissed_at =
+                    COALESCE(
+                        dismissed_at,
+                        NOW()
+                    ),
+                updated_at = NOW()
+            WHERE owner_id = :owner_id
+              AND is_dismissed = FALSE
+              AND expires_at IS NOT NULL
+              AND expires_at < NOW()
+            """
+        ),
+        {
+            "owner_id": user.id,
+        },
+    )
+
+    db.commit()
+
+    return {
+        "generated": generated,
+        "ai": ai_generated,
+        "harvest": harvest_generated,
+        "weather": weather_generated,
+        "payment": payment_generated,
+    }
+
+
+@app.post(
+    "/notifications/refresh",
+    response_class=JSONResponse,
+)
+def refresh_notifications(
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    result = generate_owner_notifications(
+        user=user,
+        db=db,
+    )
+
+    return {
+        "status": "ok",
+        **result,
+    }
+
+
+@app.get(
+    "/notifications",
+    response_class=JSONResponse,
+)
+def list_notifications(
+    unread_only: bool = False,
+    include_dismissed: bool = False,
+    limit: int = 50,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    safe_limit = max(
+        1,
+        min(limit, 200),
+    )
+
+    conditions = [
+        "owner_id = :owner_id",
+    ]
+
+    if unread_only:
+        conditions.append(
+            "is_read = FALSE"
+        )
+
+    if not include_dismissed:
+        conditions.append(
+            "is_dismissed = FALSE"
+        )
+
+    rows = db.execute(
+        text(
+            f"""
+            SELECT
+                id,
+                owner_id,
+                farm_id,
+                notification_type,
+                source_code,
+                priority,
+                category,
+                title,
+                message,
+                recommended_action,
+                action_url,
+                metadata,
+                is_read,
+                is_dismissed,
+                read_at,
+                dismissed_at,
+                created_at,
+                updated_at,
+                expires_at
+            FROM notifications
+            WHERE {' AND '.join(conditions)}
+            ORDER BY
+                CASE priority
+                    WHEN 'critical' THEN 5
+                    WHEN 'high' THEN 4
+                    WHEN 'medium' THEN 3
+                    WHEN 'low' THEN 2
+                    ELSE 1
+                END DESC,
+                created_at DESC
+            LIMIT :limit
+            """
+        ),
+        {
+            "owner_id": user.id,
+            "limit": safe_limit,
+        },
+    ).mappings().all()
+
+    return {
+        "count": len(rows),
+        "items": [
+            notification_row_to_dict(row)
+            for row in rows
+        ],
+    }
+
+
+@app.get(
+    "/notifications/summary",
+    response_class=JSONResponse,
+)
+def notification_summary(
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    row = db.execute(
+        text(
+            """
+            SELECT
+                COUNT(*) FILTER (
+                    WHERE is_dismissed = FALSE
+                ) AS active_count,
+                COUNT(*) FILTER (
+                    WHERE is_dismissed = FALSE
+                      AND is_read = FALSE
+                ) AS unread_count,
+                COUNT(*) FILTER (
+                    WHERE is_dismissed = FALSE
+                      AND is_read = FALSE
+                      AND priority = 'critical'
+                ) AS critical_unread,
+                COUNT(*) FILTER (
+                    WHERE is_dismissed = FALSE
+                      AND is_read = FALSE
+                      AND priority = 'high'
+                ) AS high_unread,
+                COUNT(*) FILTER (
+                    WHERE is_dismissed = FALSE
+                      AND is_read = FALSE
+                      AND priority = 'medium'
+                ) AS medium_unread
+            FROM notifications
+            WHERE owner_id = :owner_id
+            """
+        ),
+        {
+            "owner_id": user.id,
+        },
+    ).mappings().one()
+
+    return {
+        key: int(value or 0)
+        for key, value in row.items()
+    }
+
+
+@app.post(
+    "/notifications/{notification_id}/read",
+    response_class=JSONResponse,
+)
+def mark_notification_read(
+    notification_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    result = db.execute(
+        text(
+            """
+            UPDATE notifications
+            SET
+                is_read = TRUE,
+                read_at = COALESCE(
+                    read_at,
+                    NOW()
+                ),
+                updated_at = NOW()
+            WHERE id = :notification_id
+              AND owner_id = :owner_id
+            """
+        ),
+        {
+            "notification_id": (
+                notification_id
+            ),
+            "owner_id": user.id,
+        },
+    )
+
+    if result.rowcount == 0:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=404,
+            detail="Notification not found.",
+        )
+
+    db.commit()
+
+    return {
+        "status": "ok",
+        "notification_id": notification_id,
+        "is_read": True,
+    }
+
+
+@app.post(
+    "/notifications/read-all",
+    response_class=JSONResponse,
+)
+def mark_all_notifications_read(
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    result = db.execute(
+        text(
+            """
+            UPDATE notifications
+            SET
+                is_read = TRUE,
+                read_at = COALESCE(
+                    read_at,
+                    NOW()
+                ),
+                updated_at = NOW()
+            WHERE owner_id = :owner_id
+              AND is_dismissed = FALSE
+              AND is_read = FALSE
+            """
+        ),
+        {
+            "owner_id": user.id,
+        },
+    )
+
+    db.commit()
+
+    return {
+        "status": "ok",
+        "updated_count": (
+            result.rowcount or 0
+        ),
+    }
+
+
+@app.post(
+    "/notifications/{notification_id}/dismiss",
+    response_class=JSONResponse,
+)
+def dismiss_notification(
+    notification_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    result = db.execute(
+        text(
+            """
+            UPDATE notifications
+            SET
+                is_dismissed = TRUE,
+                dismissed_at = NOW(),
+                updated_at = NOW()
+            WHERE id = :notification_id
+              AND owner_id = :owner_id
+            """
+        ),
+        {
+            "notification_id": (
+                notification_id
+            ),
+            "owner_id": user.id,
+        },
+    )
+
+    if result.rowcount == 0:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=404,
+            detail="Notification not found.",
+        )
+
+    db.commit()
+
+    return {
+        "status": "ok",
+        "notification_id": notification_id,
+        "is_dismissed": True,
+    }
+
+
+
+# PATCH-NOTIFY-001B: NOTIFICATION CENTER UI
+
+
+@app.get(
+    "/notifications/manage",
+    response_class=HTMLResponse,
+)
+def notification_management_page(
+    request: Request,
+    user: User = Depends(current_user),
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="notifications/index.html",
+        context={
+            "current_user": user,
+        },
+    )
+
+
+
+# PATCH-PWA-001A: MOBILE INSTALLABLE APP FOUNDATION
+
+
+@app.get(
+    "/service-worker.js",
+    include_in_schema=False,
+)
+def messis_service_worker():
+    service_worker_path = (
+        Path(__file__).resolve().parent
+        / "static"
+        / "pwa"
+        / "service-worker.js"
+    )
+
+    if not service_worker_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Service worker is missing.",
+        )
+
+    return HTMLResponse(
+        content=service_worker_path.read_text(
+            encoding="utf-8"
+        ),
+        media_type=(
+            "application/javascript"
+        ),
+        headers={
+            "Service-Worker-Allowed": "/",
+            "Cache-Control": (
+                "no-cache, no-store, "
+                "must-revalidate"
+            ),
+        },
+    )
+
+
+
+# PATCH-PWA-001C: MOBILE QUICK ENTRY AND CAMERA CAPTURE
+
+
+MESSIS_MOBILE_CAPTURE_ROOT = (
+    Path(__file__).resolve().parent
+    / "uploads"
+    / "mobile-captures"
+)
+
+MESSIS_MOBILE_CAPTURE_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+}
+
+MESSIS_MOBILE_CAPTURE_MAX_BYTES = (
+    5 * 1024 * 1024
+)
+
+
+def mobile_capture_owned_expense(
+    db: Session,
+    owner_id: int,
+    expense_id: int,
+) -> dict[str, object] | None:
+    row = db.execute(
+        text(
+            """
+            SELECT
+                id,
+                owner_id,
+                expense_date,
+                amount,
+                description
+            FROM expenses
+            WHERE id = :expense_id
+              AND owner_id = :owner_id
+            """
+        ),
+        {
+            "expense_id": expense_id,
+            "owner_id": owner_id,
+        },
+    ).mappings().first()
+
+    return dict(row) if row else None
+
+
+def mobile_capture_recent_expenses(
+    db: Session,
+    owner_id: int,
+) -> list[dict[str, object]]:
+    rows = db.execute(
+        text(
+            """
+            SELECT
+                id,
+                expense_date,
+                amount,
+                description
+            FROM expenses
+            WHERE owner_id = :owner_id
+            ORDER BY
+                expense_date DESC,
+                id DESC
+            LIMIT 25
+            """
+        ),
+        {
+            "owner_id": owner_id,
+        },
+    ).mappings().all()
+
+    return [
+        dict(row)
+        for row in rows
+    ]
+
+
+def mobile_capture_recent_items(
+    db: Session,
+    owner_id: int,
+) -> list[dict[str, object]]:
+    rows = db.execute(
+        text(
+            """
+            SELECT
+                id,
+                expense_id,
+                original_filename,
+                stored_filename,
+                content_type,
+                file_size,
+                note,
+                created_at
+            FROM mobile_captures
+            WHERE owner_id = :owner_id
+            ORDER BY
+                created_at DESC,
+                id DESC
+            LIMIT 15
+            """
+        ),
+        {
+            "owner_id": owner_id,
+        },
+    ).mappings().all()
+
+    return [
+        dict(row)
+        for row in rows
+    ]
+
+
+@app.get(
+    "/mobile/quick-entry",
+    response_class=HTMLResponse,
+)
+def mobile_quick_entry_page(
+    request: Request,
+    saved: bool = False,
+    error: str | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="mobile/quick-entry.html",
+        context={
+            "current_user": user,
+            "expenses": (
+                mobile_capture_recent_expenses(
+                    db=db,
+                    owner_id=user.id,
+                )
+            ),
+            "captures": (
+                mobile_capture_recent_items(
+                    db=db,
+                    owner_id=user.id,
+                )
+            ),
+            "success_message": (
+                "Receipt image saved successfully."
+                if saved
+                else None
+            ),
+            "error_message": error,
+        },
+    )
+
+
+@app.post(
+    "/mobile/captures",
+)
+async def create_mobile_capture(
+    request: Request,
+    capture_file: UploadFile = File(...),
+    expense_id: str = Form(""),
+    note: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    content_type = (
+        capture_file.content_type or ""
+    ).lower()
+
+    extension = (
+        MESSIS_MOBILE_CAPTURE_TYPES.get(
+            content_type
+        )
+    )
+
+    if extension is None:
+        await capture_file.close()
+
+        return RedirectResponse(
+            url=(
+                "/mobile/quick-entry"
+                "?error=Unsupported+image+format"
+            ),
+            status_code=303,
+        )
+
+    normalized_note = note.strip()
+
+    if len(normalized_note) > 500:
+        await capture_file.close()
+
+        return RedirectResponse(
+            url=(
+                "/mobile/quick-entry"
+                "?error=Note+is+too+long"
+            ),
+            status_code=303,
+        )
+
+    selected_expense_id = None
+
+    if expense_id.strip():
+        try:
+            selected_expense_id = int(
+                expense_id
+            )
+        except ValueError:
+            await capture_file.close()
+
+            return RedirectResponse(
+                url=(
+                    "/mobile/quick-entry"
+                    "?error=Invalid+expense"
+                ),
+                status_code=303,
+            )
+
+        expense = mobile_capture_owned_expense(
+            db=db,
+            owner_id=user.id,
+            expense_id=selected_expense_id,
+        )
+
+        if expense is None:
+            await capture_file.close()
+
+            raise HTTPException(
+                status_code=404,
+                detail="Expense not found.",
+            )
+
+    owner_directory = (
+        MESSIS_MOBILE_CAPTURE_ROOT
+        / str(user.id)
+    )
+
+    owner_directory.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    owner_directory.chmod(0o750)
+
+    stored_filename = (
+        secrets.token_hex(20)
+        + extension
+    )
+
+    destination = (
+        owner_directory
+        / stored_filename
+    )
+
+    total_size = 0
+
+    try:
+        with destination.open("wb") as output:
+            while True:
+                chunk = await capture_file.read(
+                    1024 * 1024
+                )
+
+                if not chunk:
+                    break
+
+                total_size += len(chunk)
+
+                if (
+                    total_size
+                    > MESSIS_MOBILE_CAPTURE_MAX_BYTES
+                ):
+                    raise ValueError(
+                        "File exceeds 5 MB."
+                    )
+
+                output.write(chunk)
+    except ValueError:
+        destination.unlink(
+            missing_ok=True
+        )
+
+        await capture_file.close()
+
+        return RedirectResponse(
+            url=(
+                "/mobile/quick-entry"
+                "?error=Image+exceeds+5+MB"
+            ),
+            status_code=303,
+        )
+    except OSError:
+        destination.unlink(
+            missing_ok=True
+        )
+
+        await capture_file.close()
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Unable to store receipt image."
+            ),
+        )
+    finally:
+        await capture_file.close()
+
+    if total_size <= 0:
+        destination.unlink(
+            missing_ok=True
+        )
+
+        return RedirectResponse(
+            url=(
+                "/mobile/quick-entry"
+                "?error=Empty+image+file"
+            ),
+            status_code=303,
+        )
+
+    relative_path = str(
+        destination.relative_to(
+            Path(__file__).resolve().parent
+        )
+    )
+
+    try:
+        result = db.execute(
+            text(
+                """
+                INSERT INTO mobile_captures (
+                    owner_id,
+                    expense_id,
+                    capture_type,
+                    original_filename,
+                    stored_filename,
+                    relative_path,
+                    content_type,
+                    file_size,
+                    note,
+                    created_at
+                )
+                VALUES (
+                    :owner_id,
+                    :expense_id,
+                    'expense_receipt',
+                    :original_filename,
+                    :stored_filename,
+                    :relative_path,
+                    :content_type,
+                    :file_size,
+                    :note,
+                    NOW()
+                )
+                RETURNING id
+                """
+            ),
+            {
+                "owner_id": user.id,
+                "expense_id": (
+                    selected_expense_id
+                ),
+                "original_filename": (
+                    capture_file.filename
+                ),
+                "stored_filename": (
+                    stored_filename
+                ),
+                "relative_path": (
+                    relative_path
+                ),
+                "content_type": (
+                    content_type
+                ),
+                "file_size": total_size,
+                "note": (
+                    normalized_note or None
+                ),
+            },
+        ).scalar_one()
+
+        audit(
+            db,
+            request,
+            "mobile_capture_created",
+            user.id,
+            (
+                f"Capture ID: {result}; "
+                f"Expense ID: "
+                f"{selected_expense_id}; "
+                f"Size: {total_size}"
+            ),
+        )
+
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+        destination.unlink(
+            missing_ok=True
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Unable to save receipt record."
+            ),
+        )
+
+    return RedirectResponse(
+        url="/mobile/quick-entry?saved=true",
+        status_code=303,
+    )
+
+
+@app.get(
+    "/mobile/captures/{capture_id}/view",
+    include_in_schema=False,
+)
+def view_mobile_capture(
+    capture_id: int,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    row = db.execute(
+        text(
+            """
+            SELECT
+                id,
+                original_filename,
+                relative_path,
+                content_type
+            FROM mobile_captures
+            WHERE id = :capture_id
+              AND owner_id = :owner_id
+            """
+        ),
+        {
+            "capture_id": capture_id,
+            "owner_id": user.id,
+        },
+    ).mappings().first()
+
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Receipt image not found.",
+        )
+
+    app_root = (
+        Path(__file__).resolve().parent
+    )
+
+    file_path = (
+        app_root
+        / str(row["relative_path"])
+    ).resolve()
+
+    permitted_root = (
+        MESSIS_MOBILE_CAPTURE_ROOT
+        / str(user.id)
+    ).resolve()
+
+    if (
+        permitted_root
+        not in file_path.parents
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid receipt path.",
+        )
+
+    if not file_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Receipt file is missing.",
+        )
+
+    return FileResponse(
+        path=file_path,
+        media_type=str(
+            row["content_type"]
+        ),
+        filename=str(
+            row["original_filename"]
+            or file_path.name
+        ),
+        headers={
+            "Cache-Control": (
+                "private, no-store, "
+                "max-age=0"
+            ),
+            "X-Content-Type-Options": (
+                "nosniff"
+            ),
+        },
+    )
+
+
+
+
+
+
+
+# PATCH-FINANCE-001E: BUSINESS SETTINGS
+
+
+MESSIS_CURRENCY_OPTIONS = (
+    {
+        "code": "INR",
+        "symbol": "₹",
+    },
+    {
+        "code": "USD",
+        "symbol": "$",
+    },
+    {
+        "code": "EUR",
+        "symbol": "€",
+    },
+    {
+        "code": "GBP",
+        "symbol": "£",
+    },
+)
+
+MESSIS_DATE_FORMATS = (
+    "DD-MM-YYYY",
+    "DD/MM/YYYY",
+    "YYYY-MM-DD",
+    "MM/DD/YYYY",
+)
+
+MESSIS_TIMEZONE_OPTIONS = (
+    "Asia/Kolkata",
+    "Asia/Dubai",
+    "Asia/Singapore",
+    "Europe/London",
+    "America/New_York",
+    "UTC",
+)
+
+MESSIS_MONTH_OPTIONS = (
+    {"number": 1, "name": "January"},
+    {"number": 2, "name": "February"},
+    {"number": 3, "name": "March"},
+    {"number": 4, "name": "April"},
+    {"number": 5, "name": "May"},
+    {"number": 6, "name": "June"},
+    {"number": 7, "name": "July"},
+    {"number": 8, "name": "August"},
+    {"number": 9, "name": "September"},
+    {"number": 10, "name": "October"},
+    {"number": 11, "name": "November"},
+    {"number": 12, "name": "December"},
+)
+
+
+def finance_business_settings_row(
+    db: Session,
+    owner_id: int,
+) -> dict[str, object]:
+    db.execute(
+        text(
+            """
+            INSERT INTO business_settings (
+                owner_id,
+                business_name,
+                currency_code,
+                currency_symbol,
+                date_format,
+                financial_year_start_month,
+                timezone_name,
+                default_payment_method_id,
+                created_at,
+                updated_at
+            )
+            VALUES (
+                :owner_id,
+                'Messis AI Farm',
+                'INR',
+                '₹',
+                'DD-MM-YYYY',
+                4,
+                'Asia/Kolkata',
+                (
+                    SELECT id
+                    FROM payment_methods
+                    WHERE owner_id = :owner_id
+                      AND is_default = TRUE
+                    ORDER BY id
+                    LIMIT 1
+                ),
+                NOW(),
+                NOW()
+            )
+            ON CONFLICT (owner_id)
+            DO NOTHING
+            """
+        ),
+        {
+            "owner_id": owner_id,
+        },
+    )
+
+    row = db.execute(
+        text(
+            """
+            SELECT
+                id,
+                owner_id,
+                business_name,
+                owner_name,
+                phone,
+                email,
+                address,
+                gstin,
+                currency_code,
+                currency_symbol,
+                date_format,
+                financial_year_start_month,
+                timezone_name,
+                default_payment_method_id,
+                report_header,
+                report_footer,
+                created_at,
+                updated_at
+            FROM business_settings
+            WHERE owner_id = :owner_id
+            """
+        ),
+        {
+            "owner_id": owner_id,
+        },
+    ).mappings().one()
+
+    return dict(row)
+
+
+def finance_business_settings_values(
+    settings: dict[str, object],
+) -> dict[str, object]:
+    return {
+        "business_name": str(
+            settings.get("business_name")
+            or "Messis AI Farm"
+        ),
+        "owner_name": str(
+            settings.get("owner_name")
+            or ""
+        ),
+        "phone": str(
+            settings.get("phone")
+            or ""
+        ),
+        "email": str(
+            settings.get("email")
+            or ""
+        ),
+        "address": str(
+            settings.get("address")
+            or ""
+        ),
+        "gstin": str(
+            settings.get("gstin")
+            or ""
+        ),
+        "currency_code": str(
+            settings.get("currency_code")
+            or "INR"
+        ),
+        "date_format": str(
+            settings.get("date_format")
+            or "DD-MM-YYYY"
+        ),
+        "financial_year_start_month": int(
+            settings.get(
+                "financial_year_start_month"
+            )
+            or 4
+        ),
+        "timezone_name": str(
+            settings.get("timezone_name")
+            or "Asia/Kolkata"
+        ),
+        "default_payment_method_id": (
+            int(
+                settings[
+                    "default_payment_method_id"
+                ]
+            )
+            if settings.get(
+                "default_payment_method_id"
+            )
+            is not None
+            else None
+        ),
+        "report_header": str(
+            settings.get("report_header")
+            or ""
+        ),
+        "report_footer": str(
+            settings.get("report_footer")
+            or ""
+        ),
+    }
+
+
+def finance_business_settings_methods(
+    db: Session,
+    owner_id: int,
+) -> list[dict[str, object]]:
+    rows = db.execute(
+        text(
+            """
+            SELECT
+                id,
+                name,
+                icon,
+                is_default
+            FROM payment_methods
+            WHERE owner_id = :owner_id
+              AND is_active = TRUE
+            ORDER BY
+                is_default DESC,
+                display_order,
+                LOWER(name),
+                id
+            """
+        ),
+        {
+            "owner_id": owner_id,
+        },
+    ).mappings().all()
+
+    return [
+        dict(row)
+        for row in rows
+    ]
+
+
+def validate_finance_business_settings(
+    *,
+    business_name: str,
+    owner_name: str,
+    phone: str,
+    email: str,
+    address: str,
+    gstin: str,
+    currency_code: str,
+    date_format: str,
+    financial_year_start_month: str,
+    timezone_name: str,
+    default_payment_method_id: str,
+    report_header: str,
+    report_footer: str,
+) -> tuple[
+    dict[str, str],
+    int | None,
+    int | None,
+]:
+    errors: dict[str, str] = {}
+
+    normalized_business_name = (
+        business_name.strip()
+    )
+
+    if not normalized_business_name:
+        errors["business_name"] = (
+            "Business name is required."
+        )
+    elif len(normalized_business_name) > 180:
+        errors["business_name"] = (
+            "Business name cannot exceed "
+            "180 characters."
+        )
+
+    if len(owner_name.strip()) > 180:
+        errors["owner_name"] = (
+            "Owner name cannot exceed "
+            "180 characters."
+        )
+
+    normalized_phone = phone.strip()
+
+    if len(normalized_phone) > 30:
+        errors["phone"] = (
+            "Phone number cannot exceed "
+            "30 characters."
+        )
+    elif normalized_phone:
+        compact_phone = "".join(
+            character
+            for character in normalized_phone
+            if character not in {
+                " ",
+                "-",
+                "(",
+                ")",
+            }
+        )
+
+        if compact_phone.startswith("+"):
+            compact_phone = compact_phone[1:]
+
+        if not compact_phone.isdigit():
+            errors["phone"] = (
+                "Enter a valid phone number."
+            )
+
+    normalized_email = email.strip()
+
+    if len(normalized_email) > 180:
+        errors["email"] = (
+            "Email cannot exceed 180 characters."
+        )
+    elif normalized_email and (
+        "@" not in normalized_email
+        or "." not in normalized_email.split("@")[-1]
+    ):
+        errors["email"] = (
+            "Enter a valid email address."
+        )
+
+    if len(address.strip()) > 1500:
+        errors["address"] = (
+            "Address cannot exceed "
+            "1500 characters."
+        )
+
+    normalized_gstin = gstin.strip().upper()
+
+    if normalized_gstin and (
+        len(normalized_gstin) != 15
+        or not normalized_gstin.isalnum()
+    ):
+        errors["gstin"] = (
+            "GSTIN must contain exactly "
+            "15 letters and numbers."
+        )
+
+    valid_currency_codes = {
+        item["code"]
+        for item in MESSIS_CURRENCY_OPTIONS
+    }
+
+    if currency_code not in valid_currency_codes:
+        errors["currency_code"] = (
+            "Select a valid currency."
+        )
+
+    if date_format not in MESSIS_DATE_FORMATS:
+        errors["date_format"] = (
+            "Select a valid date format."
+        )
+
+    parsed_month = None
+
+    try:
+        parsed_month = int(
+            financial_year_start_month
+        )
+    except (TypeError, ValueError):
+        errors[
+            "financial_year_start_month"
+        ] = (
+            "Select a valid financial "
+            "year month."
+        )
+    else:
+        if not 1 <= parsed_month <= 12:
+            errors[
+                "financial_year_start_month"
+            ] = (
+                "Select a valid financial "
+                "year month."
+            )
+
+    if timezone_name not in MESSIS_TIMEZONE_OPTIONS:
+        errors["timezone_name"] = (
+            "Select a valid timezone."
+        )
+
+    parsed_payment_method = None
+
+    if default_payment_method_id.strip():
+        try:
+            parsed_payment_method = int(
+                default_payment_method_id
+            )
+        except ValueError:
+            errors[
+                "default_payment_method_id"
+            ] = (
+                "Select a valid payment method."
+            )
+
+    if len(report_header.strip()) > 500:
+        errors["report_header"] = (
+            "Report header cannot exceed "
+            "500 characters."
+        )
+
+    if len(report_footer.strip()) > 1000:
+        errors["report_footer"] = (
+            "Report footer cannot exceed "
+            "1000 characters."
+        )
+
+    return (
+        errors,
+        parsed_month,
+        parsed_payment_method,
+    )
+
+
+def render_finance_business_settings(
+    request: Request,
+    user: User,
+    db: Session,
+    settings: dict[str, object],
+    errors: dict[str, str],
+    *,
+    status_code: int = 200,
+):
+    return templates.TemplateResponse(
+        request=request,
+        name=(
+            "finance/"
+            "business-settings.html"
+        ),
+        context={
+            "current_user": user,
+            "settings": settings,
+            "errors": errors,
+            "payment_methods": (
+                finance_business_settings_methods(
+                    db=db,
+                    owner_id=user.id,
+                )
+            ),
+            "currency_options": (
+                MESSIS_CURRENCY_OPTIONS
+            ),
+            "date_formats": (
+                MESSIS_DATE_FORMATS
+            ),
+            "timezone_options": (
+                MESSIS_TIMEZONE_OPTIONS
+            ),
+            "month_options": (
+                MESSIS_MONTH_OPTIONS
+            ),
+            "success_message": (
+                request.query_params.get(
+                    "success"
+                )
+            ),
+            "error_message": (
+                request.query_params.get(
+                    "error"
+                )
+            ),
+        },
+        status_code=status_code,
+    )
+
+
+@app.get(
+    "/business-settings",
+    response_class=JSONResponse,
+)
+def finance_business_settings_api(
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    settings = finance_business_settings_row(
+        db=db,
+        owner_id=user.id,
+    )
+
+    db.commit()
+
+    return {
+        "item": settings,
+    }
+
+
+@app.get(
+    "/business-settings/manage",
+    response_class=HTMLResponse,
+)
+def finance_business_settings_page(
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    settings = finance_business_settings_row(
+        db=db,
+        owner_id=user.id,
+    )
+
+    db.commit()
+
+    return render_finance_business_settings(
+        request=request,
+        user=user,
+        db=db,
+        settings=(
+            finance_business_settings_values(
+                settings
+            )
+        ),
+        errors={},
+    )
+
+
+@app.post(
+    "/business-settings/manage",
+    response_class=HTMLResponse,
+)
+def finance_business_settings_submit(
+    request: Request,
+    business_name: str = Form(...),
+    owner_name: str = Form(""),
+    phone: str = Form(""),
+    email: str = Form(""),
+    address: str = Form(""),
+    gstin: str = Form(""),
+    currency_code: str = Form("INR"),
+    date_format: str = Form("DD-MM-YYYY"),
+    financial_year_start_month: str = Form("4"),
+    timezone_name: str = Form("Asia/Kolkata"),
+    default_payment_method_id: str = Form(""),
+    report_header: str = Form(""),
+    report_footer: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    (
+        errors,
+        parsed_month,
+        parsed_payment_method,
+    ) = validate_finance_business_settings(
+        business_name=business_name,
+        owner_name=owner_name,
+        phone=phone,
+        email=email,
+        address=address,
+        gstin=gstin,
+        currency_code=currency_code,
+        date_format=date_format,
+        financial_year_start_month=(
+            financial_year_start_month
+        ),
+        timezone_name=timezone_name,
+        default_payment_method_id=(
+            default_payment_method_id
+        ),
+        report_header=report_header,
+        report_footer=report_footer,
+    )
+
+    currency_map = {
+        item["code"]: item["symbol"]
+        for item in MESSIS_CURRENCY_OPTIONS
+    }
+
+    settings = {
+        "business_name": (
+            business_name.strip()
+        ),
+        "owner_name": owner_name.strip(),
+        "phone": phone.strip(),
+        "email": email.strip(),
+        "address": address.strip(),
+        "gstin": gstin.strip().upper(),
+        "currency_code": currency_code,
+        "date_format": date_format,
+        "financial_year_start_month": (
+            parsed_month
+            if parsed_month is not None
+            else 4
+        ),
+        "timezone_name": timezone_name,
+        "default_payment_method_id": (
+            parsed_payment_method
+        ),
+        "report_header": (
+            report_header.strip()
+        ),
+        "report_footer": (
+            report_footer.strip()
+        ),
+    }
+
+    if (
+        not errors
+        and parsed_payment_method is not None
+    ):
+        payment_method_exists = db.execute(
+            text(
+                """
+                SELECT id
+                FROM payment_methods
+                WHERE id = :method_id
+                  AND owner_id = :owner_id
+                  AND is_active = TRUE
+                """
+            ),
+            {
+                "method_id": (
+                    parsed_payment_method
+                ),
+                "owner_id": user.id,
+            },
+        ).scalar_one_or_none()
+
+        if payment_method_exists is None:
+            errors[
+                "default_payment_method_id"
+            ] = (
+                "Selected payment method "
+                "is unavailable."
+            )
+
+    if errors:
+        return render_finance_business_settings(
+            request=request,
+            user=user,
+            db=db,
+            settings=settings,
+            errors=errors,
+            status_code=422,
+        )
+
+    try:
+        db.execute(
+            text(
+                """
+                INSERT INTO business_settings (
+                    owner_id,
+                    business_name,
+                    owner_name,
+                    phone,
+                    email,
+                    address,
+                    gstin,
+                    currency_code,
+                    currency_symbol,
+                    date_format,
+                    financial_year_start_month,
+                    timezone_name,
+                    default_payment_method_id,
+                    report_header,
+                    report_footer,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    :owner_id,
+                    :business_name,
+                    :owner_name,
+                    :phone,
+                    :email,
+                    :address,
+                    :gstin,
+                    :currency_code,
+                    :currency_symbol,
+                    :date_format,
+                    :financial_year_start_month,
+                    :timezone_name,
+                    :default_payment_method_id,
+                    :report_header,
+                    :report_footer,
+                    NOW(),
+                    NOW()
+                )
+                ON CONFLICT (owner_id)
+                DO UPDATE SET
+                    business_name =
+                        EXCLUDED.business_name,
+                    owner_name =
+                        EXCLUDED.owner_name,
+                    phone =
+                        EXCLUDED.phone,
+                    email =
+                        EXCLUDED.email,
+                    address =
+                        EXCLUDED.address,
+                    gstin =
+                        EXCLUDED.gstin,
+                    currency_code =
+                        EXCLUDED.currency_code,
+                    currency_symbol =
+                        EXCLUDED.currency_symbol,
+                    date_format =
+                        EXCLUDED.date_format,
+                    financial_year_start_month =
+                        EXCLUDED.financial_year_start_month,
+                    timezone_name =
+                        EXCLUDED.timezone_name,
+                    default_payment_method_id =
+                        EXCLUDED.default_payment_method_id,
+                    report_header =
+                        EXCLUDED.report_header,
+                    report_footer =
+                        EXCLUDED.report_footer,
+                    updated_at = NOW()
+                """
+            ),
+            {
+                "owner_id": user.id,
+                "business_name": (
+                    settings["business_name"]
+                ),
+                "owner_name": (
+                    normalize_optional_text(
+                        settings["owner_name"]
+                    )
+                ),
+                "phone": (
+                    normalize_optional_text(
+                        settings["phone"]
+                    )
+                ),
+                "email": (
+                    normalize_optional_text(
+                        settings["email"]
+                    )
+                ),
+                "address": (
+                    normalize_optional_text(
+                        settings["address"]
+                    )
+                ),
+                "gstin": (
+                    normalize_optional_text(
+                        settings["gstin"]
+                    )
+                ),
+                "currency_code": currency_code,
+                "currency_symbol": (
+                    currency_map[currency_code]
+                ),
+                "date_format": date_format,
+                "financial_year_start_month": (
+                    parsed_month
+                ),
+                "timezone_name": timezone_name,
+                "default_payment_method_id": (
+                    parsed_payment_method
+                ),
+                "report_header": (
+                    normalize_optional_text(
+                        settings["report_header"]
+                    )
+                ),
+                "report_footer": (
+                    normalize_optional_text(
+                        settings["report_footer"]
+                    )
+                ),
+            },
+        )
+
+        if parsed_payment_method is not None:
+            finance_set_default_payment_method(
+                db=db,
+                owner_id=user.id,
+                method_id=(
+                    parsed_payment_method
+                ),
+            )
+
+        audit(
+            db,
+            request,
+            "business_settings_updated",
+            user.id,
+            (
+                "Business settings updated; "
+                f"Business: "
+                f"{settings['business_name']}"
+            ),
+        )
+
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+        return render_finance_business_settings(
+            request=request,
+            user=user,
+            db=db,
+            settings=settings,
+            errors={
+                "form": (
+                    "Unable to save business "
+                    "settings. Please try again."
+                )
+            },
+            status_code=500,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/business-settings/manage"
+            "?success="
+            + quote(
+                "Business settings were "
+                "saved successfully."
+            )
+        ),
+        status_code=303,
+    )
+
+
+# PATCH-FINANCE-001D: PAYMENT METHODS MANAGEMENT
+
+
+MESSIS_PAYMENT_METHOD_ICONS = (
+    "💳",
+    "💵",
+    "📱",
+    "🏦",
+    "🧾",
+    "✍️",
+    "💰",
+    "🌐",
+    "📦",
+)
+
+
+def finance_payment_method_row(
+    db: Session,
+    owner_id: int,
+    method_id: int,
+) -> dict[str, object]:
+    row = db.execute(
+        text(
+            """
+            SELECT
+                id,
+                owner_id,
+                name,
+                method_code,
+                icon,
+                is_system,
+                is_default,
+                is_active,
+                display_order,
+                notes,
+                created_at,
+                updated_at
+            FROM payment_methods
+            WHERE id = :method_id
+              AND owner_id = :owner_id
+            """
+        ),
+        {
+            "method_id": method_id,
+            "owner_id": owner_id,
+        },
+    ).mappings().first()
+
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Payment method not found.",
+        )
+
+    return dict(row)
+
+
+def finance_payment_method_code(
+    name: str,
+) -> str:
+    normalized = re.sub(
+        r"[^a-z0-9]+",
+        "_",
+        name.strip().lower(),
+    ).strip("_")
+
+    if not normalized:
+        normalized = "payment_method"
+
+    return normalized[:80]
+
+
+def finance_payment_method_values(
+    method: dict[str, object] | None = None,
+    *,
+    name: str = "",
+    icon: str = "💳",
+    display_order: str = "100",
+    notes: str = "",
+    is_default: bool = False,
+) -> dict[str, object]:
+    if method is not None:
+        return {
+            "name": str(
+                method.get("name") or ""
+            ),
+            "icon": str(
+                method.get("icon") or "💳"
+            ),
+            "display_order": str(
+                method.get("display_order")
+                or 100
+            ),
+            "notes": str(
+                method.get("notes") or ""
+            ),
+            "is_default": bool(
+                method.get("is_default")
+            ),
+        }
+
+    return {
+        "name": name,
+        "icon": icon,
+        "display_order": display_order,
+        "notes": notes,
+        "is_default": is_default,
+    }
+
+
+def validate_finance_payment_method(
+    name: str,
+    icon: str,
+    display_order: str,
+    notes: str,
+) -> tuple[
+    dict[str, str],
+    int | None,
+]:
+    errors: dict[str, str] = {}
+
+    normalized_name = name.strip()
+    normalized_icon = icon.strip()
+
+    if not normalized_name:
+        errors["name"] = (
+            "Payment method name is required."
+        )
+    elif len(normalized_name) > 120:
+        errors["name"] = (
+            "Payment method name cannot exceed "
+            "120 characters."
+        )
+
+    if (
+        normalized_icon
+        not in MESSIS_PAYMENT_METHOD_ICONS
+    ):
+        errors["icon"] = (
+            "Select a valid payment method icon."
+        )
+
+    parsed_order = None
+
+    try:
+        parsed_order = int(display_order)
+    except (TypeError, ValueError):
+        errors["display_order"] = (
+            "Display order must be a number."
+        )
+    else:
+        if not 1 <= parsed_order <= 9999:
+            errors["display_order"] = (
+                "Display order must be between "
+                "1 and 9999."
+            )
+
+    if len(notes.strip()) > 1000:
+        errors["notes"] = (
+            "Notes cannot exceed 1000 characters."
+        )
+
+    return errors, parsed_order
+
+
+def render_finance_payment_method_form(
+    request: Request,
+    user: User,
+    *,
+    page_title: str,
+    form_action: str,
+    submit_label: str,
+    form_data: dict[str, object],
+    errors: dict[str, str],
+    is_system: bool = False,
+    status_code: int = 200,
+):
+    return templates.TemplateResponse(
+        request=request,
+        name=(
+            "finance/"
+            "payment-method-form.html"
+        ),
+        context={
+            "current_user": user,
+            "page_title": page_title,
+            "form_action": form_action,
+            "submit_label": submit_label,
+            "form_data": form_data,
+            "errors": errors,
+            "is_system": is_system,
+            "icon_options": (
+                MESSIS_PAYMENT_METHOD_ICONS
+            ),
+        },
+        status_code=status_code,
+    )
+
+
+def finance_set_default_payment_method(
+    db: Session,
+    owner_id: int,
+    method_id: int,
+) -> None:
+    db.execute(
+        text(
+            """
+            UPDATE payment_methods
+            SET
+                is_default = FALSE,
+                updated_at = NOW()
+            WHERE owner_id = :owner_id
+            """
+        ),
+        {
+            "owner_id": owner_id,
+        },
+    )
+
+    result = db.execute(
+        text(
+            """
+            UPDATE payment_methods
+            SET
+                is_default = TRUE,
+                is_active = TRUE,
+                updated_at = NOW()
+            WHERE id = :method_id
+              AND owner_id = :owner_id
+            """
+        ),
+        {
+            "method_id": method_id,
+            "owner_id": owner_id,
+        },
+    )
+
+    if result.rowcount == 0:
+        raise HTTPException(
+            status_code=404,
+            detail="Payment method not found.",
+        )
+
+
+@app.get(
+    "/payment-methods",
+    response_class=JSONResponse,
+)
+def list_payment_methods_api(
+    active_only: bool = True,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    conditions = [
+        "owner_id = :owner_id",
+    ]
+
+    if active_only:
+        conditions.append(
+            "is_active = TRUE"
+        )
+
+    rows = db.execute(
+        text(
+            f"""
+            SELECT
+                id,
+                name,
+                method_code,
+                icon,
+                is_system,
+                is_default,
+                is_active,
+                display_order,
+                notes
+            FROM payment_methods
+            WHERE {' AND '.join(conditions)}
+            ORDER BY
+                is_default DESC,
+                display_order,
+                LOWER(name),
+                id
+            """
+        ),
+        {
+            "owner_id": user.id,
+        },
+    ).mappings().all()
+
+    return {
+        "count": len(rows),
+        "items": [
+            dict(row)
+            for row in rows
+        ],
+    }
+
+
+@app.get(
+    "/payment-methods/manage",
+    response_class=HTMLResponse,
+)
+def finance_payment_method_management(
+    request: Request,
+    search: str = "",
+    status: str = "active",
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    normalized_search = search.strip()
+    normalized_status = status.strip().lower()
+
+    if normalized_status not in {
+        "active",
+        "inactive",
+        "all",
+    }:
+        normalized_status = "active"
+
+    conditions = [
+        "owner_id = :owner_id",
+    ]
+
+    parameters: dict[str, object] = {
+        "owner_id": user.id,
+    }
+
+    if normalized_status == "active":
+        conditions.append(
+            "is_active = TRUE"
+        )
+    elif normalized_status == "inactive":
+        conditions.append(
+            "is_active = FALSE"
+        )
+
+    if normalized_search:
+        conditions.append(
+            "LOWER(name) LIKE :search_value"
+        )
+
+        parameters["search_value"] = (
+            "%"
+            + normalized_search.lower()
+            + "%"
+        )
+
+    rows = db.execute(
+        text(
+            f"""
+            SELECT
+                id,
+                name,
+                method_code,
+                icon,
+                is_system,
+                is_default,
+                is_active,
+                display_order,
+                notes,
+                updated_at
+            FROM payment_methods
+            WHERE {' AND '.join(conditions)}
+            ORDER BY
+                is_default DESC,
+                is_active DESC,
+                display_order,
+                LOWER(name),
+                id
+            """
+        ),
+        parameters,
+    ).mappings().all()
+
+    methods = [
+        dict(row)
+        for row in rows
+    ]
+
+    summary = db.execute(
+        text(
+            """
+            SELECT
+                COUNT(*) AS total_methods,
+                COUNT(*) FILTER (
+                    WHERE is_active = TRUE
+                ) AS active_methods,
+                COUNT(*) FILTER (
+                    WHERE is_system = FALSE
+                ) AS custom_methods,
+                MAX(name) FILTER (
+                    WHERE is_default = TRUE
+                ) AS default_method
+            FROM payment_methods
+            WHERE owner_id = :owner_id
+            """
+        ),
+        {
+            "owner_id": user.id,
+        },
+    ).mappings().one()
+
+    return templates.TemplateResponse(
+        request=request,
+        name=(
+            "finance/"
+            "payment-methods.html"
+        ),
+        context={
+            "current_user": user,
+            "methods": methods,
+            "filters": {
+                "search": normalized_search,
+                "status": normalized_status,
+            },
+            "summary": {
+                "total_methods": int(
+                    summary["total_methods"]
+                    or 0
+                ),
+                "active_methods": int(
+                    summary["active_methods"]
+                    or 0
+                ),
+                "custom_methods": int(
+                    summary["custom_methods"]
+                    or 0
+                ),
+                "default_method": (
+                    summary["default_method"]
+                    or "Not set"
+                ),
+            },
+            "success_message": (
+                request.query_params.get(
+                    "success"
+                )
+            ),
+            "error_message": (
+                request.query_params.get(
+                    "error"
+                )
+            ),
+        },
+    )
+
+
+@app.get(
+    "/payment-methods/new",
+    response_class=HTMLResponse,
+)
+def finance_payment_method_create_page(
+    request: Request,
+    user: User = Depends(current_user),
+):
+    return render_finance_payment_method_form(
+        request=request,
+        user=user,
+        page_title="Add Payment Method",
+        form_action="/payment-methods/new",
+        submit_label="Create Payment Method",
+        form_data=(
+            finance_payment_method_values()
+        ),
+        errors={},
+    )
+
+
+@app.post(
+    "/payment-methods/new",
+    response_class=HTMLResponse,
+)
+def finance_payment_method_create_submit(
+    request: Request,
+    name: str = Form(...),
+    icon: str = Form("💳"),
+    display_order: str = Form("100"),
+    notes: str = Form(""),
+    is_default: str | None = Form(None),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    selected_default = (
+        is_default == "true"
+    )
+
+    form_data = finance_payment_method_values(
+        name=name,
+        icon=icon,
+        display_order=display_order,
+        notes=notes,
+        is_default=selected_default,
+    )
+
+    errors, parsed_order = (
+        validate_finance_payment_method(
+            name=name,
+            icon=icon,
+            display_order=display_order,
+            notes=notes,
+        )
+    )
+
+    normalized_name = name.strip()
+
+    if not errors:
+        duplicate = db.execute(
+            text(
+                """
+                SELECT id
+                FROM payment_methods
+                WHERE owner_id = :owner_id
+                  AND LOWER(name)
+                      = LOWER(:name)
+                LIMIT 1
+                """
+            ),
+            {
+                "owner_id": user.id,
+                "name": normalized_name,
+            },
+        ).scalar_one_or_none()
+
+        if duplicate is not None:
+            errors["name"] = (
+                "A payment method with this "
+                "name already exists."
+            )
+
+    if errors:
+        return render_finance_payment_method_form(
+            request=request,
+            user=user,
+            page_title="Add Payment Method",
+            form_action="/payment-methods/new",
+            submit_label="Create Payment Method",
+            form_data=form_data,
+            errors=errors,
+            status_code=422,
+        )
+
+    base_code = finance_payment_method_code(
+        normalized_name
+    )
+
+    method_code = base_code
+    suffix = 1
+
+    while db.execute(
+        text(
+            """
+            SELECT id
+            FROM payment_methods
+            WHERE owner_id = :owner_id
+              AND method_code = :method_code
+            LIMIT 1
+            """
+        ),
+        {
+            "owner_id": user.id,
+            "method_code": method_code,
+        },
+    ).scalar_one_or_none() is not None:
+        suffix += 1
+        method_code = (
+            f"{base_code}_{suffix}"
+        )[:80]
+
+    try:
+        method_id = db.execute(
+            text(
+                """
+                INSERT INTO payment_methods (
+                    owner_id,
+                    name,
+                    method_code,
+                    icon,
+                    is_system,
+                    is_default,
+                    is_active,
+                    display_order,
+                    notes,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    :owner_id,
+                    :name,
+                    :method_code,
+                    :icon,
+                    FALSE,
+                    FALSE,
+                    TRUE,
+                    :display_order,
+                    :notes,
+                    NOW(),
+                    NOW()
+                )
+                RETURNING id
+                """
+            ),
+            {
+                "owner_id": user.id,
+                "name": normalized_name,
+                "method_code": method_code,
+                "icon": icon,
+                "display_order": (
+                    parsed_order
+                ),
+                "notes": (
+                    normalize_optional_text(
+                        notes
+                    )
+                ),
+            },
+        ).scalar_one()
+
+        if selected_default:
+            finance_set_default_payment_method(
+                db=db,
+                owner_id=user.id,
+                method_id=method_id,
+            )
+
+        audit(
+            db,
+            request,
+            "payment_method_created",
+            user.id,
+            (
+                f"Payment method ID: "
+                f"{method_id}; "
+                f"Name: {normalized_name}"
+            ),
+        )
+
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+        return render_finance_payment_method_form(
+            request=request,
+            user=user,
+            page_title="Add Payment Method",
+            form_action="/payment-methods/new",
+            submit_label="Create Payment Method",
+            form_data=form_data,
+            errors={
+                "name": (
+                    "A payment method with this "
+                    "name already exists."
+                )
+            },
+            status_code=409,
+        )
+    except SQLAlchemyError:
+        db.rollback()
+
+        return render_finance_payment_method_form(
+            request=request,
+            user=user,
+            page_title="Add Payment Method",
+            form_action="/payment-methods/new",
+            submit_label="Create Payment Method",
+            form_data=form_data,
+            errors={
+                "form": (
+                    "Unable to create payment "
+                    "method. Please try again."
+                )
+            },
+            status_code=500,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/payment-methods/manage"
+            "?success="
+            + quote(
+                f"{normalized_name} was created."
+            )
+        ),
+        status_code=303,
+    )
+
+
+@app.get(
+    "/payment-methods/{method_id}/edit",
+    response_class=HTMLResponse,
+)
+def finance_payment_method_edit_page(
+    method_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    method = finance_payment_method_row(
+        db=db,
+        owner_id=user.id,
+        method_id=method_id,
+    )
+
+    return render_finance_payment_method_form(
+        request=request,
+        user=user,
+        page_title="Edit Payment Method",
+        form_action=(
+            f"/payment-methods/{method_id}/edit"
+        ),
+        submit_label="Update Payment Method",
+        form_data=(
+            finance_payment_method_values(
+                method
+            )
+        ),
+        errors={},
+        is_system=bool(
+            method["is_system"]
+        ),
+    )
+
+
+@app.post(
+    "/payment-methods/{method_id}/edit",
+    response_class=HTMLResponse,
+)
+def finance_payment_method_edit_submit(
+    method_id: int,
+    request: Request,
+    name: str = Form(...),
+    icon: str = Form("💳"),
+    display_order: str = Form("100"),
+    notes: str = Form(""),
+    is_default: str | None = Form(None),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    method = finance_payment_method_row(
+        db=db,
+        owner_id=user.id,
+        method_id=method_id,
+    )
+
+    selected_default = (
+        is_default == "true"
+    )
+
+    form_data = finance_payment_method_values(
+        name=name,
+        icon=icon,
+        display_order=display_order,
+        notes=notes,
+        is_default=selected_default,
+    )
+
+    errors, parsed_order = (
+        validate_finance_payment_method(
+            name=name,
+            icon=icon,
+            display_order=display_order,
+            notes=notes,
+        )
+    )
+
+    normalized_name = name.strip()
+
+    if not errors:
+        duplicate = db.execute(
+            text(
+                """
+                SELECT id
+                FROM payment_methods
+                WHERE owner_id = :owner_id
+                  AND id <> :method_id
+                  AND LOWER(name)
+                      = LOWER(:name)
+                LIMIT 1
+                """
+            ),
+            {
+                "owner_id": user.id,
+                "method_id": method_id,
+                "name": normalized_name,
+            },
+        ).scalar_one_or_none()
+
+        if duplicate is not None:
+            errors["name"] = (
+                "A payment method with this "
+                "name already exists."
+            )
+
+    if errors:
+        return render_finance_payment_method_form(
+            request=request,
+            user=user,
+            page_title="Edit Payment Method",
+            form_action=(
+                f"/payment-methods/{method_id}/edit"
+            ),
+            submit_label="Update Payment Method",
+            form_data=form_data,
+            errors=errors,
+            is_system=bool(
+                method["is_system"]
+            ),
+            status_code=422,
+        )
+
+    try:
+        db.execute(
+            text(
+                """
+                UPDATE payment_methods
+                SET
+                    name = :name,
+                    icon = :icon,
+                    display_order =
+                        :display_order,
+                    notes = :notes,
+                    updated_at = NOW()
+                WHERE id = :method_id
+                  AND owner_id = :owner_id
+                """
+            ),
+            {
+                "method_id": method_id,
+                "owner_id": user.id,
+                "name": normalized_name,
+                "icon": icon,
+                "display_order": (
+                    parsed_order
+                ),
+                "notes": (
+                    normalize_optional_text(
+                        notes
+                    )
+                ),
+            },
+        )
+
+        if selected_default:
+            finance_set_default_payment_method(
+                db=db,
+                owner_id=user.id,
+                method_id=method_id,
+            )
+        elif bool(method["is_default"]):
+            db.execute(
+                text(
+                    """
+                    UPDATE payment_methods
+                    SET
+                        is_default = FALSE,
+                        updated_at = NOW()
+                    WHERE id = :method_id
+                      AND owner_id = :owner_id
+                    """
+                ),
+                {
+                    "method_id": method_id,
+                    "owner_id": user.id,
+                },
+            )
+
+        audit(
+            db,
+            request,
+            "payment_method_updated",
+            user.id,
+            (
+                f"Payment method ID: "
+                f"{method_id}; "
+                f"Name: {normalized_name}"
+            ),
+        )
+
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+        return render_finance_payment_method_form(
+            request=request,
+            user=user,
+            page_title="Edit Payment Method",
+            form_action=(
+                f"/payment-methods/{method_id}/edit"
+            ),
+            submit_label="Update Payment Method",
+            form_data=form_data,
+            errors={
+                "name": (
+                    "A payment method with this "
+                    "name already exists."
+                )
+            },
+            is_system=bool(
+                method["is_system"]
+            ),
+            status_code=409,
+        )
+    except SQLAlchemyError:
+        db.rollback()
+
+        return render_finance_payment_method_form(
+            request=request,
+            user=user,
+            page_title="Edit Payment Method",
+            form_action=(
+                f"/payment-methods/{method_id}/edit"
+            ),
+            submit_label="Update Payment Method",
+            form_data=form_data,
+            errors={
+                "form": (
+                    "Unable to update payment "
+                    "method. Please try again."
+                )
+            },
+            is_system=bool(
+                method["is_system"]
+            ),
+            status_code=500,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/payment-methods/manage"
+            "?success="
+            + quote(
+                f"{normalized_name} was updated."
+            )
+        ),
+        status_code=303,
+    )
+
+
+@app.post(
+    "/payment-methods/{method_id}/default",
+)
+def finance_payment_method_make_default(
+    method_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    method = finance_payment_method_row(
+        db=db,
+        owner_id=user.id,
+        method_id=method_id,
+    )
+
+    try:
+        finance_set_default_payment_method(
+            db=db,
+            owner_id=user.id,
+            method_id=method_id,
+        )
+
+        audit(
+            db,
+            request,
+            "payment_method_default_changed",
+            user.id,
+            (
+                f"Payment method ID: "
+                f"{method_id}; "
+                f"Name: {method['name']}"
+            ),
+        )
+
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+        return RedirectResponse(
+            url=(
+                "/payment-methods/manage"
+                "?error="
+                + quote(
+                    "Unable to set default "
+                    "payment method."
+                )
+            ),
+            status_code=303,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/payment-methods/manage"
+            "?success="
+            + quote(
+                f"{method['name']} is now "
+                "the default payment method."
+            )
+        ),
+        status_code=303,
+    )
+
+
+@app.post(
+    "/payment-methods/{method_id}/toggle",
+)
+def finance_payment_method_toggle(
+    method_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    method = finance_payment_method_row(
+        db=db,
+        owner_id=user.id,
+        method_id=method_id,
+    )
+
+    new_status = not bool(
+        method["is_active"]
+    )
+
+    if (
+        bool(method["is_default"])
+        and not new_status
+    ):
+        return RedirectResponse(
+            url=(
+                "/payment-methods/manage"
+                "?error="
+                + quote(
+                    "The default payment method "
+                    "cannot be disabled. Set another "
+                    "method as default first."
+                )
+            ),
+            status_code=303,
+        )
+
+    state = (
+        "enabled"
+        if new_status
+        else "disabled"
+    )
+
+    try:
+        db.execute(
+            text(
+                """
+                UPDATE payment_methods
+                SET
+                    is_active = :is_active,
+                    updated_at = NOW()
+                WHERE id = :method_id
+                  AND owner_id = :owner_id
+                """
+            ),
+            {
+                "method_id": method_id,
+                "owner_id": user.id,
+                "is_active": new_status,
+            },
+        )
+
+        audit(
+            db,
+            request,
+            "payment_method_status_changed",
+            user.id,
+            (
+                f"Payment method ID: "
+                f"{method_id}; "
+                f"Status: {state}"
+            ),
+        )
+
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+        return RedirectResponse(
+            url=(
+                "/payment-methods/manage"
+                "?error="
+                + quote(
+                    "Unable to change payment "
+                    "method status."
+                )
+            ),
+            status_code=303,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/payment-methods/manage"
+            "?success="
+            + quote(
+                f"{method['name']} was {state}."
+            )
+        ),
+        status_code=303,
+    )
+
+
+# PATCH-FINANCE-001C: EXPENSE CATEGORIES MANAGEMENT UI
+
+
+MESSIS_CATEGORY_ICONS = (
+    "📂",
+    "👷",
+    "🌱",
+    "🚚",
+    "⚡",
+    "⛽",
+    "🛠️",
+    "🥥",
+    "💧",
+    "🧪",
+    "🚜",
+    "🏪",
+    "🧾",
+    "📦",
+    "➕",
+)
+
+
+def finance_category_row(
+    db: Session,
+    owner_id: int,
+    category_id: int,
+) -> dict[str, object]:
+    row = db.execute(
+        text(
+            """
+            SELECT
+                id,
+                owner_id,
+                name,
+                is_system,
+                icon,
+                color,
+                display_order,
+                is_active,
+                created_at,
+                updated_at
+            FROM expense_categories
+            WHERE id = :category_id
+              AND owner_id = :owner_id
+            """
+        ),
+        {
+            "category_id": category_id,
+            "owner_id": owner_id,
+        },
+    ).mappings().first()
+
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Expense category not found.",
+        )
+
+    return dict(row)
+
+
+def finance_category_form_values(
+    category: dict[str, object] | None = None,
+    *,
+    name: str = "",
+    icon: str = "📂",
+    color: str = "#059669",
+    display_order: str = "100",
+) -> dict[str, str]:
+    if category is not None:
+        return {
+            "name": str(
+                category.get("name") or ""
+            ),
+            "icon": str(
+                category.get("icon") or "📂"
+            ),
+            "color": str(
+                category.get("color")
+                or "#059669"
+            ),
+            "display_order": str(
+                category.get("display_order")
+                or 100
+            ),
+        }
+
+    return {
+        "name": name,
+        "icon": icon,
+        "color": color,
+        "display_order": display_order,
+    }
+
+
+def validate_finance_category_form(
+    name: str,
+    icon: str,
+    color: str,
+    display_order: str,
+) -> tuple[
+    dict[str, str],
+    int | None,
+]:
+    errors: dict[str, str] = {}
+
+    normalized_name = name.strip()
+    normalized_icon = icon.strip()
+    normalized_color = color.strip()
+
+    if not normalized_name:
+        errors["name"] = (
+            "Category name is required."
+        )
+    elif len(normalized_name) > 120:
+        errors["name"] = (
+            "Category name cannot exceed "
+            "120 characters."
+        )
+
+    if normalized_icon not in MESSIS_CATEGORY_ICONS:
+        errors["icon"] = (
+            "Select a valid category icon."
+        )
+
+    if (
+        len(normalized_color) != 7
+        or not normalized_color.startswith("#")
+    ):
+        errors["color"] = (
+            "Select a valid category colour."
+        )
+    else:
+        try:
+            int(normalized_color[1:], 16)
+        except ValueError:
+            errors["color"] = (
+                "Select a valid category colour."
+            )
+
+    parsed_order = None
+
+    try:
+        parsed_order = int(display_order)
+    except (TypeError, ValueError):
+        errors["display_order"] = (
+            "Display order must be a number."
+        )
+    else:
+        if not 1 <= parsed_order <= 9999:
+            errors["display_order"] = (
+                "Display order must be between "
+                "1 and 9999."
+            )
+
+    return errors, parsed_order
+
+
+def render_finance_category_form(
+    request: Request,
+    user: User,
+    *,
+    page_title: str,
+    form_action: str,
+    submit_label: str,
+    form_data: dict[str, str],
+    errors: dict[str, str],
+    is_system: bool = False,
+    status_code: int = 200,
+):
+    return templates.TemplateResponse(
+        request=request,
+        name=(
+            "finance/"
+            "expense-category-form.html"
+        ),
+        context={
+            "current_user": user,
+            "page_title": page_title,
+            "form_action": form_action,
+            "submit_label": submit_label,
+            "form_data": form_data,
+            "errors": errors,
+            "is_system": is_system,
+            "icon_options": (
+                MESSIS_CATEGORY_ICONS
+            ),
+        },
+        status_code=status_code,
+    )
+
+
+@app.get(
+    "/expense-categories/manage",
+    response_class=HTMLResponse,
+)
+def finance_category_management_page(
+    request: Request,
+    search: str = "",
+    category_type: str = "",
+    status: str = "active",
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    normalized_search = search.strip()
+    normalized_type = (
+        category_type.strip().lower()
+    )
+    normalized_status = (
+        status.strip().lower()
+    )
+
+    if normalized_type not in {
+        "",
+        "system",
+        "custom",
+    }:
+        normalized_type = ""
+
+    if normalized_status not in {
+        "active",
+        "inactive",
+        "all",
+    }:
+        normalized_status = "active"
+
+    conditions = [
+        "c.owner_id = :owner_id",
+    ]
+
+    parameters: dict[str, object] = {
+        "owner_id": user.id,
+    }
+
+    if normalized_status == "active":
+        conditions.append(
+            "c.is_active = TRUE"
+        )
+    elif normalized_status == "inactive":
+        conditions.append(
+            "c.is_active = FALSE"
+        )
+
+    if normalized_type == "system":
+        conditions.append(
+            "c.is_system = TRUE"
+        )
+    elif normalized_type == "custom":
+        conditions.append(
+            "c.is_system = FALSE"
+        )
+
+    if normalized_search:
+        conditions.append(
+            "LOWER(c.name) LIKE :search_value"
+        )
+
+        parameters["search_value"] = (
+            "%"
+            + normalized_search.lower()
+            + "%"
+        )
+
+    rows = db.execute(
+        text(
+            f"""
+            SELECT
+                c.id,
+                c.name,
+                c.is_system,
+                c.icon,
+                c.color,
+                c.display_order,
+                c.is_active,
+                c.updated_at,
+                COUNT(e.id) AS expense_count,
+                COALESCE(
+                    SUM(e.amount),
+                    0
+                ) AS total_expense
+            FROM expense_categories AS c
+            LEFT JOIN expenses AS e
+                ON e.category_id = c.id
+               AND e.owner_id = c.owner_id
+            WHERE {' AND '.join(conditions)}
+            GROUP BY
+                c.id,
+                c.name,
+                c.is_system,
+                c.icon,
+                c.color,
+                c.display_order,
+                c.is_active,
+                c.updated_at
+            ORDER BY
+                c.is_active DESC,
+                c.display_order,
+                LOWER(c.name),
+                c.id
+            """
+        ),
+        parameters,
+    ).mappings().all()
+
+    categories = []
+
+    for row in rows:
+        item = dict(row)
+
+        item["expense_count"] = int(
+            item.get("expense_count") or 0
+        )
+
+        item["total_expense"] = Decimal(
+            str(
+                item.get("total_expense")
+                or 0
+            )
+        ).quantize(Decimal("0.01"))
+
+        categories.append(item)
+
+    summary = db.execute(
+        text(
+            """
+            SELECT
+                COUNT(DISTINCT c.id)
+                    AS total_categories,
+                COUNT(DISTINCT c.id)
+                    FILTER (
+                        WHERE c.is_active = TRUE
+                    )
+                    AS active_categories,
+                COUNT(e.id)
+                    AS expense_count,
+                COALESCE(
+                    SUM(e.amount),
+                    0
+                )
+                    AS total_expense
+            FROM expense_categories AS c
+            LEFT JOIN expenses AS e
+                ON e.category_id = c.id
+               AND e.owner_id = c.owner_id
+            WHERE c.owner_id = :owner_id
+            """
+        ),
+        {
+            "owner_id": user.id,
+        },
+    ).mappings().one()
+
+    return templates.TemplateResponse(
+        request=request,
+        name=(
+            "finance/"
+            "expense-categories.html"
+        ),
+        context={
+            "current_user": user,
+            "categories": categories,
+            "filters": {
+                "search": normalized_search,
+                "category_type": normalized_type,
+                "status": normalized_status,
+            },
+            "summary": {
+                "total_categories": int(
+                    summary[
+                        "total_categories"
+                    ]
+                    or 0
+                ),
+                "active_categories": int(
+                    summary[
+                        "active_categories"
+                    ]
+                    or 0
+                ),
+                "expense_count": int(
+                    summary["expense_count"]
+                    or 0
+                ),
+                "total_expense": Decimal(
+                    str(
+                        summary["total_expense"]
+                        or 0
+                    )
+                ).quantize(
+                    Decimal("0.01")
+                ),
+            },
+            "success_message": (
+                request.query_params.get(
+                    "success"
+                )
+            ),
+            "error_message": (
+                request.query_params.get(
+                    "error"
+                )
+            ),
+        },
+    )
+
+
+@app.get(
+    "/expense-categories/new",
+    response_class=HTMLResponse,
+)
+def finance_category_create_page(
+    request: Request,
+    user: User = Depends(current_user),
+):
+    return render_finance_category_form(
+        request=request,
+        user=user,
+        page_title="Add Expense Category",
+        form_action=(
+            "/expense-categories/new"
+        ),
+        submit_label="Create Category",
+        form_data=(
+            finance_category_form_values()
+        ),
+        errors={},
+    )
+
+
+@app.post(
+    "/expense-categories/new",
+    response_class=HTMLResponse,
+)
+def finance_category_create_submit(
+    request: Request,
+    name: str = Form(...),
+    icon: str = Form("📂"),
+    color: str = Form("#059669"),
+    display_order: str = Form("100"),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    form_data = (
+        finance_category_form_values(
+            name=name,
+            icon=icon,
+            color=color,
+            display_order=display_order,
+        )
+    )
+
+    errors, parsed_order = (
+        validate_finance_category_form(
+            name=name,
+            icon=icon,
+            color=color,
+            display_order=display_order,
+        )
+    )
+
+    normalized_name = name.strip()
+
+    if not errors:
+        duplicate = db.execute(
+            text(
+                """
+                SELECT id
+                FROM expense_categories
+                WHERE owner_id = :owner_id
+                  AND LOWER(name)
+                      = LOWER(:name)
+                LIMIT 1
+                """
+            ),
+            {
+                "owner_id": user.id,
+                "name": normalized_name,
+            },
+        ).scalar_one_or_none()
+
+        if duplicate is not None:
+            errors["name"] = (
+                "A category with this name "
+                "already exists."
+            )
+
+    if errors:
+        return render_finance_category_form(
+            request=request,
+            user=user,
+            page_title=(
+                "Add Expense Category"
+            ),
+            form_action=(
+                "/expense-categories/new"
+            ),
+            submit_label="Create Category",
+            form_data=form_data,
+            errors=errors,
+            status_code=422,
+        )
+
+    try:
+        category_id = db.execute(
+            text(
+                """
+                INSERT INTO expense_categories (
+                    owner_id,
+                    name,
+                    is_system,
+                    icon,
+                    color,
+                    display_order,
+                    is_active,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    :owner_id,
+                    :name,
+                    FALSE,
+                    :icon,
+                    :color,
+                    :display_order,
+                    TRUE,
+                    NOW(),
+                    NOW()
+                )
+                RETURNING id
+                """
+            ),
+            {
+                "owner_id": user.id,
+                "name": normalized_name,
+                "icon": icon,
+                "color": color,
+                "display_order": (
+                    parsed_order
+                ),
+            },
+        ).scalar_one()
+
+        audit(
+            db,
+            request,
+            "expense_category_created",
+            user.id,
+            (
+                f"Category ID: {category_id}; "
+                f"Name: {normalized_name}"
+            ),
+        )
+
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+        return render_finance_category_form(
+            request=request,
+            user=user,
+            page_title=(
+                "Add Expense Category"
+            ),
+            form_action=(
+                "/expense-categories/new"
+            ),
+            submit_label="Create Category",
+            form_data=form_data,
+            errors={
+                "name": (
+                    "A category with this name "
+                    "already exists."
+                )
+            },
+            status_code=409,
+        )
+    except SQLAlchemyError:
+        db.rollback()
+
+        return render_finance_category_form(
+            request=request,
+            user=user,
+            page_title=(
+                "Add Expense Category"
+            ),
+            form_action=(
+                "/expense-categories/new"
+            ),
+            submit_label="Create Category",
+            form_data=form_data,
+            errors={
+                "form": (
+                    "Unable to create category. "
+                    "Please try again."
+                )
+            },
+            status_code=500,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/expense-categories/manage"
+            "?success="
+            + quote(
+                f"{normalized_name} was created."
+            )
+        ),
+        status_code=303,
+    )
+
+
+@app.get(
+    "/expense-categories/{category_id}/edit",
+    response_class=HTMLResponse,
+)
+def finance_category_edit_page(
+    category_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    category = finance_category_row(
+        db=db,
+        owner_id=user.id,
+        category_id=category_id,
+    )
+
+    return render_finance_category_form(
+        request=request,
+        user=user,
+        page_title="Edit Expense Category",
+        form_action=(
+            "/expense-categories/"
+            f"{category_id}/edit"
+        ),
+        submit_label="Update Category",
+        form_data=(
+            finance_category_form_values(
+                category
+            )
+        ),
+        errors={},
+        is_system=bool(
+            category["is_system"]
+        ),
+    )
+
+
+@app.post(
+    "/expense-categories/{category_id}/edit",
+    response_class=HTMLResponse,
+)
+def finance_category_edit_submit(
+    category_id: int,
+    request: Request,
+    name: str = Form(...),
+    icon: str = Form("📂"),
+    color: str = Form("#059669"),
+    display_order: str = Form("100"),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    category = finance_category_row(
+        db=db,
+        owner_id=user.id,
+        category_id=category_id,
+    )
+
+    form_data = (
+        finance_category_form_values(
+            name=name,
+            icon=icon,
+            color=color,
+            display_order=display_order,
+        )
+    )
+
+    errors, parsed_order = (
+        validate_finance_category_form(
+            name=name,
+            icon=icon,
+            color=color,
+            display_order=display_order,
+        )
+    )
+
+    normalized_name = name.strip()
+
+    if not errors:
+        duplicate = db.execute(
+            text(
+                """
+                SELECT id
+                FROM expense_categories
+                WHERE owner_id = :owner_id
+                  AND id <> :category_id
+                  AND LOWER(name)
+                      = LOWER(:name)
+                LIMIT 1
+                """
+            ),
+            {
+                "owner_id": user.id,
+                "category_id": category_id,
+                "name": normalized_name,
+            },
+        ).scalar_one_or_none()
+
+        if duplicate is not None:
+            errors["name"] = (
+                "A category with this name "
+                "already exists."
+            )
+
+    if errors:
+        return render_finance_category_form(
+            request=request,
+            user=user,
+            page_title=(
+                "Edit Expense Category"
+            ),
+            form_action=(
+                "/expense-categories/"
+                f"{category_id}/edit"
+            ),
+            submit_label="Update Category",
+            form_data=form_data,
+            errors=errors,
+            is_system=bool(
+                category["is_system"]
+            ),
+            status_code=422,
+        )
+
+    try:
+        db.execute(
+            text(
+                """
+                UPDATE expense_categories
+                SET
+                    name = :name,
+                    icon = :icon,
+                    color = :color,
+                    display_order =
+                        :display_order,
+                    updated_at = NOW()
+                WHERE id = :category_id
+                  AND owner_id = :owner_id
+                """
+            ),
+            {
+                "category_id": category_id,
+                "owner_id": user.id,
+                "name": normalized_name,
+                "icon": icon,
+                "color": color,
+                "display_order": (
+                    parsed_order
+                ),
+            },
+        )
+
+        audit(
+            db,
+            request,
+            "expense_category_updated",
+            user.id,
+            (
+                f"Category ID: {category_id}; "
+                f"Name: {normalized_name}"
+            ),
+        )
+
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+        return render_finance_category_form(
+            request=request,
+            user=user,
+            page_title=(
+                "Edit Expense Category"
+            ),
+            form_action=(
+                "/expense-categories/"
+                f"{category_id}/edit"
+            ),
+            submit_label="Update Category",
+            form_data=form_data,
+            errors={
+                "name": (
+                    "A category with this name "
+                    "already exists."
+                )
+            },
+            is_system=bool(
+                category["is_system"]
+            ),
+            status_code=409,
+        )
+    except SQLAlchemyError:
+        db.rollback()
+
+        return render_finance_category_form(
+            request=request,
+            user=user,
+            page_title=(
+                "Edit Expense Category"
+            ),
+            form_action=(
+                "/expense-categories/"
+                f"{category_id}/edit"
+            ),
+            submit_label="Update Category",
+            form_data=form_data,
+            errors={
+                "form": (
+                    "Unable to update category. "
+                    "Please try again."
+                )
+            },
+            is_system=bool(
+                category["is_system"]
+            ),
+            status_code=500,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/expense-categories/manage"
+            "?success="
+            + quote(
+                f"{normalized_name} was updated."
+            )
+        ),
+        status_code=303,
+    )
+
+
+@app.post(
+    "/expense-categories/{category_id}/toggle",
+)
+def finance_category_toggle_status(
+    category_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    category = finance_category_row(
+        db=db,
+        owner_id=user.id,
+        category_id=category_id,
+    )
+
+    new_status = not bool(
+        category["is_active"]
+    )
+
+    state = (
+        "enabled"
+        if new_status
+        else "disabled"
+    )
+
+    try:
+        db.execute(
+            text(
+                """
+                UPDATE expense_categories
+                SET
+                    is_active = :is_active,
+                    updated_at = NOW()
+                WHERE id = :category_id
+                  AND owner_id = :owner_id
+                """
+            ),
+            {
+                "category_id": category_id,
+                "owner_id": user.id,
+                "is_active": new_status,
+            },
+        )
+
+        audit(
+            db,
+            request,
+            "expense_category_status_changed",
+            user.id,
+            (
+                f"Category ID: {category_id}; "
+                f"Status: {state}"
+            ),
+        )
+
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+        return RedirectResponse(
+            url=(
+                "/expense-categories/manage"
+                "?error="
+                + quote(
+                    "Unable to change "
+                    "category status."
+                )
+            ),
+            status_code=303,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/expense-categories/manage"
+            "?success="
+            + quote(
+                f"{category['name']} "
+                f"was {state}."
+            )
+        ),
+        status_code=303,
+    )
+
+
+# PATCH-FINANCE-001B: VENDORS MANAGEMENT UI
+
+
+MESSIS_VENDOR_TYPES = (
+    "Fertilizer",
+    "Equipment",
+    "Labour",
+    "Transport",
+    "Irrigation",
+    "Pesticide",
+    "Electricity",
+    "Maintenance",
+    "General",
+)
+
+
+def require_finance_vendor(
+    vendor_id: int,
+    user: User,
+    db: Session,
+) -> Vendor:
+    vendor = db.scalar(
+        select(Vendor).where(
+            Vendor.id == vendor_id,
+            Vendor.owner_id == user.id,
+        )
+    )
+
+    if vendor is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Vendor not found.",
+        )
+
+    return vendor
+
+
+def finance_vendor_form_values(
+    vendor: Vendor | None = None,
+    *,
+    name: str = "",
+    vendor_type: str = "General",
+    mobile_number: str = "",
+    email: str = "",
+    address: str = "",
+    notes: str = "",
+) -> dict[str, str]:
+    if vendor is not None:
+        return {
+            "name": vendor.name or "",
+            "vendor_type": (
+                getattr(
+                    vendor,
+                    "vendor_type",
+                    None,
+                )
+                or "General"
+            ),
+            "mobile_number": (
+                vendor.mobile_number or ""
+            ),
+            "email": vendor.email or "",
+            "address": vendor.address or "",
+            "notes": vendor.notes or "",
+        }
+
+    return {
+        "name": name,
+        "vendor_type": vendor_type,
+        "mobile_number": mobile_number,
+        "email": email,
+        "address": address,
+        "notes": notes,
+    }
+
+
+def validate_finance_vendor_form(
+    name: str,
+    vendor_type: str,
+    mobile_number: str,
+    email: str,
+    address: str,
+    notes: str,
+) -> dict[str, str]:
+    errors: dict[str, str] = {}
+
+    normalized_name = name.strip()
+    normalized_type = vendor_type.strip()
+    normalized_mobile = mobile_number.strip()
+    normalized_email = email.strip()
+
+    if not normalized_name:
+        errors["name"] = "Vendor name is required."
+    elif len(normalized_name) > 160:
+        errors["name"] = (
+            "Vendor name cannot exceed 160 characters."
+        )
+
+    if normalized_type not in MESSIS_VENDOR_TYPES:
+        errors["vendor_type"] = (
+            "Select a valid vendor type."
+        )
+
+    if len(normalized_mobile) > 20:
+        errors["mobile_number"] = (
+            "Mobile number cannot exceed 20 characters."
+        )
+    elif normalized_mobile:
+        compact_mobile = "".join(
+            character
+            for character in normalized_mobile
+            if character not in {
+                " ",
+                "-",
+                "(",
+                ")",
+            }
+        )
+
+        if compact_mobile.startswith("+"):
+            compact_mobile = compact_mobile[1:]
+
+        if not compact_mobile.isdigit():
+            errors["mobile_number"] = (
+                "Enter a valid mobile number."
+            )
+
+    if len(normalized_email) > 180:
+        errors["email"] = (
+            "Email cannot exceed 180 characters."
+        )
+    elif normalized_email and (
+        "@" not in normalized_email
+        or "." not in normalized_email.split("@")[-1]
+    ):
+        errors["email"] = (
+            "Enter a valid email address."
+        )
+
+    if len(address.strip()) > 1000:
+        errors["address"] = (
+            "Address cannot exceed 1000 characters."
+        )
+
+    if len(notes.strip()) > 2000:
+        errors["notes"] = (
+            "Notes cannot exceed 2000 characters."
+        )
+
+    return errors
+
+
+def render_finance_vendor_form(
+    request: Request,
+    user: User,
+    *,
+    page_title: str,
+    form_action: str,
+    submit_label: str,
+    form_data: dict[str, str],
+    errors: dict[str, str],
+    status_code: int = 200,
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="finance/vendor-form.html",
+        context={
+            "page_title": page_title,
+            "current_user": user,
+            "form_action": form_action,
+            "submit_label": submit_label,
+            "form_data": form_data,
+            "errors": errors,
+            "vendor_types": MESSIS_VENDOR_TYPES,
+        },
+        status_code=status_code,
+    )
+
+
+@app.get(
+    "/vendors/manage",
+    response_class=HTMLResponse,
+)
+def finance_vendor_management_page(
+    request: Request,
+    search: str = "",
+    vendor_type: str = "",
+    status: str = "active",
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    normalized_search = search.strip()
+    normalized_type = vendor_type.strip()
+    normalized_status = status.strip().lower()
+
+    if normalized_status not in {
+        "active",
+        "inactive",
+        "all",
+    }:
+        normalized_status = "active"
+
+    where_parts = [
+        "v.owner_id = :owner_id",
+    ]
+
+    parameters = {
+        "owner_id": user.id,
+    }
+
+    if normalized_status == "active":
+        where_parts.append(
+            "v.is_active = TRUE"
+        )
+    elif normalized_status == "inactive":
+        where_parts.append(
+            "v.is_active = FALSE"
+        )
+
+    if normalized_type:
+        if normalized_type not in MESSIS_VENDOR_TYPES:
+            normalized_type = ""
+        else:
+            where_parts.append(
+                "v.vendor_type = :vendor_type"
+            )
+
+            parameters["vendor_type"] = (
+                normalized_type
+            )
+
+    if normalized_search:
+        where_parts.append(
+            """
+            (
+                LOWER(v.name)
+                    LIKE :search_value
+                OR LOWER(
+                    COALESCE(
+                        v.mobile_number,
+                        ''
+                    )
+                ) LIKE :search_value
+                OR LOWER(
+                    COALESCE(
+                        v.email,
+                        ''
+                    )
+                ) LIKE :search_value
+            )
+            """
+        )
+
+        parameters["search_value"] = (
+            "%"
+            + normalized_search.lower()
+            + "%"
+        )
+
+    vendor_rows = db.execute(
+        text(
+            f"""
+            SELECT
+                v.id,
+                v.name,
+                v.vendor_type,
+                v.mobile_number,
+                v.email,
+                v.address,
+                v.notes,
+                v.is_active,
+                COUNT(e.id) AS expense_count,
+                COALESCE(
+                    SUM(e.amount),
+                    0
+                ) AS total_purchase,
+                MAX(e.expense_date)
+                    AS last_purchase
+            FROM vendors AS v
+            LEFT JOIN expenses AS e
+                ON e.vendor_id = v.id
+               AND e.owner_id = v.owner_id
+            WHERE {' AND '.join(where_parts)}
+            GROUP BY
+                v.id,
+                v.name,
+                v.vendor_type,
+                v.mobile_number,
+                v.email,
+                v.address,
+                v.notes,
+                v.is_active
+            ORDER BY
+                v.is_active DESC,
+                LOWER(v.name),
+                v.id DESC
+            """
+        ),
+        parameters,
+    ).mappings().all()
+
+    vendors = []
+
+    for row in vendor_rows:
+        item = dict(row)
+
+        item["expense_count"] = int(
+            item.get("expense_count") or 0
+        )
+
+        item["total_purchase"] = Decimal(
+            str(
+                item.get("total_purchase")
+                or 0
+            )
+        ).quantize(Decimal("0.01"))
+
+        vendors.append(item)
+
+    summary = db.execute(
+        text(
+            """
+            SELECT
+                COUNT(DISTINCT v.id)
+                    AS total_vendors,
+                COUNT(DISTINCT v.id)
+                    FILTER (
+                        WHERE v.is_active = TRUE
+                    )
+                    AS active_vendors,
+                COUNT(e.id)
+                    AS expense_count,
+                COALESCE(
+                    SUM(e.amount),
+                    0
+                )
+                    AS total_purchase
+            FROM vendors AS v
+            LEFT JOIN expenses AS e
+                ON e.vendor_id = v.id
+               AND e.owner_id = v.owner_id
+            WHERE v.owner_id = :owner_id
+            """
+        ),
+        {
+            "owner_id": user.id,
+        },
+    ).mappings().one()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="finance/vendors.html",
+        context={
+            "current_user": user,
+            "vendors": vendors,
+            "vendor_types": MESSIS_VENDOR_TYPES,
+            "filters": {
+                "search": normalized_search,
+                "vendor_type": normalized_type,
+                "status": normalized_status,
+            },
+            "summary": {
+                "total_vendors": int(
+                    summary["total_vendors"]
+                    or 0
+                ),
+                "active_vendors": int(
+                    summary["active_vendors"]
+                    or 0
+                ),
+                "expense_count": int(
+                    summary["expense_count"]
+                    or 0
+                ),
+                "total_purchase": Decimal(
+                    str(
+                        summary["total_purchase"]
+                        or 0
+                    )
+                ).quantize(
+                    Decimal("0.01")
+                ),
+            },
+            "success_message": (
+                request.query_params.get(
+                    "success"
+                )
+            ),
+            "error_message": (
+                request.query_params.get(
+                    "error"
+                )
+            ),
+        },
+    )
+
+
+@app.get(
+    "/vendors/new",
+    response_class=HTMLResponse,
+)
+def finance_vendor_create_page(
+    request: Request,
+    user: User = Depends(current_user),
+):
+    return render_finance_vendor_form(
+        request=request,
+        user=user,
+        page_title="Add Vendor",
+        form_action="/vendors/new",
+        submit_label="Create Vendor",
+        form_data=finance_vendor_form_values(),
+        errors={},
+    )
+
+
+@app.post(
+    "/vendors/new",
+    response_class=HTMLResponse,
+)
+def finance_vendor_create_submit(
+    request: Request,
+    name: str = Form(...),
+    vendor_type: str = Form("General"),
+    mobile_number: str = Form(""),
+    email: str = Form(""),
+    address: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    form_data = finance_vendor_form_values(
+        name=name,
+        vendor_type=vendor_type,
+        mobile_number=mobile_number,
+        email=email,
+        address=address,
+        notes=notes,
+    )
+
+    errors = validate_finance_vendor_form(
+        name=name,
+        vendor_type=vendor_type,
+        mobile_number=mobile_number,
+        email=email,
+        address=address,
+        notes=notes,
+    )
+
+    normalized_name = name.strip()
+
+    if not errors:
+        duplicate = db.scalar(
+            select(Vendor.id).where(
+                Vendor.owner_id == user.id,
+                func.lower(Vendor.name)
+                == normalized_name.lower(),
+            )
+        )
+
+        if duplicate is not None:
+            errors["name"] = (
+                "A vendor with this name "
+                "already exists."
+            )
+
+    if errors:
+        return render_finance_vendor_form(
+            request=request,
+            user=user,
+            page_title="Add Vendor",
+            form_action="/vendors/new",
+            submit_label="Create Vendor",
+            form_data=form_data,
+            errors=errors,
+            status_code=422,
+        )
+
+    try:
+        result = db.execute(
+            text(
+                """
+                INSERT INTO vendors (
+                    owner_id,
+                    name,
+                    vendor_type,
+                    mobile_number,
+                    email,
+                    address,
+                    notes,
+                    is_active,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    :owner_id,
+                    :name,
+                    :vendor_type,
+                    :mobile_number,
+                    :email,
+                    :address,
+                    :notes,
+                    TRUE,
+                    NOW(),
+                    NOW()
+                )
+                RETURNING id
+                """
+            ),
+            {
+                "owner_id": user.id,
+                "name": normalized_name,
+                "vendor_type": vendor_type,
+                "mobile_number": (
+                    normalize_optional_text(
+                        mobile_number
+                    )
+                ),
+                "email": (
+                    normalize_optional_text(
+                        email
+                    )
+                ),
+                "address": (
+                    normalize_optional_text(
+                        address
+                    )
+                ),
+                "notes": (
+                    normalize_optional_text(
+                        notes
+                    )
+                ),
+            },
+        ).scalar_one()
+
+        audit(
+            db,
+            request,
+            "vendor_created",
+            user.id,
+            (
+                f"Vendor ID: {result}; "
+                f"Name: {normalized_name}; "
+                f"Type: {vendor_type}"
+            ),
+        )
+
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+        return render_finance_vendor_form(
+            request=request,
+            user=user,
+            page_title="Add Vendor",
+            form_action="/vendors/new",
+            submit_label="Create Vendor",
+            form_data=form_data,
+            errors={
+                "name": (
+                    "A vendor with this name "
+                    "already exists."
+                )
+            },
+            status_code=409,
+        )
+    except SQLAlchemyError:
+        db.rollback()
+
+        return render_finance_vendor_form(
+            request=request,
+            user=user,
+            page_title="Add Vendor",
+            form_action="/vendors/new",
+            submit_label="Create Vendor",
+            form_data=form_data,
+            errors={
+                "form": (
+                    "Unable to create vendor. "
+                    "Please try again."
+                )
+            },
+            status_code=500,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/vendors/manage?success="
+            + quote(
+                f"{normalized_name} was created."
+            )
+        ),
+        status_code=303,
+    )
+
+
+@app.get(
+    "/vendors/{vendor_id}/edit",
+    response_class=HTMLResponse,
+)
+def finance_vendor_edit_page(
+    vendor_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    vendor = require_finance_vendor(
+        vendor_id=vendor_id,
+        user=user,
+        db=db,
+    )
+
+    vendor_type = db.execute(
+        text(
+            """
+            SELECT vendor_type
+            FROM vendors
+            WHERE id = :vendor_id
+              AND owner_id = :owner_id
+            """
+        ),
+        {
+            "vendor_id": vendor.id,
+            "owner_id": user.id,
+        },
+    ).scalar_one()
+
+    form_data = finance_vendor_form_values(
+        vendor
+    )
+
+    form_data["vendor_type"] = (
+        vendor_type or "General"
+    )
+
+    return render_finance_vendor_form(
+        request=request,
+        user=user,
+        page_title="Edit Vendor",
+        form_action=(
+            f"/vendors/{vendor.id}/edit"
+        ),
+        submit_label="Update Vendor",
+        form_data=form_data,
+        errors={},
+    )
+
+
+@app.post(
+    "/vendors/{vendor_id}/edit",
+    response_class=HTMLResponse,
+)
+def finance_vendor_edit_submit(
+    vendor_id: int,
+    request: Request,
+    name: str = Form(...),
+    vendor_type: str = Form("General"),
+    mobile_number: str = Form(""),
+    email: str = Form(""),
+    address: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    vendor = require_finance_vendor(
+        vendor_id=vendor_id,
+        user=user,
+        db=db,
+    )
+
+    form_data = finance_vendor_form_values(
+        name=name,
+        vendor_type=vendor_type,
+        mobile_number=mobile_number,
+        email=email,
+        address=address,
+        notes=notes,
+    )
+
+    errors = validate_finance_vendor_form(
+        name=name,
+        vendor_type=vendor_type,
+        mobile_number=mobile_number,
+        email=email,
+        address=address,
+        notes=notes,
+    )
+
+    normalized_name = name.strip()
+
+    if not errors:
+        duplicate = db.scalar(
+            select(Vendor.id).where(
+                Vendor.owner_id == user.id,
+                Vendor.id != vendor.id,
+                func.lower(Vendor.name)
+                == normalized_name.lower(),
+            )
+        )
+
+        if duplicate is not None:
+            errors["name"] = (
+                "A vendor with this name "
+                "already exists."
+            )
+
+    if errors:
+        return render_finance_vendor_form(
+            request=request,
+            user=user,
+            page_title="Edit Vendor",
+            form_action=(
+                f"/vendors/{vendor.id}/edit"
+            ),
+            submit_label="Update Vendor",
+            form_data=form_data,
+            errors=errors,
+            status_code=422,
+        )
+
+    try:
+        db.execute(
+            text(
+                """
+                UPDATE vendors
+                SET
+                    name = :name,
+                    vendor_type = :vendor_type,
+                    mobile_number = :mobile_number,
+                    email = :email,
+                    address = :address,
+                    notes = :notes,
+                    updated_at = NOW()
+                WHERE id = :vendor_id
+                  AND owner_id = :owner_id
+                """
+            ),
+            {
+                "vendor_id": vendor.id,
+                "owner_id": user.id,
+                "name": normalized_name,
+                "vendor_type": vendor_type,
+                "mobile_number": (
+                    normalize_optional_text(
+                        mobile_number
+                    )
+                ),
+                "email": (
+                    normalize_optional_text(
+                        email
+                    )
+                ),
+                "address": (
+                    normalize_optional_text(
+                        address
+                    )
+                ),
+                "notes": (
+                    normalize_optional_text(
+                        notes
+                    )
+                ),
+            },
+        )
+
+        audit(
+            db,
+            request,
+            "vendor_updated",
+            user.id,
+            (
+                f"Vendor ID: {vendor.id}; "
+                f"Name: {normalized_name}; "
+                f"Type: {vendor_type}"
+            ),
+        )
+
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+        return render_finance_vendor_form(
+            request=request,
+            user=user,
+            page_title="Edit Vendor",
+            form_action=(
+                f"/vendors/{vendor.id}/edit"
+            ),
+            submit_label="Update Vendor",
+            form_data=form_data,
+            errors={
+                "name": (
+                    "A vendor with this name "
+                    "already exists."
+                )
+            },
+            status_code=409,
+        )
+    except SQLAlchemyError:
+        db.rollback()
+
+        return render_finance_vendor_form(
+            request=request,
+            user=user,
+            page_title="Edit Vendor",
+            form_action=(
+                f"/vendors/{vendor.id}/edit"
+            ),
+            submit_label="Update Vendor",
+            form_data=form_data,
+            errors={
+                "form": (
+                    "Unable to update vendor. "
+                    "Please try again."
+                )
+            },
+            status_code=500,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/vendors/manage?success="
+            + quote(
+                f"{normalized_name} was updated."
+            )
+        ),
+        status_code=303,
+    )
+
+
+@app.post(
+    "/vendors/{vendor_id}/toggle",
+)
+def finance_vendor_toggle_status(
+    vendor_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    vendor = require_finance_vendor(
+        vendor_id=vendor_id,
+        user=user,
+        db=db,
+    )
+
+    new_status = not bool(
+        vendor.is_active
+    )
+
+    state = (
+        "enabled"
+        if new_status
+        else "disabled"
+    )
+
+    try:
+        db.execute(
+            text(
+                """
+                UPDATE vendors
+                SET
+                    is_active = :is_active,
+                    updated_at = NOW()
+                WHERE id = :vendor_id
+                  AND owner_id = :owner_id
+                """
+            ),
+            {
+                "vendor_id": vendor.id,
+                "owner_id": user.id,
+                "is_active": new_status,
+            },
+        )
+
+        audit(
+            db,
+            request,
+            "vendor_status_changed",
+            user.id,
+            (
+                f"Vendor ID: {vendor.id}; "
+                f"Status: {state}"
+            ),
+        )
+
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+        return RedirectResponse(
+            url=(
+                "/vendors/manage?error="
+                + quote(
+                    "Unable to change vendor status."
+                )
+            ),
+            status_code=303,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/vendors/manage?success="
+            + quote(
+                f"{vendor.name} was {state}."
+            )
+        ),
+        status_code=303,
+    )
+
+
+# PATCH-FINANCE-001A: BUYERS MANAGEMENT UI
+
+
+def require_owned_buyer(
+    buyer_id: int,
+    user: User,
+    db: Session,
+) -> Buyer:
+    buyer = db.scalar(
+        select(Buyer).where(
+            Buyer.id == buyer_id,
+            Buyer.owner_id == user.id,
+        )
+    )
+
+    if buyer is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Buyer not found.",
+        )
+
+    return buyer
+
+
+def buyer_form_values(
+    buyer: Buyer | None = None,
+    *,
+    name: str = "",
+    mobile_number: str = "",
+    email: str = "",
+    address: str = "",
+    notes: str = "",
+) -> dict[str, str]:
+    if buyer is not None:
+        return {
+            "name": buyer.name or "",
+            "mobile_number": (
+                buyer.mobile_number or ""
+            ),
+            "email": buyer.email or "",
+            "address": buyer.address or "",
+            "notes": buyer.notes or "",
+        }
+
+    return {
+        "name": name,
+        "mobile_number": mobile_number,
+        "email": email,
+        "address": address,
+        "notes": notes,
+    }
+
+
+def validate_buyer_form(
+    name: str,
+    mobile_number: str,
+    email: str,
+    address: str,
+    notes: str,
+) -> dict[str, str]:
+    errors: dict[str, str] = {}
+
+    normalized_name = name.strip()
+    normalized_mobile = mobile_number.strip()
+    normalized_email = email.strip()
+    normalized_address = address.strip()
+    normalized_notes = notes.strip()
+
+    if not normalized_name:
+        errors["name"] = "Buyer name is required."
+    elif len(normalized_name) > 160:
+        errors["name"] = (
+            "Buyer name cannot exceed 160 characters."
+        )
+
+    if len(normalized_mobile) > 20:
+        errors["mobile_number"] = (
+            "Mobile number cannot exceed 20 characters."
+        )
+    elif normalized_mobile:
+        compact_mobile = "".join(
+            character
+            for character in normalized_mobile
+            if character not in {" ", "-", "(", ")"}
+        )
+
+        if (
+            compact_mobile.startswith("+")
+        ):
+            compact_mobile = compact_mobile[1:]
+
+        if not compact_mobile.isdigit():
+            errors["mobile_number"] = (
+                "Enter a valid mobile number."
+            )
+
+    if len(normalized_email) > 180:
+        errors["email"] = (
+            "Email cannot exceed 180 characters."
+        )
+    elif normalized_email and (
+        "@" not in normalized_email
+        or "." not in normalized_email.split("@")[-1]
+    ):
+        errors["email"] = (
+            "Enter a valid email address."
+        )
+
+    if len(normalized_address) > 1000:
+        errors["address"] = (
+            "Address cannot exceed 1000 characters."
+        )
+
+    if len(normalized_notes) > 2000:
+        errors["notes"] = (
+            "Notes cannot exceed 2000 characters."
+        )
+
+    return errors
+
+
+def render_buyer_form(
+    request: Request,
+    user: User,
+    *,
+    page_title: str,
+    form_action: str,
+    submit_label: str,
+    form_data: dict[str, str],
+    errors: dict[str, str],
+    status_code: int = 200,
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="finance/buyer-form.html",
+        context={
+            "page_title": page_title,
+            "current_user": user,
+            "form_action": form_action,
+            "submit_label": submit_label,
+            "form_data": form_data,
+            "errors": errors,
+        },
+        status_code=status_code,
+    )
+
+
+@app.get(
+    "/buyers/manage",
+    response_class=HTMLResponse,
+)
+def buyer_management_page(
+    request: Request,
+    search: str = "",
+    status: str = "active",
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    normalized_search = search.strip()
+    normalized_status = status.lower().strip()
+
+    if normalized_status not in {
+        "active",
+        "inactive",
+        "all",
+    }:
+        normalized_status = "active"
+
+    query = select(Buyer).where(
+        Buyer.owner_id == user.id
+    )
+
+    if normalized_status == "active":
+        query = query.where(
+            Buyer.is_active.is_(True)
+        )
+    elif normalized_status == "inactive":
+        query = query.where(
+            Buyer.is_active.is_(False)
+        )
+
+    if normalized_search:
+        like_value = (
+            "%"
+            + normalized_search.lower()
+            + "%"
+        )
+
+        query = query.where(
+            or_(
+                func.lower(Buyer.name).like(
+                    like_value
+                ),
+                func.lower(
+                    func.coalesce(
+                        Buyer.mobile_number,
+                        "",
+                    )
+                ).like(like_value),
+                func.lower(
+                    func.coalesce(
+                        Buyer.email,
+                        "",
+                    )
+                ).like(like_value),
+            )
+        )
+
+    buyers = db.scalars(
+        query.order_by(
+            Buyer.is_active.desc(),
+            func.lower(Buyer.name),
+            Buyer.id.desc(),
+        )
+    ).all()
+
+    sale_statistics = {
+        int(row.buyer_id): {
+            "sale_count": int(
+                row.sale_count or 0
+            ),
+            "total_sales": Decimal(
+                str(row.total_sales or 0)
+            ).quantize(Decimal("0.01")),
+        }
+        for row in db.execute(
+            select(
+                Sale.buyer_id.label("buyer_id"),
+                func.count(Sale.id).label(
+                    "sale_count"
+                ),
+                func.coalesce(
+                    func.sum(Sale.net_amount),
+                    0,
+                ).label("total_sales"),
+            )
+            .where(
+                Sale.owner_id == user.id,
+                Sale.buyer_id.is_not(None),
+            )
+            .group_by(Sale.buyer_id)
+        ).all()
+    }
+
+    buyer_rows = []
+
+    for buyer in buyers:
+        statistics = sale_statistics.get(
+            buyer.id,
+            {
+                "sale_count": 0,
+                "total_sales": Decimal("0.00"),
+            },
+        )
+
+        buyer_rows.append(
+            {
+                "buyer": buyer,
+                "sale_count": (
+                    statistics["sale_count"]
+                ),
+                "total_sales": (
+                    statistics["total_sales"]
+                ),
+            }
+        )
+
+    total_buyers = db.scalar(
+        select(func.count(Buyer.id)).where(
+            Buyer.owner_id == user.id
+        )
+    ) or 0
+
+    active_buyers = db.scalar(
+        select(func.count(Buyer.id)).where(
+            Buyer.owner_id == user.id,
+            Buyer.is_active.is_(True),
+        )
+    ) or 0
+
+    total_sale_count = db.scalar(
+        select(func.count(Sale.id)).where(
+            Sale.owner_id == user.id,
+            Sale.buyer_id.is_not(None),
+        )
+    ) or 0
+
+    total_sales = db.scalar(
+        select(
+            func.coalesce(
+                func.sum(Sale.net_amount),
+                0,
+            )
+        ).where(
+            Sale.owner_id == user.id,
+            Sale.buyer_id.is_not(None),
+        )
+    ) or Decimal("0.00")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="finance/buyers.html",
+        context={
+            "current_user": user,
+            "buyers": buyer_rows,
+            "filters": {
+                "search": normalized_search,
+                "status": normalized_status,
+            },
+            "summary": {
+                "total_buyers": int(
+                    total_buyers
+                ),
+                "active_buyers": int(
+                    active_buyers
+                ),
+                "sale_count": int(
+                    total_sale_count
+                ),
+                "total_sales": Decimal(
+                    str(total_sales)
+                ).quantize(
+                    Decimal("0.01")
+                ),
+            },
+            "success_message": (
+                request.query_params.get(
+                    "success"
+                )
+            ),
+            "error_message": (
+                request.query_params.get(
+                    "error"
+                )
+            ),
+        },
+    )
+
+
+@app.get(
+    "/buyers/new",
+    response_class=HTMLResponse,
+)
+def buyer_create_page(
+    request: Request,
+    user: User = Depends(current_user),
+):
+    return render_buyer_form(
+        request=request,
+        user=user,
+        page_title="Add Buyer",
+        form_action="/buyers/new",
+        submit_label="Create Buyer",
+        form_data=buyer_form_values(),
+        errors={},
+    )
+
+
+@app.post(
+    "/buyers/new",
+    response_class=HTMLResponse,
+)
+def buyer_create_page_submit(
+    request: Request,
+    name: str = Form(...),
+    mobile_number: str = Form(""),
+    email: str = Form(""),
+    address: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    form_data = buyer_form_values(
+        name=name,
+        mobile_number=mobile_number,
+        email=email,
+        address=address,
+        notes=notes,
+    )
+
+    errors = validate_buyer_form(
+        name=name,
+        mobile_number=mobile_number,
+        email=email,
+        address=address,
+        notes=notes,
+    )
+
+    normalized_name = name.strip()
+
+    if not errors:
+        duplicate = db.scalar(
+            select(Buyer.id).where(
+                Buyer.owner_id == user.id,
+                func.lower(Buyer.name)
+                == normalized_name.lower(),
+            )
+        )
+
+        if duplicate is not None:
+            errors["name"] = (
+                "A buyer with this name "
+                "already exists."
+            )
+
+    if errors:
+        return render_buyer_form(
+            request=request,
+            user=user,
+            page_title="Add Buyer",
+            form_action="/buyers/new",
+            submit_label="Create Buyer",
+            form_data=form_data,
+            errors=errors,
+            status_code=422,
+        )
+
+    buyer = Buyer(
+        owner_id=user.id,
+        name=normalized_name,
+        mobile_number=normalize_optional_text(
+            mobile_number
+        ),
+        email=normalize_optional_text(email),
+        address=normalize_optional_text(address),
+        notes=normalize_optional_text(notes),
+        is_active=True,
+    )
+
+    try:
+        db.add(buyer)
+        db.flush()
+
+        audit(
+            db,
+            request,
+            "buyer_created",
+            user.id,
+            (
+                f"Buyer ID: {buyer.id}; "
+                f"Name: {buyer.name}"
+            ),
+        )
+
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+        return render_buyer_form(
+            request=request,
+            user=user,
+            page_title="Add Buyer",
+            form_action="/buyers/new",
+            submit_label="Create Buyer",
+            form_data=form_data,
+            errors={
+                "name": (
+                    "A buyer with this name "
+                    "already exists."
+                )
+            },
+            status_code=409,
+        )
+    except SQLAlchemyError:
+        db.rollback()
+
+        return render_buyer_form(
+            request=request,
+            user=user,
+            page_title="Add Buyer",
+            form_action="/buyers/new",
+            submit_label="Create Buyer",
+            form_data=form_data,
+            errors={
+                "form": (
+                    "Unable to create buyer. "
+                    "Please try again."
+                )
+            },
+            status_code=500,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/buyers/manage?success="
+            + quote(
+                f"{buyer.name} was created."
+            )
+        ),
+        status_code=303,
+    )
+
+
+@app.get(
+    "/buyers/{buyer_id}/edit",
+    response_class=HTMLResponse,
+)
+def buyer_edit_page(
+    buyer_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    buyer = require_owned_buyer(
+        buyer_id=buyer_id,
+        user=user,
+        db=db,
+    )
+
+    return render_buyer_form(
+        request=request,
+        user=user,
+        page_title="Edit Buyer",
+        form_action=(
+            f"/buyers/{buyer.id}/edit"
+        ),
+        submit_label="Update Buyer",
+        form_data=buyer_form_values(buyer),
+        errors={},
+    )
+
+
+@app.post(
+    "/buyers/{buyer_id}/edit",
+    response_class=HTMLResponse,
+)
+def buyer_edit_page_submit(
+    buyer_id: int,
+    request: Request,
+    name: str = Form(...),
+    mobile_number: str = Form(""),
+    email: str = Form(""),
+    address: str = Form(""),
+    notes: str = Form(""),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    buyer = require_owned_buyer(
+        buyer_id=buyer_id,
+        user=user,
+        db=db,
+    )
+
+    form_data = buyer_form_values(
+        name=name,
+        mobile_number=mobile_number,
+        email=email,
+        address=address,
+        notes=notes,
+    )
+
+    errors = validate_buyer_form(
+        name=name,
+        mobile_number=mobile_number,
+        email=email,
+        address=address,
+        notes=notes,
+    )
+
+    normalized_name = name.strip()
+
+    if not errors:
+        duplicate = db.scalar(
+            select(Buyer.id).where(
+                Buyer.owner_id == user.id,
+                Buyer.id != buyer.id,
+                func.lower(Buyer.name)
+                == normalized_name.lower(),
+            )
+        )
+
+        if duplicate is not None:
+            errors["name"] = (
+                "A buyer with this name "
+                "already exists."
+            )
+
+    if errors:
+        return render_buyer_form(
+            request=request,
+            user=user,
+            page_title="Edit Buyer",
+            form_action=(
+                f"/buyers/{buyer.id}/edit"
+            ),
+            submit_label="Update Buyer",
+            form_data=form_data,
+            errors=errors,
+            status_code=422,
+        )
+
+    buyer.name = normalized_name
+    buyer.mobile_number = normalize_optional_text(
+        mobile_number
+    )
+    buyer.email = normalize_optional_text(email)
+    buyer.address = normalize_optional_text(address)
+    buyer.notes = normalize_optional_text(notes)
+    buyer.updated_at = datetime.now(
+        timezone.utc
+    )
+
+    try:
+        audit(
+            db,
+            request,
+            "buyer_updated",
+            user.id,
+            (
+                f"Buyer ID: {buyer.id}; "
+                f"Name: {buyer.name}"
+            ),
+        )
+
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+        return render_buyer_form(
+            request=request,
+            user=user,
+            page_title="Edit Buyer",
+            form_action=(
+                f"/buyers/{buyer.id}/edit"
+            ),
+            submit_label="Update Buyer",
+            form_data=form_data,
+            errors={
+                "name": (
+                    "A buyer with this name "
+                    "already exists."
+                )
+            },
+            status_code=409,
+        )
+    except SQLAlchemyError:
+        db.rollback()
+
+        return render_buyer_form(
+            request=request,
+            user=user,
+            page_title="Edit Buyer",
+            form_action=(
+                f"/buyers/{buyer.id}/edit"
+            ),
+            submit_label="Update Buyer",
+            form_data=form_data,
+            errors={
+                "form": (
+                    "Unable to update buyer. "
+                    "Please try again."
+                )
+            },
+            status_code=500,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/buyers/manage?success="
+            + quote(
+                f"{buyer.name} was updated."
+            )
+        ),
+        status_code=303,
+    )
+
+
+@app.post(
+    "/buyers/{buyer_id}/toggle",
+)
+def buyer_toggle_status(
+    buyer_id: int,
+    request: Request,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    buyer = require_owned_buyer(
+        buyer_id=buyer_id,
+        user=user,
+        db=db,
+    )
+
+    buyer.is_active = not buyer.is_active
+    buyer.updated_at = datetime.now(
+        timezone.utc
+    )
+
+    state = (
+        "enabled"
+        if buyer.is_active
+        else "disabled"
+    )
+
+    try:
+        audit(
+            db,
+            request,
+            "buyer_status_changed",
+            user.id,
+            (
+                f"Buyer ID: {buyer.id}; "
+                f"Status: {state}"
+            ),
+        )
+
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+
+        return RedirectResponse(
+            url=(
+                "/buyers/manage?error="
+                + quote(
+                    "Unable to change buyer status."
+                )
+            ),
+            status_code=303,
+        )
+
+    return RedirectResponse(
+        url=(
+            "/buyers/manage?success="
+            + quote(
+                f"{buyer.name} was {state}."
+            )
+        ),
+        status_code=303,
     )
 
 

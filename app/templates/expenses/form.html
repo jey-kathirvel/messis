@@ -152,6 +152,50 @@
         href="/static/css/messis-subpages.css?v=001a"
     >
 
+
+    <!-- PATCH-PWA-001A-METADATA -->
+    <link
+        rel="manifest"
+        href="/static/pwa/manifest.webmanifest"
+    >
+
+    <meta
+        name="theme-color"
+        content="#064e3b"
+    >
+
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="default"
+    >
+
+    <meta
+        name="apple-mobile-web-app-title"
+        content="Messis AI"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="/static/pwa/icon-192.png"
+    >
+
+
+    <!-- PATCH-PWA-001B-MOBILE-SHELL -->
+    <link
+        rel="stylesheet"
+        href="/static/pwa/mobile-shell.css?v=001b"
+    >
+
 </head>
 
 <body class="messis-modern-subpage">
@@ -499,6 +543,266 @@
         window.location.href = "/dashboard";
     }
 </script>
+
+
+<!-- PATCH-PWA-001A-REGISTRATION -->
+<script>
+    (() => {
+        if (!("serviceWorker" in navigator)) {
+            return;
+        }
+
+        window.addEventListener(
+            "load",
+            async () => {
+                try {
+                    const registration =
+                        await navigator
+                            .serviceWorker
+                            .register(
+                                "/service-worker.js",
+                                {
+                                    scope: "/"
+                                }
+                            );
+
+                    registration.addEventListener(
+                        "updatefound",
+                        () => {
+                            const worker =
+                                registration.installing;
+
+                            if (!worker) {
+                                return;
+                            }
+
+                            worker.addEventListener(
+                                "statechange",
+                                () => {
+                                    if (
+                                        worker.state
+                                            === "installed"
+                                        && navigator
+                                            .serviceWorker
+                                            .controller
+                                    ) {
+                                        window.dispatchEvent(
+                                            new CustomEvent(
+                                                "messis:pwa-update"
+                                            )
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    );
+                } catch (error) {
+                    console.warn(
+                        "Messis PWA registration:",
+                        error
+                    );
+                }
+            }
+        );
+    })();
+</script>
+
+
+<!-- PATCH-PWA-001B-MOBILE-NAVIGATION -->
+<div
+    class="messis-mobile-sheet-backdrop"
+    id="messis-mobile-sheet-backdrop"
+></div>
+
+<section
+    class="messis-mobile-more-sheet"
+    id="messis-mobile-more-sheet"
+    aria-hidden="true"
+>
+    <div class="messis-mobile-sheet-handle"></div>
+
+    <header class="messis-mobile-sheet-header">
+        <div>
+            <strong>Messis AI</strong>
+            <span>More tools and insights</span>
+        </div>
+
+        <button
+            class="messis-mobile-sheet-close"
+            id="messis-mobile-sheet-close"
+            type="button"
+            aria-label="Close more menu"
+        >
+            ×
+        </button>
+    </header>
+
+    <div class="messis-mobile-more-grid">
+        <a
+            class="messis-mobile-more-link"
+            href="/mobile/quick-entry"
+            data-route-prefix="/mobile/quick-entry"
+        >
+            <span class="messis-mobile-more-icon">⚡</span>
+            <span>Quick Entry</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/analytics/manage"
+            data-route-prefix="/analytics"
+        >
+            <span class="messis-mobile-more-icon">📈</span>
+            <span>Analytics</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/ai/manage"
+            data-route-prefix="/ai"
+        >
+            <span class="messis-mobile-more-icon">🤖</span>
+            <span>AI Advice</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/weather/manage"
+            data-route-prefix="/weather"
+        >
+            <span class="messis-mobile-more-icon">☁</span>
+            <span>Weather</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/profitability/manage"
+            data-route-prefix="/profitability"
+        >
+            <span class="messis-mobile-more-icon">💹</span>
+            <span>Profitability</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/reports"
+            data-route-prefix="/reports"
+        >
+            <span class="messis-mobile-more-icon">📄</span>
+            <span>Reports</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/notifications/manage"
+            data-route-prefix="/notifications"
+        >
+            <span class="messis-mobile-more-icon">🔔</span>
+            <span>Notifications</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/harvest-records/manage"
+            data-route-prefix="/harvest-records"
+        >
+            <span class="messis-mobile-more-icon">🧺</span>
+            <span>Harvest Records</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/expenses/new"
+            data-route-prefix="/expenses/new"
+        >
+            <span class="messis-mobile-more-icon">➕</span>
+            <span>New Expense</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/sales/new"
+            data-route-prefix="/sales/new"
+        >
+            <span class="messis-mobile-more-icon">₹</span>
+            <span>New Sale</span>
+        </a>
+    </div>
+</section>
+
+<nav
+    class="messis-mobile-navigation"
+    id="messis-mobile-navigation"
+    aria-label="Messis mobile navigation"
+>
+    <a
+        class="messis-mobile-nav-item"
+        href="/dashboard"
+        data-mobile-route="dashboard"
+    >
+        <span class="messis-mobile-nav-icon">⌂</span>
+        <span class="messis-mobile-nav-label">Home</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/farms"
+        data-mobile-route="farms"
+    >
+        <span class="messis-mobile-nav-icon">🌴</span>
+        <span class="messis-mobile-nav-label">Farms</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/harvests/manage"
+        data-mobile-route="harvest"
+    >
+        <span class="messis-mobile-nav-icon">🥥</span>
+        <span class="messis-mobile-nav-label">Harvest</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/expenses/manage"
+        data-mobile-route="expenses"
+    >
+        <span class="messis-mobile-nav-icon">↙</span>
+        <span class="messis-mobile-nav-label">Expense</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/sales/manage"
+        data-mobile-route="sales"
+    >
+        <span class="messis-mobile-nav-icon">₹</span>
+        <span class="messis-mobile-nav-label">Sales</span>
+    </a>
+
+    <button
+        class="messis-mobile-nav-item"
+        id="messis-mobile-more-button"
+        type="button"
+        aria-expanded="false"
+        aria-controls="messis-mobile-more-sheet"
+    >
+        <span class="messis-mobile-nav-icon">•••</span>
+        <span class="messis-mobile-nav-label">More</span>
+
+        <span
+            class="messis-mobile-nav-badge"
+            id="messis-mobile-notification-badge"
+        >
+            0
+        </span>
+    </button>
+</nav>
+
+<script
+    src="/static/pwa/mobile-shell.js?v=001b"
+    defer
+></script>
 
 </body>
 </html>

@@ -968,7 +968,1197 @@
                 padding-top: 16px;
             }
         }
-    </style>
+
+        /* PATCH-ANALYTICS-001C-DASHBOARD */
+
+        .analytics-summary-panel {
+            margin-bottom: 20px;
+            padding: 20px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255, 255, 255, 0.98),
+                    rgba(236, 253, 245, 0.94)
+                );
+
+            border: 1px solid var(--green-100);
+            border-radius: 20px;
+            box-shadow: 0 12px 34px rgba(5, 150, 105, 0.07);
+        }
+
+        .analytics-summary-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 17px;
+        }
+
+        .analytics-summary-header h2 {
+            margin: 0;
+            font-size: 19px;
+        }
+
+        .analytics-summary-header p {
+            margin: 5px 0 0;
+            color: var(--slate-500);
+            font-size: 12px;
+        }
+
+        .analytics-open-link {
+            display: inline-flex;
+            min-height: 38px;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+
+            padding: 8px 12px;
+
+            color: var(--green-800);
+            background: white;
+            border: 1px solid var(--green-100);
+            border-radius: 11px;
+
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .analytics-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 11px;
+            margin-bottom: 18px;
+        }
+
+        .analytics-summary-card {
+            min-height: 105px;
+            padding: 14px;
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 15px;
+        }
+
+        .analytics-summary-card small {
+            display: block;
+            color: var(--slate-500);
+            font-size: 10px;
+            font-weight: 750;
+        }
+
+        .analytics-summary-card strong {
+            display: block;
+            margin-top: 9px;
+
+            color: var(--green-700);
+            font-size: 20px;
+            letter-spacing: -0.02em;
+        }
+
+        .analytics-summary-card strong.analytics-loss {
+            color: var(--danger);
+        }
+
+        .analytics-summary-card span {
+            display: block;
+            margin-top: 5px;
+
+            color: var(--slate-500);
+            font-size: 10px;
+            line-height: 1.4;
+        }
+
+        .analytics-mini-chart {
+            display: grid;
+            min-height: 150px;
+            grid-template-columns: repeat(12, minmax(34px, 1fr));
+            gap: 8px;
+            align-items: end;
+
+            overflow-x: auto;
+            padding: 14px 8px 4px;
+
+            background:
+                repeating-linear-gradient(
+                    to top,
+                    transparent,
+                    transparent 35px,
+                    rgba(226, 232, 240, 0.6) 36px
+                );
+
+            border: 1px solid var(--slate-200);
+            border-radius: 14px;
+        }
+
+        .analytics-mini-month {
+            display: flex;
+            min-width: 34px;
+            height: 130px;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: 4px;
+        }
+
+        .analytics-mini-bars {
+            display: flex;
+            height: 104px;
+            align-items: end;
+            justify-content: center;
+            gap: 3px;
+        }
+
+        .analytics-mini-bar {
+            width: 7px;
+            min-height: 2px;
+            border-radius: 5px 5px 2px 2px;
+        }
+
+        .analytics-mini-revenue {
+            background: var(--green-500);
+        }
+
+        .analytics-mini-profit {
+            background: #2563eb;
+        }
+
+        .analytics-mini-loss {
+            background: var(--danger);
+        }
+
+        .analytics-mini-yield {
+            background: #f59e0b;
+        }
+
+        .analytics-mini-label {
+            overflow: hidden;
+            color: var(--slate-500);
+            font-size: 8px;
+            text-align: center;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .analytics-chart-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 0 0 10px;
+        }
+
+        .analytics-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+
+            color: var(--slate-500);
+            font-size: 10px;
+            font-weight: 750;
+        }
+
+        .analytics-legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .analytics-loading,
+        .analytics-error,
+        .analytics-empty {
+            padding: 25px;
+            color: var(--slate-500);
+            text-align: center;
+
+            background: white;
+            border: 2px dashed var(--green-100);
+            border-radius: 14px;
+        }
+
+        .analytics-error {
+            color: #991b1b;
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        @media (max-width: 1180px) {
+            .analytics-summary-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 720px) {
+            .analytics-summary-header {
+                flex-direction: column;
+            }
+
+            .analytics-open-link {
+                width: 100%;
+            }
+
+            .analytics-summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            .analytics-summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+
+        /* PATCH-AI-001C-DASHBOARD */
+
+        .ai-summary-panel {
+            margin-bottom: 20px;
+            padding: 20px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(255, 255, 255, 0.99),
+                    rgba(236, 253, 245, 0.94)
+                );
+
+            border: 1px solid var(--green-100);
+            border-radius: 20px;
+            box-shadow:
+                0
+                12px
+                34px
+                rgba(5, 150, 105, 0.07);
+        }
+
+        .ai-summary-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 17px;
+        }
+
+        .ai-summary-header h2 {
+            margin: 0;
+            font-size: 19px;
+        }
+
+        .ai-summary-header p {
+            margin: 5px 0 0;
+            color: var(--slate-500);
+            font-size: 12px;
+        }
+
+        .ai-open-link {
+            display: inline-flex;
+            min-height: 38px;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+
+            padding: 8px 12px;
+
+            color: var(--green-800);
+            background: white;
+            border: 1px solid var(--green-100);
+            border-radius: 11px;
+
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .ai-priority-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(4, minmax(0, 1fr));
+            gap: 11px;
+            margin-bottom: 16px;
+        }
+
+        .ai-priority-card {
+            padding: 14px;
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 14px;
+        }
+
+        .ai-priority-card small {
+            display: block;
+            color: var(--slate-500);
+            font-size: 10px;
+            font-weight: 750;
+        }
+
+        .ai-priority-card strong {
+            display: block;
+            margin-top: 8px;
+
+            color: var(--green-700);
+            font-size: 22px;
+        }
+
+        .ai-priority-critical strong {
+            color: #b91c1c;
+        }
+
+        .ai-priority-high strong {
+            color: #c2410c;
+        }
+
+        .ai-priority-medium strong {
+            color: #a16207;
+        }
+
+        .ai-recommendation-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .ai-recommendation-item {
+            display: grid;
+            grid-template-columns:
+                auto
+                minmax(0, 1fr)
+                auto;
+            gap: 12px;
+            align-items: center;
+
+            padding: 13px;
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 14px;
+        }
+
+        .ai-priority-indicator {
+            width: 9px;
+            height: 42px;
+            border-radius: 999px;
+        }
+
+        .ai-indicator-critical {
+            background: #b91c1c;
+        }
+
+        .ai-indicator-high {
+            background: #c2410c;
+        }
+
+        .ai-indicator-medium {
+            background: #a16207;
+        }
+
+        .ai-indicator-low {
+            background: #0369a1;
+        }
+
+        .ai-indicator-info {
+            background: var(--green-600);
+        }
+
+        .ai-recommendation-copy {
+            min-width: 0;
+        }
+
+        .ai-recommendation-copy strong,
+        .ai-recommendation-copy span {
+            display: block;
+        }
+
+        .ai-recommendation-copy strong {
+            color: var(--slate-950);
+            font-size: 13px;
+        }
+
+        .ai-recommendation-copy span {
+            margin-top: 4px;
+
+            overflow: hidden;
+
+            color: var(--slate-500);
+            font-size: 11px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .ai-recommendation-action {
+            display: inline-flex;
+            min-height: 35px;
+            align-items: center;
+            justify-content: center;
+
+            padding: 7px 11px;
+
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-600)
+                );
+
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .ai-loading,
+        .ai-error,
+        .ai-empty {
+            padding: 25px;
+
+            color: var(--slate-500);
+            text-align: center;
+
+            background: white;
+            border: 2px dashed var(--green-100);
+            border-radius: 14px;
+        }
+
+        .ai-error {
+            color: #991b1b;
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        @media (max-width: 850px) {
+            .ai-priority-grid {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 650px) {
+            .ai-summary-header {
+                flex-direction: column;
+            }
+
+            .ai-open-link {
+                width: 100%;
+            }
+
+            .ai-recommendation-item {
+                grid-template-columns:
+                    auto
+                    minmax(0, 1fr);
+            }
+
+            .ai-recommendation-action {
+                grid-column: 1 / -1;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 450px) {
+            .ai-priority-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+
+        /* PATCH-WEATHER-001C-DASHBOARD */
+
+        .weather-summary-panel {
+            margin-bottom: 20px;
+            padding: 20px;
+
+            color: white;
+
+            background:
+                radial-gradient(
+                    circle at 92% 5%,
+                    rgba(255, 255, 255, 0.16),
+                    transparent 28%
+                ),
+                linear-gradient(
+                    135deg,
+                    #075985,
+                    #0284c7,
+                    #047857
+                );
+
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            box-shadow:
+                0
+                15px
+                38px
+                rgba(3, 105, 161, 0.16);
+        }
+
+        .weather-summary-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 17px;
+        }
+
+        .weather-summary-header h2 {
+            margin: 0;
+            font-size: 19px;
+        }
+
+        .weather-summary-header p {
+            margin: 5px 0 0;
+            color: #e0f2fe;
+            font-size: 12px;
+        }
+
+        .weather-open-link {
+            display: inline-flex;
+            min-height: 38px;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+
+            padding: 8px 12px;
+
+            color: #075985;
+            background: white;
+            border: 1px solid rgba(255, 255, 255, 0.55);
+            border-radius: 11px;
+
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .weather-current-grid {
+            display: grid;
+            grid-template-columns:
+                minmax(170px, 1.1fr)
+                repeat(4, minmax(100px, 0.8fr));
+            gap: 11px;
+            margin-bottom: 15px;
+        }
+
+        .weather-current-main,
+        .weather-current-card {
+            padding: 14px;
+
+            background: rgba(255, 255, 255, 0.13);
+            border: 1px solid rgba(255, 255, 255, 0.17);
+            border-radius: 14px;
+            backdrop-filter: blur(4px);
+        }
+
+        .weather-current-main small,
+        .weather-current-card small {
+            display: block;
+            color: #e0f2fe;
+            font-size: 10px;
+            font-weight: 750;
+        }
+
+        .weather-current-main strong {
+            display: block;
+            margin-top: 8px;
+            font-size: 31px;
+        }
+
+        .weather-current-main span {
+            display: block;
+            margin-top: 4px;
+            color: #f0f9ff;
+            font-size: 12px;
+        }
+
+        .weather-current-card strong {
+            display: block;
+            margin-top: 9px;
+            font-size: 19px;
+        }
+
+        .weather-current-card span {
+            display: block;
+            margin-top: 4px;
+            color: #e0f2fe;
+            font-size: 10px;
+        }
+
+        .weather-summary-bottom {
+            display: grid;
+            grid-template-columns:
+                minmax(0, 1.4fr)
+                minmax(240px, 0.6fr);
+            gap: 12px;
+        }
+
+        .weather-forecast-mini {
+            display: grid;
+            grid-template-columns:
+                repeat(3, minmax(0, 1fr));
+            gap: 9px;
+        }
+
+        .weather-day-card {
+            padding: 12px;
+
+            color: var(--slate-800);
+            background: rgba(255, 255, 255, 0.94);
+            border-radius: 13px;
+        }
+
+        .weather-day-card strong,
+        .weather-day-card span,
+        .weather-day-card small {
+            display: block;
+        }
+
+        .weather-day-card strong {
+            font-size: 12px;
+        }
+
+        .weather-day-card span {
+            margin-top: 7px;
+            color: #0369a1;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .weather-day-card small {
+            margin-top: 6px;
+            color: var(--slate-500);
+            font-size: 9px;
+            line-height: 1.45;
+        }
+
+        .weather-advisory-mini {
+            padding: 14px;
+
+            color: var(--slate-800);
+            background: rgba(255, 255, 255, 0.94);
+            border-radius: 13px;
+        }
+
+        .weather-advisory-mini strong {
+            display: block;
+            color: #b45309;
+            font-size: 13px;
+        }
+
+        .weather-advisory-mini p {
+            margin: 7px 0 0;
+            color: var(--slate-600);
+            font-size: 10px;
+            line-height: 1.5;
+        }
+
+        .weather-loading,
+        .weather-empty,
+        .weather-dashboard-error {
+            padding: 25px;
+
+            color: #e0f2fe;
+            text-align: center;
+
+            background: rgba(255, 255, 255, 0.10);
+            border: 2px dashed rgba(255, 255, 255, 0.24);
+            border-radius: 14px;
+        }
+
+        .weather-empty a {
+            color: white;
+            font-weight: 900;
+        }
+
+        .weather-dashboard-error {
+            color: #fee2e2;
+        }
+
+        .weather-attribution {
+            margin-top: 11px;
+            color: #bae6fd;
+            font-size: 9px;
+            text-align: right;
+        }
+
+        @media (max-width: 1050px) {
+            .weather-current-grid {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            .weather-current-main {
+                grid-column: 1 / -1;
+            }
+
+            .weather-summary-bottom {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 650px) {
+            .weather-summary-header {
+                flex-direction: column;
+            }
+
+            .weather-open-link {
+                width: 100%;
+            }
+
+            .weather-current-grid,
+            .weather-forecast-mini {
+                grid-template-columns: 1fr;
+            }
+
+            .weather-current-main {
+                grid-column: auto;
+            }
+        }
+
+
+        /* PATCH-NOTIFY-001B-DASHBOARD */
+
+        .notification-top-link {
+            position: relative;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -7px;
+            right: -7px;
+
+            display: none;
+            min-width: 20px;
+            height: 20px;
+            align-items: center;
+            justify-content: center;
+
+            padding: 0 5px;
+
+            color: white;
+            background: #dc2626;
+            border: 2px solid white;
+            border-radius: 999px;
+
+            font-size: 9px;
+            font-weight: 900;
+        }
+
+        .notification-badge.visible {
+            display: inline-flex;
+        }
+
+
+        /* PATCH-NOTIFY-001D-DASHBOARD-PREVIEW */
+
+        .notification-preview-wrapper {
+            position: relative;
+        }
+
+        .notification-preview-button {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .notification-preview {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            z-index: 1200;
+
+            width: min(420px, calc(100vw - 24px));
+            overflow: hidden;
+
+            color: var(--slate-950);
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 18px;
+            box-shadow:
+                0
+                24px
+                60px
+                rgba(15, 23, 42, 0.20);
+
+            transform-origin: top right;
+        }
+
+        .notification-preview[hidden] {
+            display: none;
+        }
+
+        .notification-preview-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+
+            padding: 16px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-950),
+                    var(--green-700)
+                );
+        }
+
+        .notification-preview-header h3 {
+            margin: 0;
+            color: white;
+            font-size: 15px;
+        }
+
+        .notification-preview-header p {
+            margin: 4px 0 0;
+            color: #d1fae5;
+            font-size: 10px;
+        }
+
+        .notification-preview-refresh {
+            display: inline-flex;
+            min-height: 34px;
+            align-items: center;
+            justify-content: center;
+
+            padding: 7px 10px;
+
+            color: white;
+            background: rgba(255, 255, 255, 0.13);
+            border: 1px solid rgba(255, 255, 255, 0.20);
+            border-radius: 9px;
+
+            font-size: 10px;
+            font-weight: 850;
+            cursor: pointer;
+        }
+
+        .notification-preview-body {
+            max-height: 430px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .notification-preview-loading,
+        .notification-preview-empty,
+        .notification-preview-error {
+            padding: 28px 16px;
+
+            color: var(--slate-500);
+            text-align: center;
+
+            background: #fbfefc;
+            border: 2px dashed var(--green-100);
+            border-radius: 13px;
+
+            font-size: 12px;
+        }
+
+        .notification-preview-error {
+            color: #991b1b;
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .notification-preview-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .notification-preview-item {
+            position: relative;
+            display: grid;
+            grid-template-columns:
+                auto
+                minmax(0, 1fr)
+                auto;
+            gap: 10px;
+            align-items: flex-start;
+
+            padding: 12px;
+
+            background: #fbfefc;
+            border: 1px solid var(--slate-200);
+            border-radius: 13px;
+        }
+
+        .notification-preview-item:hover {
+            border-color: var(--green-100);
+            background: var(--green-50);
+        }
+
+        .notification-preview-indicator {
+            width: 8px;
+            height: 38px;
+            border-radius: 999px;
+        }
+
+        .preview-critical {
+            background: #b91c1c;
+        }
+
+        .preview-high {
+            background: #c2410c;
+        }
+
+        .preview-medium {
+            background: #a16207;
+        }
+
+        .preview-low {
+            background: #0369a1;
+        }
+
+        .preview-info {
+            background: var(--green-600);
+        }
+
+        .notification-preview-copy {
+            min-width: 0;
+        }
+
+        .notification-preview-copy strong {
+            display: block;
+
+            overflow: hidden;
+
+            color: var(--slate-950);
+            font-size: 12px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .notification-preview-copy span {
+            display: block;
+            margin-top: 4px;
+
+            overflow: hidden;
+
+            color: var(--slate-500);
+            font-size: 10px;
+            line-height: 1.45;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .notification-preview-copy small {
+            display: block;
+            margin-top: 5px;
+
+            color: var(--slate-500);
+            font-size: 9px;
+        }
+
+        .notification-preview-read {
+            display: inline-flex;
+            min-height: 30px;
+            align-items: center;
+            justify-content: center;
+
+            padding: 6px 8px;
+
+            color: var(--green-800);
+            background: white;
+            border: 1px solid var(--green-100);
+            border-radius: 8px;
+
+            font-size: 9px;
+            font-weight: 850;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .notification-preview-footer {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+            gap: 9px;
+
+            padding: 12px;
+
+            background: var(--slate-100);
+            border-top: 1px solid var(--slate-200);
+        }
+
+        .notification-preview-footer a,
+        .notification-preview-footer button {
+            display: inline-flex;
+            min-height: 38px;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+
+            padding: 8px 10px;
+
+            border-radius: 10px;
+
+            text-decoration: none;
+            font-size: 10px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .notification-preview-all {
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-600)
+                );
+            border: 0;
+        }
+
+        .notification-preview-read-all {
+            color: var(--green-800);
+            background: white;
+            border: 1px solid var(--green-100);
+        }
+
+        @media (max-width: 700px) {
+            .notification-preview {
+                position: fixed;
+                top: 78px;
+                right: 12px;
+                left: 12px;
+
+                width: auto;
+                max-height: calc(100vh - 96px);
+            }
+
+            .notification-preview-body {
+                max-height: calc(100vh - 250px);
+            }
+        }
+
+
+        /* PATCH-PWA-001A-INSTALL-UI */
+
+        .pwa-install-button {
+            display: none;
+        }
+
+        .pwa-install-button.visible {
+            display: inline-flex;
+        }
+
+        .pwa-install-toast {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 1400;
+
+            width: min(390px, calc(100vw - 40px));
+            padding: 16px;
+
+            color: var(--slate-800);
+            background: white;
+            border: 1px solid var(--green-100);
+            border-radius: 16px;
+            box-shadow:
+                0
+                20px
+                55px
+                rgba(15, 23, 42, 0.20);
+        }
+
+        .pwa-install-toast[hidden] {
+            display: none;
+        }
+
+        .pwa-install-toast strong {
+            display: block;
+            color: var(--green-900);
+            font-size: 14px;
+        }
+
+        .pwa-install-toast p {
+            margin: 7px 0 0;
+            color: var(--slate-500);
+            font-size: 11px;
+            line-height: 1.55;
+        }
+
+        .pwa-install-toast-actions {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+            gap: 9px;
+            margin-top: 13px;
+        }
+
+        .pwa-install-toast-actions button {
+            min-height: 38px;
+            padding: 8px 11px;
+
+            border-radius: 10px;
+
+            font-size: 11px;
+            font-weight: 850;
+            cursor: pointer;
+        }
+
+        .pwa-toast-primary {
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-600)
+                );
+            border: 0;
+        }
+
+        .pwa-toast-secondary {
+            color: var(--green-800);
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+        }
+
+</style>
+
+    <!-- PATCH-PWA-001A-METADATA -->
+    <link
+        rel="manifest"
+        href="/static/pwa/manifest.webmanifest"
+    >
+
+    <meta
+        name="theme-color"
+        content="#064e3b"
+    >
+
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="default"
+    >
+
+    <meta
+        name="apple-mobile-web-app-title"
+        content="Messis AI"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="/static/pwa/icon-192.png"
+    >
+
+
+    <!-- PATCH-PWA-001B-MOBILE-SHELL -->
+    <link
+        rel="stylesheet"
+        href="/static/pwa/mobile-shell.css?v=001b"
+    >
+
 </head>
 
 <body>
@@ -1098,32 +2288,32 @@
                     <div class="submenu">
                         <a
                             class="menu-link"
-                            href="/buyers"
+                            href="/buyers/manage"
                             target="_blank"
                         >
                             <span class="menu-icon">♙</span>
-                            <span class="menu-text">Buyers API</span>
-                            <span class="menu-badge">API</span>
+                            <span class="menu-text">Buyers</span>
+                            <span class="menu-badge">Manage</span>
                         </a>
 
                         <a
                             class="menu-link"
-                            href="/vendors"
+                            href="/vendors/manage"
                             target="_blank"
                         >
                             <span class="menu-icon">♙</span>
-                            <span class="menu-text">Vendors API</span>
-                            <span class="menu-badge">API</span>
+                            <span class="menu-text">Vendors</span>
+                            <span class="menu-badge">Manage</span>
                         </a>
 
                         <a
                             class="menu-link"
-                            href="/expense-categories"
+                            href="/expense-categories/manage"
                             target="_blank"
                         >
                             <span class="menu-icon">♢</span>
                             <span class="menu-text">Expense Categories</span>
-                            <span class="menu-badge">API</span>
+                            <span class="menu-badge">Manage</span>
                         </a>
                     </div>
                 </details>
@@ -1131,6 +2321,38 @@
 
             <section class="menu-section">
                 <div class="menu-label">Analytics & Reports</div>
+
+                <a
+                    class="menu-link"
+                    href="/weather/manage"
+                >
+                    <span class="menu-icon">☁</span>
+                    <span class="menu-text">Farm Weather</span>
+                </a>
+
+                <a
+                    class="menu-link"
+                    href="/notifications/manage"
+                >
+                    <span class="menu-icon">🔔</span>
+                    <span class="menu-text">Notifications</span>
+
+                    <span
+                        class="menu-badge"
+                        id="sidebar-notification-badge"
+                        style="display:none"
+                    >
+                        0
+                    </span>
+                </a>
+
+                <a
+                    class="menu-link"
+                    href="/ai/manage"
+                >
+                    <span class="menu-icon">🤖</span>
+                    <span class="menu-text">AI Recommendations</span>
+                </a>
 
                 <a
                     class="menu-link"
@@ -1241,6 +2463,117 @@
             </div>
 
             <div class="topbar-right">
+                <div
+                    class="notification-preview-wrapper"
+                    id="notification-preview-wrapper"
+                >
+                    <button
+                        class="
+                            top-link
+                            notification-top-link
+                            notification-preview-button
+                        "
+                        id="notification-preview-button"
+                        type="button"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        aria-controls="notification-preview"
+                    >
+                        🔔 Notifications
+
+                        <span
+                            class="notification-badge"
+                            id="dashboard-notification-badge"
+                        >
+                            0
+                        </span>
+                    </button>
+
+                    <section
+                        class="notification-preview"
+                        id="notification-preview"
+                        hidden
+                    >
+                        <header
+                            class="notification-preview-header"
+                        >
+                            <div>
+                                <h3>Notifications</h3>
+
+                                <p>
+                                    Latest unread farm alerts
+                                </p>
+                            </div>
+
+                            <button
+                                class="notification-preview-refresh"
+                                id="notification-preview-refresh"
+                                type="button"
+                            >
+                                ↻ Refresh
+                            </button>
+                        </header>
+
+                        <div class="notification-preview-body">
+                            <div
+                                class="notification-preview-loading"
+                                id="notification-preview-loading"
+                            >
+                                Loading notifications…
+                            </div>
+
+                            <div
+                                class="notification-preview-list"
+                                id="notification-preview-list"
+                                hidden
+                            ></div>
+
+                            <div
+                                class="notification-preview-empty"
+                                id="notification-preview-empty"
+                                hidden
+                            >
+                                No unread notifications.
+                            </div>
+
+                            <div
+                                class="notification-preview-error"
+                                id="notification-preview-error"
+                                hidden
+                            >
+                                Notifications could not be loaded.
+                            </div>
+                        </div>
+
+                        <footer
+                            class="notification-preview-footer"
+                        >
+                            <button
+                                class="notification-preview-read-all"
+                                id="notification-preview-read-all"
+                                type="button"
+                            >
+                                ✓ Mark All Read
+                            </button>
+
+                            <a
+                                class="notification-preview-all"
+                                href="/notifications/manage"
+                            >
+                                View All →
+                            </a>
+                        </footer>
+                    </section>
+                </div>
+
+                <button
+                    class="top-link pwa-install-button"
+                    id="pwa-install-button"
+                    type="button"
+                >
+                    📲 Install App
+                </button>
+
                 <a class="top-link" href="/reports">
                     📄 Reports
                 </a>
@@ -1335,7 +2668,168 @@
                 </div>
             </form>
 
-            <section class="kpi-grid">
+
+            <!-- PATCH-ANALYTICS-001C-DASHBOARD -->
+            <section
+                class="analytics-summary-panel"
+                id="dashboard-analytics-summary"
+                data-farm-id="{{ filters.farm_id }}"
+                data-date-from="{{ filters.date_from }}"
+                data-date-to="{{ filters.date_to }}"
+            >
+                <div class="analytics-summary-header">
+                    <div>
+                        <h2>📈 Yield & Financial Analytics</h2>
+
+                        <p>
+                            Live trend summary for the selected dashboard
+                            farm and date period.
+                        </p>
+                    </div>
+
+                    <a
+                        class="analytics-open-link"
+                        id="dashboard-analytics-link"
+                        href="/analytics/manage"
+                    >
+                        Open Full Analytics →
+                    </a>
+                </div>
+
+                <div
+                    class="analytics-loading"
+                    id="dashboard-analytics-loading"
+                >
+                    Loading analytics summary…
+                </div>
+
+                <div
+                    id="dashboard-analytics-content"
+                    hidden
+                >
+                    <div
+                        class="analytics-summary-grid"
+                        id="dashboard-analytics-cards"
+                    ></div>
+
+                    <div class="analytics-chart-legend">
+                        <span class="analytics-legend-item">
+                            <span
+                                class="analytics-legend-dot"
+                                style="background:#10b981"
+                            ></span>
+                            Revenue
+                        </span>
+
+                        <span class="analytics-legend-item">
+                            <span
+                                class="analytics-legend-dot"
+                                style="background:#2563eb"
+                            ></span>
+                            Net profit
+                        </span>
+
+                        <span class="analytics-legend-item">
+                            <span
+                                class="analytics-legend-dot"
+                                style="background:#f59e0b"
+                            ></span>
+                            Coconut yield
+                        </span>
+                    </div>
+
+                    <div
+                        class="analytics-mini-chart"
+                        id="dashboard-analytics-chart"
+                    ></div>
+                </div>
+
+                <div
+                    class="analytics-error"
+                    id="dashboard-analytics-error"
+                    hidden
+                >
+                    Analytics summary could not be loaded.
+                    Open the full Analytics page to retry.
+                </div>
+            </section>
+
+
+            <!-- PATCH-WEATHER-001C-DASHBOARD -->
+            <section
+                class="weather-summary-panel"
+                id="dashboard-weather-summary"
+                data-farm-id="{{ filters.farm_id }}"
+            >
+                <div class="weather-summary-header">
+                    <div>
+                        <h2>☁ Farm Weather</h2>
+
+                        <p id="dashboard-weather-subtitle">
+                            Current farm conditions and a compact
+                            three-day forecast.
+                        </p>
+                    </div>
+
+                    <a
+                        class="weather-open-link"
+                        id="dashboard-weather-link"
+                        href="/weather/manage"
+                    >
+                        Open Weather Center →
+                    </a>
+                </div>
+
+                <div
+                    class="weather-loading"
+                    id="dashboard-weather-loading"
+                >
+                    Loading farm weather…
+                </div>
+
+                <div
+                    id="dashboard-weather-content"
+                    hidden
+                >
+                    <div
+                        class="weather-current-grid"
+                        id="dashboard-weather-current"
+                    ></div>
+
+                    <div class="weather-summary-bottom">
+                        <div
+                            class="weather-forecast-mini"
+                            id="dashboard-weather-forecast"
+                        ></div>
+
+                        <div
+                            class="weather-advisory-mini"
+                            id="dashboard-weather-advisory"
+                        ></div>
+                    </div>
+
+                    <div
+                        class="weather-attribution"
+                        id="dashboard-weather-attribution"
+                    ></div>
+                </div>
+
+                <div
+                    class="weather-empty"
+                    id="dashboard-weather-empty"
+                    hidden
+                ></div>
+
+                <div
+                    class="weather-dashboard-error"
+                    id="dashboard-weather-error"
+                    hidden
+                >
+                    Weather information could not be loaded.
+                </div>
+            </section>
+
+<section class="kpi-grid">
                 <article class="kpi">
                     <div class="kpi-top">
                         <small>Sales revenue</small>
@@ -1457,7 +2951,68 @@
                 </article>
             </section>
 
-            <section class="dashboard-grid">
+
+            <!-- PATCH-AI-001C-DASHBOARD -->
+            <section
+                class="ai-summary-panel"
+                id="dashboard-ai-summary"
+                data-farm-id="{{ filters.farm_id }}"
+                data-date-from="{{ filters.date_from }}"
+                data-date-to="{{ filters.date_to }}"
+            >
+                <div class="ai-summary-header">
+                    <div>
+                        <h2>🤖 Messis AI Recommendations</h2>
+
+                        <p>
+                            Priority actions generated from your
+                            harvest, yield, sales, expense and
+                            profitability records.
+                        </p>
+                    </div>
+
+                    <a
+                        class="ai-open-link"
+                        id="dashboard-ai-link"
+                        href="/ai/manage"
+                    >
+                        Open Recommendation Center →
+                    </a>
+                </div>
+
+                <div
+                    class="ai-loading"
+                    id="dashboard-ai-loading"
+                >
+                    Analysing farm records…
+                </div>
+
+                <div
+                    id="dashboard-ai-content"
+                    hidden
+                >
+                    <div
+                        class="ai-priority-grid"
+                        id="dashboard-ai-priorities"
+                    ></div>
+
+                    <div
+                        class="ai-recommendation-list"
+                        id="dashboard-ai-list"
+                    ></div>
+                </div>
+
+                <div
+                    class="ai-error"
+                    id="dashboard-ai-error"
+                    hidden
+                >
+                    Recommendations could not be loaded.
+                    Open the Recommendation Center to retry.
+                </div>
+            </section>
+
+<section class="dashboard-grid">
 
                 <div>
                     <article class="panel">
@@ -1741,5 +3296,2153 @@
         });
     })();
 </script>
+
+<script>
+    (() => {
+        const panel = document.getElementById(
+            "dashboard-analytics-summary"
+        );
+
+        if (!panel) {
+            return;
+        }
+
+        const loading = document.getElementById(
+            "dashboard-analytics-loading"
+        );
+
+        const content = document.getElementById(
+            "dashboard-analytics-content"
+        );
+
+        const error = document.getElementById(
+            "dashboard-analytics-error"
+        );
+
+        const cards = document.getElementById(
+            "dashboard-analytics-cards"
+        );
+
+        const chart = document.getElementById(
+            "dashboard-analytics-chart"
+        );
+
+        const analyticsLink = document.getElementById(
+            "dashboard-analytics-link"
+        );
+
+        const query = new URLSearchParams();
+
+        if (panel.dataset.farmId) {
+            query.set(
+                "farm_id",
+                panel.dataset.farmId
+            );
+        }
+
+        if (panel.dataset.dateFrom) {
+            query.set(
+                "date_from",
+                panel.dataset.dateFrom
+            );
+        }
+
+        if (panel.dataset.dateTo) {
+            query.set(
+                "date_to",
+                panel.dataset.dateTo
+            );
+        }
+
+        const queryString = query.toString();
+
+        if (queryString) {
+            analyticsLink.href =
+                "/analytics/manage?" + queryString;
+        }
+
+        function money(value) {
+            return new Intl.NumberFormat(
+                "en-IN",
+                {
+                    style: "currency",
+                    currency: "INR",
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }
+            ).format(Number(value || 0));
+        }
+
+        function number(value) {
+            return new Intl.NumberFormat(
+                "en-IN"
+            ).format(Number(value || 0));
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function percentage(
+            value,
+            maximum
+        ) {
+            const parsed = Math.abs(
+                Number(value || 0)
+            );
+
+            if (
+                !Number.isFinite(parsed)
+                || maximum <= 0
+            ) {
+                return 0;
+            }
+
+            return Math.max(
+                parsed > 0 ? 2 : 0,
+                Math.min(
+                    100,
+                    (parsed / maximum) * 100
+                )
+            );
+        }
+
+        function renderCards(summary) {
+            const profit = Number(
+                summary.net_profit || 0
+            );
+
+            const bestMonth =
+                summary.best_month?.label
+                || "No data";
+
+            cards.innerHTML = `
+                <article class="analytics-summary-card">
+                    <small>Total coconuts</small>
+                    <strong>${number(
+                        summary.total_coconuts
+                    )}</strong>
+                    <span>
+                        ${number(
+                            summary.harvest_count
+                        )} harvest records
+                    </span>
+                </article>
+
+                <article class="analytics-summary-card">
+                    <small>Yield per tree</small>
+                    <strong>${number(
+                        summary.yield_per_tree
+                    )}</strong>
+                    <span>Coconuts per harvested tree</span>
+                </article>
+
+                <article class="analytics-summary-card">
+                    <small>Revenue</small>
+                    <strong>${money(
+                        summary.total_revenue
+                    )}</strong>
+                    <span>
+                        ${number(
+                            summary.sale_count
+                        )} sale entries
+                    </span>
+                </article>
+
+                <article class="analytics-summary-card">
+                    <small>Net profit</small>
+                    <strong
+                        class="${
+                            profit < 0
+                            ? "analytics-loss"
+                            : ""
+                        }"
+                    >
+                        ${money(profit)}
+                    </strong>
+                    <span>
+                        ${escapeHtml(
+                            summary.profitability_percentage
+                        )}% return on cost
+                    </span>
+                </article>
+
+                <article class="analytics-summary-card">
+                    <small>Outstanding</small>
+                    <strong>${money(
+                        summary.total_outstanding
+                    )}</strong>
+                    <span>Pending sale collection</span>
+                </article>
+
+                <article class="analytics-summary-card">
+                    <small>Best month</small>
+                    <strong>${escapeHtml(
+                        bestMonth
+                    )}</strong>
+                    <span>
+                        Damage:
+                        ${escapeHtml(
+                            summary.damage_percentage
+                        )}%
+                    </span>
+                </article>
+            `;
+        }
+
+        function renderChart(monthly) {
+            const recent = monthly.slice(-12);
+
+            if (!recent.length) {
+                chart.innerHTML = `
+                    <div class="analytics-empty">
+                        No monthly analytics data available.
+                    </div>
+                `;
+
+                chart.style.display = "block";
+                return;
+            }
+
+            const maximum = Math.max(
+                0,
+                ...recent.flatMap(
+                    item => [
+                        Math.abs(
+                            Number(
+                                item.financial
+                                    .sales_revenue || 0
+                            )
+                        ),
+                        Math.abs(
+                            Number(
+                                item.financial
+                                    .net_profit || 0
+                            )
+                        ),
+                        Number(
+                            item.yield
+                                .total_coconuts || 0
+                        )
+                    ]
+                )
+            );
+
+            chart.style.gridTemplateColumns =
+                `repeat(${
+                    recent.length
+                }, minmax(34px, 1fr))`;
+
+            chart.innerHTML = recent
+                .map(item => {
+                    const revenue =
+                        Number(
+                            item.financial
+                                .sales_revenue || 0
+                        );
+
+                    const profit =
+                        Number(
+                            item.financial
+                                .net_profit || 0
+                        );
+
+                    const yieldValue =
+                        Number(
+                            item.yield
+                                .total_coconuts || 0
+                        );
+
+                    return `
+                        <div class="analytics-mini-month">
+                            <div class="analytics-mini-bars">
+                                <div
+                                    class="
+                                        analytics-mini-bar
+                                        analytics-mini-revenue
+                                    "
+                                    title="Revenue ${money(
+                                        revenue
+                                    )}"
+                                    style="
+                                        height:${
+                                            percentage(
+                                                revenue,
+                                                maximum
+                                            )
+                                        }%;
+                                    "
+                                ></div>
+
+                                <div
+                                    class="
+                                        analytics-mini-bar
+                                        ${
+                                            profit < 0
+                                            ? "analytics-mini-loss"
+                                            : "analytics-mini-profit"
+                                        }
+                                    "
+                                    title="Net profit ${money(
+                                        profit
+                                    )}"
+                                    style="
+                                        height:${
+                                            percentage(
+                                                profit,
+                                                maximum
+                                            )
+                                        }%;
+                                    "
+                                ></div>
+
+                                <div
+                                    class="
+                                        analytics-mini-bar
+                                        analytics-mini-yield
+                                    "
+                                    title="Yield ${number(
+                                        yieldValue
+                                    )}"
+                                    style="
+                                        height:${
+                                            percentage(
+                                                yieldValue,
+                                                maximum
+                                            )
+                                        }%;
+                                    "
+                                ></div>
+                            </div>
+
+                            <div class="analytics-mini-label">
+                                ${escapeHtml(item.label)}
+                            </div>
+                        </div>
+                    `;
+                })
+                .join("");
+        }
+
+        async function loadAnalytics() {
+            try {
+                const url =
+                    "/analytics/trends"
+                    + (
+                        queryString
+                        ? "?" + queryString
+                        : ""
+                    );
+
+                const response = await fetch(
+                    url,
+                    {
+                        credentials: "same-origin",
+                        headers: {
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        "Analytics request failed."
+                    );
+                }
+
+                const data = await response.json();
+
+                renderCards(data.summary || {});
+                renderChart(data.monthly || []);
+
+                loading.hidden = true;
+                error.hidden = true;
+                content.hidden = false;
+            } catch (loadError) {
+                console.error(
+                    "Messis dashboard analytics:",
+                    loadError
+                );
+
+                loading.hidden = true;
+                content.hidden = true;
+                error.hidden = false;
+            }
+        }
+
+        loadAnalytics();
+    })();
+</script>
+
+
+<script>
+    (() => {
+        const panel = document.getElementById(
+            "dashboard-ai-summary"
+        );
+
+        if (!panel) {
+            return;
+        }
+
+        const loading = document.getElementById(
+            "dashboard-ai-loading"
+        );
+
+        const content = document.getElementById(
+            "dashboard-ai-content"
+        );
+
+        const error = document.getElementById(
+            "dashboard-ai-error"
+        );
+
+        const priorities = document.getElementById(
+            "dashboard-ai-priorities"
+        );
+
+        const recommendationList =
+            document.getElementById(
+                "dashboard-ai-list"
+            );
+
+        const recommendationLink =
+            document.getElementById(
+                "dashboard-ai-link"
+            );
+
+        const query = new URLSearchParams();
+
+        if (panel.dataset.farmId) {
+            query.set(
+                "farm_id",
+                panel.dataset.farmId
+            );
+        }
+
+        if (panel.dataset.dateFrom) {
+            query.set(
+                "date_from",
+                panel.dataset.dateFrom
+            );
+        }
+
+        if (panel.dataset.dateTo) {
+            query.set(
+                "date_to",
+                panel.dataset.dateTo
+            );
+        }
+
+        const queryString = query.toString();
+
+        if (queryString) {
+            recommendationLink.href =
+                "/ai/manage?" + queryString;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function renderPriorities(
+            counts,
+            total
+        ) {
+            priorities.innerHTML = `
+                <article class="ai-priority-card">
+                    <small>Total recommendations</small>
+                    <strong>${Number(total || 0)}</strong>
+                </article>
+
+                <article
+                    class="
+                        ai-priority-card
+                        ai-priority-critical
+                    "
+                >
+                    <small>Critical</small>
+                    <strong>
+                        ${Number(counts.critical || 0)}
+                    </strong>
+                </article>
+
+                <article
+                    class="
+                        ai-priority-card
+                        ai-priority-high
+                    "
+                >
+                    <small>High priority</small>
+                    <strong>
+                        ${Number(counts.high || 0)}
+                    </strong>
+                </article>
+
+                <article
+                    class="
+                        ai-priority-card
+                        ai-priority-medium
+                    "
+                >
+                    <small>Medium priority</small>
+                    <strong>
+                        ${Number(counts.medium || 0)}
+                    </strong>
+                </article>
+            `;
+        }
+
+        function renderRecommendations(items) {
+            const selected = items
+                .filter(
+                    item =>
+                        item.priority !== "info"
+                )
+                .slice(0, 5);
+
+            const fallback = items.slice(0, 5);
+
+            const visibleItems =
+                selected.length
+                ? selected
+                : fallback;
+
+            if (!visibleItems.length) {
+                recommendationList.innerHTML = `
+                    <div class="ai-empty">
+                        No recommendations are available
+                        for the selected period.
+                    </div>
+                `;
+
+                return;
+            }
+
+            recommendationList.innerHTML =
+                visibleItems.map(item => {
+                    const priority = String(
+                        item.priority || "info"
+                    ).toLowerCase();
+
+                    const farmName =
+                        item.farm_name
+                        || "Farm";
+
+                    const category =
+                        item.category
+                        || "General";
+
+                    const actionUrl =
+                        item.action_url
+                        || "/ai/manage";
+
+                    return `
+                        <article
+                            class="ai-recommendation-item"
+                        >
+                            <span
+                                class="
+                                    ai-priority-indicator
+                                    ai-indicator-${escapeHtml(
+                                        priority
+                                    )}
+                                "
+                                title="${escapeHtml(
+                                    priority
+                                )}"
+                            ></span>
+
+                            <div
+                                class="ai-recommendation-copy"
+                            >
+                                <strong>
+                                    ${escapeHtml(
+                                        item.title
+                                    )}
+                                </strong>
+
+                                <span>
+                                    ${escapeHtml(farmName)}
+                                    ·
+                                    ${escapeHtml(category)}
+                                    ·
+                                    ${escapeHtml(priority)}
+                                </span>
+                            </div>
+
+                            <a
+                                class="
+                                    ai-recommendation-action
+                                "
+                                href="${escapeHtml(
+                                    actionUrl
+                                )}"
+                            >
+                                Take Action →
+                            </a>
+                        </article>
+                    `;
+                }).join("");
+        }
+
+        async function loadRecommendations() {
+            try {
+                const url =
+                    "/ai/recommendations"
+                    + (
+                        queryString
+                        ? "?" + queryString
+                        : ""
+                    );
+
+                const response = await fetch(
+                    url,
+                    {
+                        credentials: "same-origin",
+                        headers: {
+                            "Accept":
+                                "application/json"
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        "Recommendation request failed."
+                    );
+                }
+
+                const data =
+                    await response.json();
+
+                renderPriorities(
+                    data.priority_counts || {},
+                    data.recommendation_count || 0
+                );
+
+                renderRecommendations(
+                    data.recommendations || []
+                );
+
+                loading.hidden = true;
+                error.hidden = true;
+                content.hidden = false;
+            } catch (requestError) {
+                console.error(
+                    "Messis recommendation summary:",
+                    requestError
+                );
+
+                loading.hidden = true;
+                content.hidden = true;
+                error.hidden = false;
+            }
+        }
+
+        loadRecommendations();
+    })();
+</script>
+
+
+<script>
+    (() => {
+        const panel = document.getElementById(
+            "dashboard-weather-summary"
+        );
+
+        if (!panel) {
+            return;
+        }
+
+        const loading = document.getElementById(
+            "dashboard-weather-loading"
+        );
+
+        const content = document.getElementById(
+            "dashboard-weather-content"
+        );
+
+        const empty = document.getElementById(
+            "dashboard-weather-empty"
+        );
+
+        const error = document.getElementById(
+            "dashboard-weather-error"
+        );
+
+        const current = document.getElementById(
+            "dashboard-weather-current"
+        );
+
+        const forecast = document.getElementById(
+            "dashboard-weather-forecast"
+        );
+
+        const advisory = document.getElementById(
+            "dashboard-weather-advisory"
+        );
+
+        const attribution = document.getElementById(
+            "dashboard-weather-attribution"
+        );
+
+        const subtitle = document.getElementById(
+            "dashboard-weather-subtitle"
+        );
+
+        const weatherLink = document.getElementById(
+            "dashboard-weather-link"
+        );
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function number(
+            value,
+            digits = 1
+        ) {
+            const parsed = Number(value);
+
+            if (!Number.isFinite(parsed)) {
+                return "0";
+            }
+
+            return parsed.toFixed(digits);
+        }
+
+        function formatDate(value) {
+            const date = new Date(
+                value + "T00:00:00"
+            );
+
+            return new Intl.DateTimeFormat(
+                "en-IN",
+                {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "short"
+                }
+            ).format(date);
+        }
+
+        function renderCurrent(data) {
+            const weather = data.current || {};
+
+            current.innerHTML = `
+                <article class="weather-current-main">
+                    <small>
+                        ${escapeHtml(data.farm?.name || "Farm")}
+                    </small>
+
+                    <strong>
+                        ${number(
+                            weather.temperature
+                        )}°C
+                    </strong>
+
+                    <span>
+                        ${escapeHtml(
+                            weather.condition || "Unknown"
+                        )}
+                    </span>
+                </article>
+
+                <article class="weather-current-card">
+                    <small>Humidity</small>
+
+                    <strong>
+                        ${number(
+                            weather.relative_humidity,
+                            0
+                        )}%
+                    </strong>
+
+                    <span>Relative humidity</span>
+                </article>
+
+                <article class="weather-current-card">
+                    <small>Rain</small>
+
+                    <strong>
+                        ${number(weather.rain)} mm
+                    </strong>
+
+                    <span>Current rainfall</span>
+                </article>
+
+                <article class="weather-current-card">
+                    <small>Wind</small>
+
+                    <strong>
+                        ${number(
+                            weather.wind_speed
+                        )} km/h
+                    </strong>
+
+                    <span>
+                        Gust ${number(
+                            weather.wind_gust
+                        )} km/h
+                    </span>
+                </article>
+
+                <article class="weather-current-card">
+                    <small>Feels like</small>
+
+                    <strong>
+                        ${number(
+                            weather.apparent_temperature
+                        )}°C
+                    </strong>
+
+                    <span>
+                        Cloud ${number(
+                            weather.cloud_cover,
+                            0
+                        )}%
+                    </span>
+                </article>
+            `;
+        }
+
+        function renderForecast(items) {
+            forecast.innerHTML = items
+                .map(item => `
+                    <article class="weather-day-card">
+                        <strong>
+                            ${escapeHtml(
+                                formatDate(item.date)
+                            )}
+                        </strong>
+
+                        <span>
+                            ${escapeHtml(
+                                item.condition
+                            )}
+                        </span>
+
+                        <small>
+                            ${number(
+                                item.temperature_max
+                            )}° /
+                            ${number(
+                                item.temperature_min
+                            )}°
+                        </small>
+
+                        <small>
+                            Rain:
+                            ${number(
+                                item.rain_sum
+                            )} mm
+                            ·
+                            ${number(
+                                item.precipitation_probability,
+                                0
+                            )}%
+                        </small>
+                    </article>
+                `)
+                .join("");
+        }
+
+        function renderAdvisory(item) {
+            if (!item) {
+                advisory.innerHTML = `
+                    <strong>
+                        No major alert
+                    </strong>
+
+                    <p>
+                        Continue checking local field
+                        conditions before farm activities.
+                    </p>
+                `;
+
+                return;
+            }
+
+            advisory.innerHTML = `
+                <strong>
+                    ${escapeHtml(item.title)}
+                </strong>
+
+                <p>
+                    ${escapeHtml(item.message)}
+                </p>
+
+                <p>
+                    <b>Recommended:</b>
+                    ${escapeHtml(
+                        item.recommended_action
+                    )}
+                </p>
+            `;
+        }
+
+        async function loadDashboardWeather() {
+            try {
+                const query =
+                    new URLSearchParams();
+
+                if (panel.dataset.farmId) {
+                    query.set(
+                        "farm_id",
+                        panel.dataset.farmId
+                    );
+                }
+
+                const queryString =
+                    query.toString();
+
+                const response = await fetch(
+                    "/weather/dashboard-summary"
+                    + (
+                        queryString
+                        ? "?" + queryString
+                        : ""
+                    ),
+                    {
+                        credentials: "same-origin",
+                        headers: {
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        "Weather summary request failed."
+                    );
+                }
+
+                const data =
+                    await response.json();
+
+                loading.hidden = true;
+
+                if (!data.configured) {
+                    content.hidden = true;
+                    error.hidden = true;
+                    empty.hidden = false;
+
+                    empty.innerHTML = `
+                        ${escapeHtml(
+                            data.message
+                            || "Weather location is not configured."
+                        )}
+                        <br><br>
+                        <a href="${escapeHtml(
+                            data.weather_url
+                            || "/weather/manage"
+                        )}">
+                            Configure Farm Weather →
+                        </a>
+                    `;
+
+                    weatherLink.href =
+                        data.weather_url
+                        || "/weather/manage";
+
+                    return;
+                }
+
+                subtitle.textContent =
+                    `${data.farm.name} · `
+                    + (
+                        data.location?.name
+                        || "Saved farm location"
+                    );
+
+                weatherLink.href =
+                    data.weather_url
+                    || "/weather/manage";
+
+                renderCurrent(data);
+                renderForecast(
+                    data.forecast || []
+                );
+                renderAdvisory(
+                    data.top_advisory
+                );
+
+                attribution.textContent =
+                    data.provider_attribution || "";
+
+                empty.hidden = true;
+                error.hidden = true;
+                content.hidden = false;
+            } catch (requestError) {
+                console.error(
+                    "Messis dashboard weather:",
+                    requestError
+                );
+
+                loading.hidden = true;
+                content.hidden = true;
+                empty.hidden = true;
+                error.hidden = false;
+            }
+        }
+
+        loadDashboardWeather();
+    })();
+</script>
+
+
+<script>
+    (() => {
+        const headerBadge =
+            document.getElementById(
+                "dashboard-notification-badge"
+            );
+
+        const sidebarBadge =
+            document.getElementById(
+                "sidebar-notification-badge"
+            );
+
+        if (!headerBadge && !sidebarBadge) {
+            return;
+        }
+
+        async function loadNotificationBadge() {
+            try {
+                const response = await fetch(
+                    "/notifications/summary",
+                    {
+                        credentials: "same-origin",
+                        headers: {
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const data =
+                    await response.json();
+
+                const unread = Number(
+                    data.unread_count || 0
+                );
+
+                const displayValue =
+                    unread > 99
+                    ? "99+"
+                    : String(unread);
+
+                if (headerBadge) {
+                    headerBadge.textContent =
+                        displayValue;
+
+                    headerBadge.classList.toggle(
+                        "visible",
+                        unread > 0
+                    );
+                }
+
+                if (sidebarBadge) {
+                    sidebarBadge.textContent =
+                        displayValue;
+
+                    sidebarBadge.style.display =
+                        unread > 0
+                        ? "inline-flex"
+                        : "none";
+                }
+            } catch (requestError) {
+                console.error(
+                    "Messis notification badge:",
+                    requestError
+                );
+            }
+        }
+
+        loadNotificationBadge();
+
+        window.setInterval(
+            loadNotificationBadge,
+            60000
+        );
+    })();
+</script>
+
+
+<!-- PATCH-NOTIFY-001C-AUTO-REFRESH -->
+<script>
+    (() => {
+        const REFRESH_INTERVAL_MS =
+            15 * 60 * 1000;
+
+        const MINIMUM_RETRY_MS =
+            60 * 1000;
+
+        const STORAGE_KEY =
+            "messis.notifications.lastRefresh";
+
+        let refreshTimer = null;
+        let refreshInProgress = false;
+
+        function readLastRefresh() {
+            const value = Number(
+                window.localStorage.getItem(
+                    STORAGE_KEY
+                ) || 0
+            );
+
+            return Number.isFinite(value)
+                ? value
+                : 0;
+        }
+
+        function writeLastRefresh() {
+            window.localStorage.setItem(
+                STORAGE_KEY,
+                String(Date.now())
+            );
+        }
+
+        function refreshDashboardBadge() {
+            const headerBadge =
+                document.getElementById(
+                    "dashboard-notification-badge"
+                );
+
+            const sidebarBadge =
+                document.getElementById(
+                    "sidebar-notification-badge"
+                );
+
+            fetch(
+                "/notifications/summary",
+                {
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                }
+            )
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(
+                            "Notification summary failed."
+                        );
+                    }
+
+                    return response.json();
+                })
+                .then(data => {
+                    const unread = Number(
+                        data.unread_count || 0
+                    );
+
+                    const displayValue =
+                        unread > 99
+                        ? "99+"
+                        : String(unread);
+
+                    if (headerBadge) {
+                        headerBadge.textContent =
+                            displayValue;
+
+                        headerBadge.classList.toggle(
+                            "visible",
+                            unread > 0
+                        );
+                    }
+
+                    if (sidebarBadge) {
+                        sidebarBadge.textContent =
+                            displayValue;
+
+                        sidebarBadge.style.display =
+                            unread > 0
+                            ? "inline-flex"
+                            : "none";
+                    }
+                })
+                .catch(error => {
+                    console.warn(
+                        "Messis notification badge refresh:",
+                        error
+                    );
+                });
+        }
+
+        async function refreshAlerts(
+            force = false
+        ) {
+            if (
+                refreshInProgress
+                || document.hidden
+            ) {
+                return;
+            }
+
+            const elapsed =
+                Date.now() - readLastRefresh();
+
+            if (
+                !force
+                && elapsed < REFRESH_INTERVAL_MS
+            ) {
+                return;
+            }
+
+            refreshInProgress = true;
+
+            try {
+                const response = await fetch(
+                    "/notifications/refresh",
+                    {
+                        method: "POST",
+                        credentials: "same-origin",
+                        headers: {
+                            "Accept":
+                                "application/json"
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        "Automatic alert refresh failed."
+                    );
+                }
+
+                writeLastRefresh();
+                refreshDashboardBadge();
+
+                window.dispatchEvent(
+                    new CustomEvent(
+                        "messis:notifications-refreshed"
+                    )
+                );
+            } catch (error) {
+                console.warn(
+                    "Messis automatic alert refresh:",
+                    error
+                );
+
+                window.setTimeout(
+                    () => refreshAlerts(true),
+                    MINIMUM_RETRY_MS
+                );
+            } finally {
+                refreshInProgress = false;
+            }
+        }
+
+        function scheduleRefresh() {
+            if (refreshTimer !== null) {
+                window.clearInterval(
+                    refreshTimer
+                );
+            }
+
+            refreshTimer = window.setInterval(
+                () => refreshAlerts(false),
+                REFRESH_INTERVAL_MS
+            );
+        }
+
+        document.addEventListener(
+            "visibilitychange",
+            () => {
+                if (!document.hidden) {
+                    refreshAlerts(false);
+                }
+            }
+        );
+
+        window.addEventListener(
+            "focus",
+            () => refreshAlerts(false)
+        );
+
+        window.addEventListener(
+            "online",
+            () => refreshAlerts(false)
+        );
+
+        refreshAlerts(false);
+        scheduleRefresh();
+    })();
+</script>
+
+
+<script>
+    (() => {
+        const wrapper = document.getElementById(
+            "notification-preview-wrapper"
+        );
+
+        const button = document.getElementById(
+            "notification-preview-button"
+        );
+
+        const preview = document.getElementById(
+            "notification-preview"
+        );
+
+        const loading = document.getElementById(
+            "notification-preview-loading"
+        );
+
+        const list = document.getElementById(
+            "notification-preview-list"
+        );
+
+        const empty = document.getElementById(
+            "notification-preview-empty"
+        );
+
+        const error = document.getElementById(
+            "notification-preview-error"
+        );
+
+        const refreshButton =
+            document.getElementById(
+                "notification-preview-refresh"
+            );
+
+        const readAllButton =
+            document.getElementById(
+                "notification-preview-read-all"
+            );
+
+        if (
+            !wrapper
+            || !button
+            || !preview
+        ) {
+            return;
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function formatDate(value) {
+            if (!value) {
+                return "";
+            }
+
+            const parsed = new Date(value);
+
+            if (
+                Number.isNaN(
+                    parsed.getTime()
+                )
+            ) {
+                return "";
+            }
+
+            return new Intl.DateTimeFormat(
+                "en-IN",
+                {
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                }
+            ).format(parsed);
+        }
+
+        async function postAction(url) {
+            const response = await fetch(
+                url,
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    "Notification action failed."
+                );
+            }
+
+            return response.json();
+        }
+
+        function setOpen(open) {
+            preview.hidden = !open;
+
+            button.setAttribute(
+                "aria-expanded",
+                open ? "true" : "false"
+            );
+        }
+
+        function renderItems(items) {
+            if (!items.length) {
+                list.hidden = true;
+                empty.hidden = false;
+                return;
+            }
+
+            empty.hidden = true;
+            list.hidden = false;
+
+            list.innerHTML = items
+                .slice(0, 5)
+                .map(item => {
+                    const priority = String(
+                        item.priority || "info"
+                    ).toLowerCase();
+
+                    const category =
+                        item.category || "General";
+
+                    return `
+                        <article
+                            class="notification-preview-item"
+                            data-id="${Number(item.id)}"
+                        >
+                            <span
+                                class="
+                                    notification-preview-indicator
+                                    preview-${escapeHtml(
+                                        priority
+                                    )}
+                                "
+                            ></span>
+
+                            <div
+                                class="notification-preview-copy"
+                            >
+                                <strong>
+                                    ${escapeHtml(
+                                        item.title
+                                    )}
+                                </strong>
+
+                                <span>
+                                    ${escapeHtml(
+                                        item.message
+                                    )}
+                                </span>
+
+                                <small>
+                                    ${escapeHtml(category)}
+                                    ·
+                                    ${escapeHtml(
+                                        formatDate(
+                                            item.created_at
+                                        )
+                                    )}
+                                </small>
+                            </div>
+
+                            <button
+                                class="notification-preview-read"
+                                type="button"
+                                data-preview-action="read"
+                                data-id="${Number(item.id)}"
+                            >
+                                ✓ Read
+                            </button>
+                        </article>
+                    `;
+                })
+                .join("");
+        }
+
+        async function loadPreview() {
+            loading.hidden = false;
+            list.hidden = true;
+            empty.hidden = true;
+            error.hidden = true;
+
+            try {
+                const response = await fetch(
+                    (
+                        "/notifications"
+                        + "?unread_only=true"
+                        + "&limit=5"
+                    ),
+                    {
+                        credentials: "same-origin",
+                        headers: {
+                            "Accept":
+                                "application/json"
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        "Notification preview failed."
+                    );
+                }
+
+                const data =
+                    await response.json();
+
+                renderItems(
+                    data.items || []
+                );
+
+                loading.hidden = true;
+            } catch (requestError) {
+                console.error(
+                    "Messis notification preview:",
+                    requestError
+                );
+
+                loading.hidden = true;
+                list.hidden = true;
+                empty.hidden = true;
+                error.hidden = false;
+            }
+        }
+
+        async function refreshAlerts() {
+            refreshButton.disabled = true;
+            refreshButton.textContent =
+                "Refreshing…";
+
+            try {
+                await postAction(
+                    "/notifications/refresh"
+                );
+
+                await loadPreview();
+
+                window.dispatchEvent(
+                    new CustomEvent(
+                        "messis:notifications-refreshed"
+                    )
+                );
+            } catch (requestError) {
+                error.hidden = false;
+            } finally {
+                refreshButton.disabled = false;
+                refreshButton.textContent =
+                    "↻ Refresh";
+            }
+        }
+
+        button.addEventListener(
+            "click",
+            async event => {
+                event.stopPropagation();
+
+                const willOpen =
+                    preview.hidden;
+
+                setOpen(willOpen);
+
+                if (willOpen) {
+                    await loadPreview();
+                }
+            }
+        );
+
+        refreshButton.addEventListener(
+            "click",
+            async event => {
+                event.stopPropagation();
+                await refreshAlerts();
+            }
+        );
+
+        readAllButton.addEventListener(
+            "click",
+            async event => {
+                event.stopPropagation();
+
+                readAllButton.disabled = true;
+
+                try {
+                    await postAction(
+                        "/notifications/read-all"
+                    );
+
+                    await loadPreview();
+
+                    window.dispatchEvent(
+                        new CustomEvent(
+                            "messis:notifications-refreshed"
+                        )
+                    );
+                } catch (requestError) {
+                    error.hidden = false;
+                } finally {
+                    readAllButton.disabled = false;
+                }
+            }
+        );
+
+        list.addEventListener(
+            "click",
+            async event => {
+                const readButton =
+                    event.target.closest(
+                        (
+                            "button"
+                            + "[data-preview-action='read']"
+                        )
+                    );
+
+                if (!readButton) {
+                    return;
+                }
+
+                event.stopPropagation();
+
+                const notificationId =
+                    Number(
+                        readButton.dataset.id
+                    );
+
+                readButton.disabled = true;
+
+                try {
+                    await postAction(
+                        (
+                            "/notifications/"
+                            + notificationId
+                            + "/read"
+                        )
+                    );
+
+                    await loadPreview();
+
+                    window.dispatchEvent(
+                        new CustomEvent(
+                            "messis:notifications-refreshed"
+                        )
+                    );
+                } catch (requestError) {
+                    readButton.disabled = false;
+                    error.hidden = false;
+                }
+            }
+        );
+
+        document.addEventListener(
+            "click",
+            event => {
+                if (
+                    !wrapper.contains(
+                        event.target
+                    )
+                ) {
+                    setOpen(false);
+                }
+            }
+        );
+
+        document.addEventListener(
+            "keydown",
+            event => {
+                if (event.key === "Escape") {
+                    setOpen(false);
+                    button.focus();
+                }
+            }
+        );
+
+        window.addEventListener(
+            "messis:notifications-refreshed",
+            () => {
+                if (!preview.hidden) {
+                    loadPreview();
+                }
+            }
+        );
+    })();
+</script>
+
+
+<!-- PATCH-PWA-001A-REGISTRATION -->
+<script>
+    (() => {
+        if (!("serviceWorker" in navigator)) {
+            return;
+        }
+
+        window.addEventListener(
+            "load",
+            async () => {
+                try {
+                    const registration =
+                        await navigator
+                            .serviceWorker
+                            .register(
+                                "/service-worker.js",
+                                {
+                                    scope: "/"
+                                }
+                            );
+
+                    registration.addEventListener(
+                        "updatefound",
+                        () => {
+                            const worker =
+                                registration.installing;
+
+                            if (!worker) {
+                                return;
+                            }
+
+                            worker.addEventListener(
+                                "statechange",
+                                () => {
+                                    if (
+                                        worker.state
+                                            === "installed"
+                                        && navigator
+                                            .serviceWorker
+                                            .controller
+                                    ) {
+                                        window.dispatchEvent(
+                                            new CustomEvent(
+                                                "messis:pwa-update"
+                                            )
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    );
+                } catch (error) {
+                    console.warn(
+                        "Messis PWA registration:",
+                        error
+                    );
+                }
+            }
+        );
+    })();
+</script>
+
+
+<!-- PATCH-PWA-001A-INSTALL-UI -->
+<section
+    class="pwa-install-toast"
+    id="pwa-install-toast"
+    hidden
+>
+    <strong id="pwa-install-title">
+        Install Messis AI
+    </strong>
+
+    <p id="pwa-install-message">
+        Add Messis AI to your device for quick,
+        full-screen access.
+    </p>
+
+    <div class="pwa-install-toast-actions">
+        <button
+            class="pwa-toast-secondary"
+            id="pwa-install-dismiss"
+            type="button"
+        >
+            Later
+        </button>
+
+        <button
+            class="pwa-toast-primary"
+            id="pwa-install-confirm"
+            type="button"
+        >
+            Install
+        </button>
+    </div>
+</section>
+
+<script>
+    (() => {
+        const installButton =
+            document.getElementById(
+                "pwa-install-button"
+            );
+
+        const toast =
+            document.getElementById(
+                "pwa-install-toast"
+            );
+
+        const title =
+            document.getElementById(
+                "pwa-install-title"
+            );
+
+        const message =
+            document.getElementById(
+                "pwa-install-message"
+            );
+
+        const confirmButton =
+            document.getElementById(
+                "pwa-install-confirm"
+            );
+
+        const dismissButton =
+            document.getElementById(
+                "pwa-install-dismiss"
+            );
+
+        let deferredPrompt = null;
+
+        const isStandalone =
+            window.matchMedia(
+                "(display-mode: standalone)"
+            ).matches
+            || window.navigator.standalone
+                === true;
+
+        const isIos =
+            /iphone|ipad|ipod/i.test(
+                window.navigator.userAgent
+            );
+
+        function showToast() {
+            if (!toast) {
+                return;
+            }
+
+            toast.hidden = false;
+        }
+
+        function hideToast() {
+            if (!toast) {
+                return;
+            }
+
+            toast.hidden = true;
+        }
+
+        async function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+
+                await deferredPrompt.userChoice;
+
+                deferredPrompt = null;
+
+                installButton?.classList.remove(
+                    "visible"
+                );
+
+                hideToast();
+                return;
+            }
+
+            if (isIos) {
+                title.textContent =
+                    "Add Messis AI to Home Screen";
+
+                message.textContent =
+                    "In Safari, tap Share and choose "
+                    + "“Add to Home Screen”.";
+
+                confirmButton.hidden = true;
+                showToast();
+            }
+        }
+
+        window.addEventListener(
+            "beforeinstallprompt",
+            event => {
+                event.preventDefault();
+
+                deferredPrompt = event;
+
+                installButton?.classList.add(
+                    "visible"
+                );
+            }
+        );
+
+        window.addEventListener(
+            "appinstalled",
+            () => {
+                deferredPrompt = null;
+
+                installButton?.classList.remove(
+                    "visible"
+                );
+
+                hideToast();
+            }
+        );
+
+        if (
+            isIos
+            && !isStandalone
+        ) {
+            installButton?.classList.add(
+                "visible"
+            );
+        }
+
+        installButton?.addEventListener(
+            "click",
+            installApp
+        );
+
+        confirmButton?.addEventListener(
+            "click",
+            installApp
+        );
+
+        dismissButton?.addEventListener(
+            "click",
+            hideToast
+        );
+
+        window.addEventListener(
+            "messis:pwa-update",
+            () => {
+                title.textContent =
+                    "Messis AI update available";
+
+                message.textContent =
+                    "Refresh the page to use the "
+                    + "latest application version.";
+
+                confirmButton.hidden = false;
+                confirmButton.textContent =
+                    "Refresh";
+
+                confirmButton.onclick =
+                    () => window.location.reload();
+
+                showToast();
+            }
+        );
+    })();
+</script>
+
+
+<!-- PATCH-PWA-001B-MOBILE-NAVIGATION -->
+<div
+    class="messis-mobile-sheet-backdrop"
+    id="messis-mobile-sheet-backdrop"
+></div>
+
+<section
+    class="messis-mobile-more-sheet"
+    id="messis-mobile-more-sheet"
+    aria-hidden="true"
+>
+    <div class="messis-mobile-sheet-handle"></div>
+
+    <header class="messis-mobile-sheet-header">
+        <div>
+            <strong>Messis AI</strong>
+            <span>More tools and insights</span>
+        </div>
+
+        <button
+            class="messis-mobile-sheet-close"
+            id="messis-mobile-sheet-close"
+            type="button"
+            aria-label="Close more menu"
+        >
+            ×
+        </button>
+    </header>
+
+    <div class="messis-mobile-more-grid">
+        <a
+            class="messis-mobile-more-link"
+            href="/mobile/quick-entry"
+            data-route-prefix="/mobile/quick-entry"
+        >
+            <span class="messis-mobile-more-icon">⚡</span>
+            <span>Quick Entry</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/analytics/manage"
+            data-route-prefix="/analytics"
+        >
+            <span class="messis-mobile-more-icon">📈</span>
+            <span>Analytics</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/ai/manage"
+            data-route-prefix="/ai"
+        >
+            <span class="messis-mobile-more-icon">🤖</span>
+            <span>AI Advice</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/weather/manage"
+            data-route-prefix="/weather"
+        >
+            <span class="messis-mobile-more-icon">☁</span>
+            <span>Weather</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/profitability/manage"
+            data-route-prefix="/profitability"
+        >
+            <span class="messis-mobile-more-icon">💹</span>
+            <span>Profitability</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/reports"
+            data-route-prefix="/reports"
+        >
+            <span class="messis-mobile-more-icon">📄</span>
+            <span>Reports</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/notifications/manage"
+            data-route-prefix="/notifications"
+        >
+            <span class="messis-mobile-more-icon">🔔</span>
+            <span>Notifications</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/harvest-records/manage"
+            data-route-prefix="/harvest-records"
+        >
+            <span class="messis-mobile-more-icon">🧺</span>
+            <span>Harvest Records</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/expenses/new"
+            data-route-prefix="/expenses/new"
+        >
+            <span class="messis-mobile-more-icon">➕</span>
+            <span>New Expense</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/sales/new"
+            data-route-prefix="/sales/new"
+        >
+            <span class="messis-mobile-more-icon">₹</span>
+            <span>New Sale</span>
+        </a>
+    </div>
+</section>
+
+<nav
+    class="messis-mobile-navigation"
+    id="messis-mobile-navigation"
+    aria-label="Messis mobile navigation"
+>
+    <a
+        class="messis-mobile-nav-item"
+        href="/dashboard"
+        data-mobile-route="dashboard"
+    >
+        <span class="messis-mobile-nav-icon">⌂</span>
+        <span class="messis-mobile-nav-label">Home</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/farms"
+        data-mobile-route="farms"
+    >
+        <span class="messis-mobile-nav-icon">🌴</span>
+        <span class="messis-mobile-nav-label">Farms</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/harvests/manage"
+        data-mobile-route="harvest"
+    >
+        <span class="messis-mobile-nav-icon">🥥</span>
+        <span class="messis-mobile-nav-label">Harvest</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/expenses/manage"
+        data-mobile-route="expenses"
+    >
+        <span class="messis-mobile-nav-icon">↙</span>
+        <span class="messis-mobile-nav-label">Expense</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/sales/manage"
+        data-mobile-route="sales"
+    >
+        <span class="messis-mobile-nav-icon">₹</span>
+        <span class="messis-mobile-nav-label">Sales</span>
+    </a>
+
+    <button
+        class="messis-mobile-nav-item"
+        id="messis-mobile-more-button"
+        type="button"
+        aria-expanded="false"
+        aria-controls="messis-mobile-more-sheet"
+    >
+        <span class="messis-mobile-nav-icon">•••</span>
+        <span class="messis-mobile-nav-label">More</span>
+
+        <span
+            class="messis-mobile-nav-badge"
+            id="messis-mobile-notification-badge"
+        >
+            0
+        </span>
+    </button>
+</nav>
+
+<script
+    src="/static/pwa/mobile-shell.js?v=001b"
+    defer
+></script>
+
 </body>
 </html>

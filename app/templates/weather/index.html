@@ -1,0 +1,1605 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Farm Weather · Messis AI</title>
+
+    <style>
+        :root {
+            --green-950: #052e16;
+            --green-900: #064e3b;
+            --green-800: #065f46;
+            --green-700: #047857;
+            --green-600: #059669;
+            --green-500: #10b981;
+            --green-100: #d1fae5;
+            --green-50: #ecfdf5;
+
+            --blue-700: #1d4ed8;
+            --blue-100: #dbeafe;
+            --amber-700: #b45309;
+            --amber-100: #fef3c7;
+            --red-700: #b91c1c;
+            --red-100: #fee2e2;
+
+            --slate-950: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-300: #cbd5e1;
+            --slate-200: #e2e8f0;
+
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            color: var(--slate-950);
+            background: #f4faf6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            background:
+                radial-gradient(
+                    circle at 92% 5%,
+                    rgba(59, 130, 246, 0.12),
+                    transparent 27%
+                ),
+                radial-gradient(
+                    circle at 6% 88%,
+                    rgba(16, 185, 129, 0.12),
+                    transparent 25%
+                ),
+                #f4faf6;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+
+            display: flex;
+            min-height: 72px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+
+            padding: 12px clamp(16px, 4vw, 48px);
+
+            background: rgba(255, 255, 255, 0.94);
+            border-bottom: 1px solid var(--slate-200);
+            box-shadow: 0 8px 28px rgba(15, 23, 42, 0.05);
+            backdrop-filter: blur(14px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .brand-icon {
+            display: grid;
+            width: 44px;
+            height: 44px;
+            place-items: center;
+
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-500)
+                );
+
+            border-radius: 14px;
+            box-shadow: 0 9px 22px rgba(5, 150, 105, 0.20);
+            font-size: 22px;
+        }
+
+        .brand-copy strong,
+        .brand-copy span {
+            display: block;
+        }
+
+        .brand-copy strong {
+            color: var(--green-900);
+            font-size: 17px;
+        }
+
+        .brand-copy span {
+            margin-top: 3px;
+            color: var(--slate-500);
+            font-size: 10px;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-button {
+            display: inline-flex;
+            min-height: 42px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+
+            padding: 9px 14px;
+
+            color: var(--slate-700);
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 11px;
+
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 850;
+            cursor: pointer;
+        }
+
+        .nav-button-primary {
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-600)
+                );
+            border-color: transparent;
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+
+            padding:
+                40px
+                clamp(20px, 5vw, 70px)
+                78px;
+
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    #0c4a6e,
+                    #0369a1,
+                    #047857
+                );
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            top: -115px;
+            right: -70px;
+
+            width: 330px;
+            height: 330px;
+
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+        }
+
+        .hero h1 {
+            position: relative;
+            z-index: 1;
+
+            margin: 0;
+            font-size: clamp(29px, 4vw, 45px);
+            letter-spacing: -0.03em;
+        }
+
+        .hero p {
+            position: relative;
+            z-index: 1;
+
+            max-width: 760px;
+            margin: 10px 0 0;
+
+            color: #e0f2fe;
+            line-height: 1.6;
+        }
+
+        main {
+            position: relative;
+            z-index: 2;
+
+            width: min(1320px, calc(100% - 32px));
+            margin: -42px auto 60px;
+        }
+
+        .farm-selector {
+            display: grid;
+            grid-template-columns:
+                minmax(220px, 1fr)
+                auto;
+            gap: 12px;
+
+            padding: 18px;
+            margin-bottom: 18px;
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 20px;
+            box-shadow: 0 15px 42px rgba(15, 23, 42, 0.09);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+
+            color: var(--slate-600);
+            font-size: 12px;
+            font-weight: 850;
+        }
+
+        select,
+        input {
+            width: 100%;
+            min-height: 44px;
+            padding: 10px 12px;
+
+            color: var(--slate-800);
+            background: white;
+            border: 1px solid var(--slate-300);
+            border-radius: 11px;
+            outline: none;
+        }
+
+        select:focus,
+        input:focus {
+            border-color: var(--green-500);
+            box-shadow:
+                0
+                0
+                0
+                3px
+                rgba(16, 185, 129, 0.12);
+        }
+
+        .form-action {
+            display: flex;
+            align-items: end;
+        }
+
+        .button {
+            display: inline-flex;
+            min-height: 44px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+
+            padding: 10px 16px;
+
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-700),
+                    var(--green-500)
+                );
+
+            border: 0;
+            border-radius: 11px;
+
+            text-decoration: none;
+            font-weight: 850;
+            cursor: pointer;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns:
+                minmax(300px, 0.62fr)
+                minmax(0, 1.38fr);
+            gap: 18px;
+        }
+
+        .panel {
+            padding: 20px;
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 20px;
+            box-shadow: 0 11px 32px rgba(15, 23, 42, 0.055);
+        }
+
+        .panel + .panel {
+            margin-top: 18px;
+        }
+
+        .panel-title {
+            margin-bottom: 17px;
+        }
+
+        .panel-title h2 {
+            margin: 0;
+            font-size: 19px;
+        }
+
+        .panel-title p {
+            margin: 5px 0 0;
+            color: var(--slate-500);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .location-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .location-help {
+            margin-top: 12px;
+            padding: 12px;
+
+            color: var(--slate-600);
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+            border-radius: 12px;
+
+            font-size: 11px;
+            line-height: 1.55;
+        }
+
+        .location-actions {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .location-actions .button {
+            width: 100%;
+        }
+
+        .button-secondary {
+            color: var(--green-800);
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+        }
+
+        .current-weather {
+            display: grid;
+            grid-template-columns:
+                minmax(180px, 0.8fr)
+                repeat(4, minmax(100px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .weather-main,
+        .weather-metric {
+            padding: 17px;
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 17px;
+            box-shadow: 0 9px 24px rgba(15, 23, 42, 0.045);
+        }
+
+        .weather-main {
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    #0369a1,
+                    #0284c7
+                );
+            border-color: transparent;
+        }
+
+        .weather-main small,
+        .weather-main span {
+            color: #e0f2fe;
+        }
+
+        .weather-main strong {
+            display: block;
+            margin: 8px 0 4px;
+            font-size: 34px;
+        }
+
+        .weather-metric small {
+            display: block;
+            color: var(--slate-500);
+            font-size: 11px;
+        }
+
+        .weather-metric strong {
+            display: block;
+            margin-top: 10px;
+
+            color: var(--green-700);
+            font-size: 22px;
+        }
+
+        .weather-metric span {
+            display: block;
+            margin-top: 5px;
+            color: var(--slate-500);
+            font-size: 10px;
+        }
+
+        .forecast-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(7, minmax(120px, 1fr));
+            gap: 11px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .forecast-card {
+            min-width: 120px;
+            padding: 15px;
+
+            background: #fbfdff;
+            border: 1px solid var(--slate-200);
+            border-radius: 15px;
+        }
+
+        .forecast-card strong,
+        .forecast-card span,
+        .forecast-card small {
+            display: block;
+        }
+
+        .forecast-card strong {
+            color: var(--slate-800);
+            font-size: 13px;
+        }
+
+        .forecast-condition {
+            min-height: 34px;
+            margin-top: 9px;
+            color: var(--blue-700);
+            font-size: 11px;
+            font-weight: 750;
+        }
+
+        .forecast-temperature {
+            margin-top: 9px;
+            color: var(--green-700);
+            font-size: 18px;
+            font-weight: 900;
+        }
+
+        .forecast-card small {
+            margin-top: 7px;
+            color: var(--slate-500);
+            font-size: 10px;
+            line-height: 1.45;
+        }
+
+        .advisory-list {
+            display: grid;
+            gap: 11px;
+        }
+
+        .advisory {
+            padding: 15px;
+            border: 1px solid;
+            border-radius: 15px;
+        }
+
+        .advisory-high {
+            color: var(--red-700);
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .advisory-medium {
+            color: var(--amber-700);
+            background: #fffbeb;
+            border-color: #fde68a;
+        }
+
+        .advisory-info {
+            color: var(--green-700);
+            background: var(--green-50);
+            border-color: var(--green-100);
+        }
+
+        .advisory h3 {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .advisory p {
+            margin: 7px 0 0;
+            color: var(--slate-700);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .advisory-action {
+            margin-top: 9px;
+            padding: 10px;
+
+            color: var(--slate-700);
+            background: rgba(255, 255, 255, 0.72);
+            border-radius: 10px;
+
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .empty,
+        .loading,
+        .error {
+            padding: 35px 20px;
+
+            color: var(--slate-500);
+            text-align: center;
+
+            background: white;
+            border: 2px dashed var(--green-100);
+            border-radius: 16px;
+        }
+
+        .error {
+            color: var(--red-700);
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .attribution {
+            margin-top: 16px;
+            color: var(--slate-500);
+            font-size: 10px;
+            text-align: right;
+        }
+
+        @media (max-width: 1050px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .current-weather {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            .weather-main {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .topbar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .top-actions {
+                display: grid;
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            .nav-button {
+                width: 100%;
+            }
+
+            .farm-selector,
+            .location-grid,
+            .location-actions,
+            .current-weather {
+                grid-template-columns: 1fr;
+            }
+
+            .weather-main,
+            .full-width {
+                grid-column: auto;
+            }
+
+            main {
+                width: calc(100% - 20px);
+            }
+        }
+    </style>
+
+    <!-- PATCH-PWA-001A-METADATA -->
+    <link
+        rel="manifest"
+        href="/static/pwa/manifest.webmanifest"
+    >
+
+    <meta
+        name="theme-color"
+        content="#064e3b"
+    >
+
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="default"
+    >
+
+    <meta
+        name="apple-mobile-web-app-title"
+        content="Messis AI"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="/static/pwa/icon-192.png"
+    >
+
+
+    <!-- PATCH-PWA-001B-MOBILE-SHELL -->
+    <link
+        rel="stylesheet"
+        href="/static/pwa/mobile-shell.css?v=001b"
+    >
+
+</head>
+
+<body>
+<header class="topbar">
+    <a class="brand" href="/dashboard">
+        <span class="brand-icon">🌴</span>
+
+        <span class="brand-copy">
+            <strong>Messis AI</strong>
+            <span>Smart Agriculture Management System</span>
+        </span>
+    </a>
+
+    <div class="top-actions">
+        <button
+            class="nav-button"
+            type="button"
+            onclick="weatherGoBack()"
+        >
+            ← Back
+        </button>
+
+        <a
+            class="nav-button nav-button-primary"
+            href="/dashboard"
+        >
+            ⌂ Back to Dashboard
+        </a>
+    </div>
+</header>
+
+<section class="hero">
+    <h1>Farm Weather Center</h1>
+
+    <p>
+        View current conditions, seven-day forecasts and practical
+        farm advisories using the saved location of each farm.
+    </p>
+</section>
+
+<main>
+    <form
+        class="farm-selector"
+        method="get"
+        action="/weather/manage"
+    >
+        <div>
+            <label for="farm_id">Farm</label>
+
+            <select
+                id="farm_id"
+                name="farm_id"
+                required
+            >
+                <option value="">Select farm</option>
+
+                {% for farm in farms %}
+                    <option
+                        value="{{ farm.id }}"
+                        {% if
+                            selected_farm
+                            and selected_farm.id == farm.id
+                        %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ farm.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-action">
+            <button class="button" type="submit">
+                ☁ View Weather
+            </button>
+        </div>
+    </form>
+
+    <section class="layout">
+        <aside>
+            <article class="panel">
+                <div class="panel-title">
+                    <h2>📍 Farm Location</h2>
+
+                    <p>
+                        Save coordinates once and reuse them for
+                        weather forecasts.
+                    </p>
+                </div>
+
+                {% if selected_farm %}
+                    <form
+                        method="post"
+                        action="/weather/location"
+                    >
+                        <input
+                            type="hidden"
+                            name="farm_id"
+                            value="{{ selected_farm.id }}"
+                        >
+
+                        <div class="location-grid">
+                            <div class="full-width">
+                                <label for="location_name">
+                                    Location name
+                                </label>
+
+                                <input
+                                    id="location_name"
+                                    name="location_name"
+                                    type="text"
+                                    maxlength="180"
+                                    placeholder="Example: North Coconut Farm"
+                                    value="{{ location.location_name if location else '' }}"
+                                >
+                            </div>
+
+                            <div>
+                                <label for="latitude">
+                                    Latitude
+                                </label>
+
+                                <input
+                                    id="latitude"
+                                    name="latitude"
+                                    type="number"
+                                    min="-90"
+                                    max="90"
+                                    step="0.000001"
+                                    required
+                                    value="{{ location.latitude if location else '' }}"
+                                >
+                            </div>
+
+                            <div>
+                                <label for="longitude">
+                                    Longitude
+                                </label>
+
+                                <input
+                                    id="longitude"
+                                    name="longitude"
+                                    type="number"
+                                    min="-180"
+                                    max="180"
+                                    step="0.000001"
+                                    required
+                                    value="{{ location.longitude if location else '' }}"
+                                >
+                            </div>
+                        </div>
+
+                        <div class="location-help">
+                            Use the location button to fill coordinates
+                            from your device, or enter coordinates
+                            manually from a map.
+                        </div>
+
+                        <div class="location-actions">
+                            <button
+                                class="button button-secondary"
+                                id="device-location-button"
+                                type="button"
+                            >
+                                ◎ Use Device Location
+                            </button>
+
+                            <button
+                                class="button"
+                                type="submit"
+                            >
+                                💾 Save Location
+                            </button>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="empty">
+                        Select a farm to configure its weather location.
+                    </div>
+                {% endif %}
+            </article>
+
+            {% if selected_farm and location %}
+                <article class="panel">
+                    <div class="panel-title">
+                        <h2>🌱 Weather Advisories</h2>
+
+                        <p>
+                            Practical alerts based on forecast data.
+                        </p>
+                    </div>
+
+                    <div
+                        class="loading"
+                        id="weather-advisory-loading"
+                    >
+                        Loading advisories…
+                    </div>
+
+                    <div
+                        class="advisory-list"
+                        id="weather-advisories"
+                        hidden
+                    ></div>
+                </article>
+            {% endif %}
+        </aside>
+
+        <div>
+            {% if selected_farm and location %}
+                <div
+                    id="weather-content"
+                    data-latitude="{{ location.latitude }}"
+                    data-longitude="{{ location.longitude }}"
+                >
+                    <div
+                        class="loading"
+                        id="weather-loading"
+                    >
+                        Loading current weather and forecast…
+                    </div>
+
+                    <div
+                        id="weather-results"
+                        hidden
+                    >
+                        <section
+                            class="current-weather"
+                            id="current-weather"
+                        ></section>
+
+                        <article class="panel">
+                            <div class="panel-title">
+                                <h2>📅 Seven-Day Forecast</h2>
+
+                                <p>
+                                    Temperature, rainfall, wind and
+                                    evapotranspiration outlook.
+                                </p>
+                            </div>
+
+                            <div
+                                class="forecast-grid"
+                                id="weather-forecast"
+                            ></div>
+
+                            <div class="attribution">
+                                Weather data by Open-Meteo.com
+                            </div>
+                        </article>
+                    </div>
+
+                    <div
+                        class="error"
+                        id="weather-error"
+                        hidden
+                    >
+                        Weather information could not be loaded.
+                        Please try again.
+                    </div>
+                </div>
+            {% elif selected_farm %}
+                <div class="empty">
+                    Save the farm latitude and longitude to view
+                    its weather forecast.
+                </div>
+            {% else %}
+                <div class="empty">
+                    Select a farm to view weather information.
+                </div>
+            {% endif %}
+        </div>
+    </section>
+</main>
+
+<script>
+    function weatherGoBack() {
+        const sameSiteReferrer =
+            document.referrer
+            && new URL(document.referrer).origin
+                === window.location.origin;
+
+        if (
+            sameSiteReferrer
+            && window.history.length > 1
+        ) {
+            window.history.back();
+            return;
+        }
+
+        window.location.href = "/dashboard";
+    }
+
+    (() => {
+        const deviceButton = document.getElementById(
+            "device-location-button"
+        );
+
+        const latitudeInput = document.getElementById(
+            "latitude"
+        );
+
+        const longitudeInput = document.getElementById(
+            "longitude"
+        );
+
+        deviceButton?.addEventListener(
+            "click",
+            () => {
+                if (!navigator.geolocation) {
+                    alert(
+                        "Device location is not supported."
+                    );
+                    return;
+                }
+
+                deviceButton.disabled = true;
+                deviceButton.textContent =
+                    "Locating…";
+
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        latitudeInput.value =
+                            position.coords.latitude
+                                .toFixed(6);
+
+                        longitudeInput.value =
+                            position.coords.longitude
+                                .toFixed(6);
+
+                        deviceButton.disabled = false;
+                        deviceButton.textContent =
+                            "✓ Location Added";
+                    },
+                    () => {
+                        deviceButton.disabled = false;
+                        deviceButton.textContent =
+                            "◎ Use Device Location";
+
+                        alert(
+                            "Unable to read device location."
+                        );
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 12000,
+                        maximumAge: 60000
+                    }
+                );
+            }
+        );
+
+        const weatherContent =
+            document.getElementById(
+                "weather-content"
+            );
+
+        if (!weatherContent) {
+            return;
+        }
+
+        const loading = document.getElementById(
+            "weather-loading"
+        );
+
+        const results = document.getElementById(
+            "weather-results"
+        );
+
+        const error = document.getElementById(
+            "weather-error"
+        );
+
+        const currentWeather =
+            document.getElementById(
+                "current-weather"
+            );
+
+        const forecast =
+            document.getElementById(
+                "weather-forecast"
+            );
+
+        const advisoryLoading =
+            document.getElementById(
+                "weather-advisory-loading"
+            );
+
+        const advisories =
+            document.getElementById(
+                "weather-advisories"
+            );
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function number(value, digits = 1) {
+            const parsed = Number(value);
+
+            if (!Number.isFinite(parsed)) {
+                return "0";
+            }
+
+            return parsed.toFixed(digits);
+        }
+
+        function formatDate(value) {
+            const date = new Date(
+                value + "T00:00:00"
+            );
+
+            return new Intl.DateTimeFormat(
+                "en-IN",
+                {
+                    weekday: "short",
+                    day: "2-digit",
+                    month: "short"
+                }
+            ).format(date);
+        }
+
+        function renderCurrent(current) {
+            currentWeather.innerHTML = `
+                <article class="weather-main">
+                    <small>Current weather</small>
+
+                    <strong>
+                        ${number(
+                            current.temperature
+                        )}°C
+                    </strong>
+
+                    <span>
+                        ${escapeHtml(
+                            current.condition
+                        )}
+                    </span>
+                </article>
+
+                <article class="weather-metric">
+                    <small>Humidity</small>
+
+                    <strong>
+                        ${number(
+                            current.relative_humidity,
+                            0
+                        )}%
+                    </strong>
+
+                    <span>Relative humidity</span>
+                </article>
+
+                <article class="weather-metric">
+                    <small>Rain</small>
+
+                    <strong>
+                        ${number(current.rain)} mm
+                    </strong>
+
+                    <span>Current rainfall</span>
+                </article>
+
+                <article class="weather-metric">
+                    <small>Wind</small>
+
+                    <strong>
+                        ${number(
+                            current.wind_speed
+                        )} km/h
+                    </strong>
+
+                    <span>
+                        Gust ${number(
+                            current.wind_gust
+                        )} km/h
+                    </span>
+                </article>
+
+                <article class="weather-metric">
+                    <small>Feels like</small>
+
+                    <strong>
+                        ${number(
+                            current.apparent_temperature
+                        )}°C
+                    </strong>
+
+                    <span>
+                        Cloud ${number(
+                            current.cloud_cover,
+                            0
+                        )}%
+                    </span>
+                </article>
+            `;
+        }
+
+        function renderForecast(items) {
+            forecast.innerHTML = items
+                .map(item => `
+                    <article class="forecast-card">
+                        <strong>
+                            ${escapeHtml(
+                                formatDate(item.date)
+                            )}
+                        </strong>
+
+                        <span class="forecast-condition">
+                            ${escapeHtml(
+                                item.condition
+                            )}
+                        </span>
+
+                        <span class="forecast-temperature">
+                            ${number(
+                                item.temperature_max
+                            )}°
+                            /
+                            ${number(
+                                item.temperature_min
+                            )}°
+                        </span>
+
+                        <small>
+                            Rain:
+                            ${number(
+                                item.rain_sum
+                            )} mm
+                        </small>
+
+                        <small>
+                            Chance:
+                            ${number(
+                                item.precipitation_probability,
+                                0
+                            )}%
+                        </small>
+
+                        <small>
+                            Wind:
+                            ${number(
+                                item.wind_speed_max
+                            )} km/h
+                        </small>
+
+                        <small>
+                            ET₀:
+                            ${number(
+                                item.evapotranspiration
+                            )} mm
+                        </small>
+                    </article>
+                `)
+                .join("");
+        }
+
+        function renderAdvisories(items) {
+            if (!advisories) {
+                return;
+            }
+
+            advisories.innerHTML = items
+                .map(item => `
+                    <article
+                        class="
+                            advisory
+                            advisory-${escapeHtml(
+                                item.priority
+                            )}
+                        "
+                    >
+                        <h3>
+                            ${escapeHtml(item.title)}
+                        </h3>
+
+                        <p>
+                            ${escapeHtml(item.message)}
+                        </p>
+
+                        <div class="advisory-action">
+                            <strong>
+                                Recommended:
+                            </strong>
+
+                            ${escapeHtml(
+                                item.recommended_action
+                            )}
+                        </div>
+                    </article>
+                `)
+                .join("");
+
+            advisoryLoading.hidden = true;
+            advisories.hidden = false;
+        }
+
+        async function loadWeather() {
+            try {
+                const latitude =
+                    weatherContent.dataset.latitude;
+
+                const longitude =
+                    weatherContent.dataset.longitude;
+
+                const query = new URLSearchParams({
+                    latitude,
+                    longitude,
+                    forecast_days: "7"
+                });
+
+                const response = await fetch(
+                    "/weather/forecast?"
+                    + query.toString(),
+                    {
+                        credentials: "same-origin",
+                        headers: {
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        "Weather request failed."
+                    );
+                }
+
+                const data =
+                    await response.json();
+
+                renderCurrent(data.current || {});
+                renderForecast(data.daily || []);
+                renderAdvisories(
+                    data.advisories || []
+                );
+
+                loading.hidden = true;
+                error.hidden = true;
+                results.hidden = false;
+            } catch (requestError) {
+                console.error(
+                    "Messis weather:",
+                    requestError
+                );
+
+                loading.hidden = true;
+                results.hidden = true;
+                error.hidden = false;
+
+                if (advisoryLoading) {
+                    advisoryLoading.hidden = true;
+                }
+            }
+        }
+
+        loadWeather();
+    })();
+</script>
+
+<!-- PATCH-PWA-001A-REGISTRATION -->
+<script>
+    (() => {
+        if (!("serviceWorker" in navigator)) {
+            return;
+        }
+
+        window.addEventListener(
+            "load",
+            async () => {
+                try {
+                    const registration =
+                        await navigator
+                            .serviceWorker
+                            .register(
+                                "/service-worker.js",
+                                {
+                                    scope: "/"
+                                }
+                            );
+
+                    registration.addEventListener(
+                        "updatefound",
+                        () => {
+                            const worker =
+                                registration.installing;
+
+                            if (!worker) {
+                                return;
+                            }
+
+                            worker.addEventListener(
+                                "statechange",
+                                () => {
+                                    if (
+                                        worker.state
+                                            === "installed"
+                                        && navigator
+                                            .serviceWorker
+                                            .controller
+                                    ) {
+                                        window.dispatchEvent(
+                                            new CustomEvent(
+                                                "messis:pwa-update"
+                                            )
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    );
+                } catch (error) {
+                    console.warn(
+                        "Messis PWA registration:",
+                        error
+                    );
+                }
+            }
+        );
+    })();
+</script>
+
+
+<!-- PATCH-PWA-001B-MOBILE-NAVIGATION -->
+<div
+    class="messis-mobile-sheet-backdrop"
+    id="messis-mobile-sheet-backdrop"
+></div>
+
+<section
+    class="messis-mobile-more-sheet"
+    id="messis-mobile-more-sheet"
+    aria-hidden="true"
+>
+    <div class="messis-mobile-sheet-handle"></div>
+
+    <header class="messis-mobile-sheet-header">
+        <div>
+            <strong>Messis AI</strong>
+            <span>More tools and insights</span>
+        </div>
+
+        <button
+            class="messis-mobile-sheet-close"
+            id="messis-mobile-sheet-close"
+            type="button"
+            aria-label="Close more menu"
+        >
+            ×
+        </button>
+    </header>
+
+    <div class="messis-mobile-more-grid">
+        <a
+            class="messis-mobile-more-link"
+            href="/mobile/quick-entry"
+            data-route-prefix="/mobile/quick-entry"
+        >
+            <span class="messis-mobile-more-icon">⚡</span>
+            <span>Quick Entry</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/analytics/manage"
+            data-route-prefix="/analytics"
+        >
+            <span class="messis-mobile-more-icon">📈</span>
+            <span>Analytics</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/ai/manage"
+            data-route-prefix="/ai"
+        >
+            <span class="messis-mobile-more-icon">🤖</span>
+            <span>AI Advice</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/weather/manage"
+            data-route-prefix="/weather"
+        >
+            <span class="messis-mobile-more-icon">☁</span>
+            <span>Weather</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/profitability/manage"
+            data-route-prefix="/profitability"
+        >
+            <span class="messis-mobile-more-icon">💹</span>
+            <span>Profitability</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/reports"
+            data-route-prefix="/reports"
+        >
+            <span class="messis-mobile-more-icon">📄</span>
+            <span>Reports</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/notifications/manage"
+            data-route-prefix="/notifications"
+        >
+            <span class="messis-mobile-more-icon">🔔</span>
+            <span>Notifications</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/harvest-records/manage"
+            data-route-prefix="/harvest-records"
+        >
+            <span class="messis-mobile-more-icon">🧺</span>
+            <span>Harvest Records</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/expenses/new"
+            data-route-prefix="/expenses/new"
+        >
+            <span class="messis-mobile-more-icon">➕</span>
+            <span>New Expense</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/sales/new"
+            data-route-prefix="/sales/new"
+        >
+            <span class="messis-mobile-more-icon">₹</span>
+            <span>New Sale</span>
+        </a>
+    </div>
+</section>
+
+<nav
+    class="messis-mobile-navigation"
+    id="messis-mobile-navigation"
+    aria-label="Messis mobile navigation"
+>
+    <a
+        class="messis-mobile-nav-item"
+        href="/dashboard"
+        data-mobile-route="dashboard"
+    >
+        <span class="messis-mobile-nav-icon">⌂</span>
+        <span class="messis-mobile-nav-label">Home</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/farms"
+        data-mobile-route="farms"
+    >
+        <span class="messis-mobile-nav-icon">🌴</span>
+        <span class="messis-mobile-nav-label">Farms</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/harvests/manage"
+        data-mobile-route="harvest"
+    >
+        <span class="messis-mobile-nav-icon">🥥</span>
+        <span class="messis-mobile-nav-label">Harvest</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/expenses/manage"
+        data-mobile-route="expenses"
+    >
+        <span class="messis-mobile-nav-icon">↙</span>
+        <span class="messis-mobile-nav-label">Expense</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/sales/manage"
+        data-mobile-route="sales"
+    >
+        <span class="messis-mobile-nav-icon">₹</span>
+        <span class="messis-mobile-nav-label">Sales</span>
+    </a>
+
+    <button
+        class="messis-mobile-nav-item"
+        id="messis-mobile-more-button"
+        type="button"
+        aria-expanded="false"
+        aria-controls="messis-mobile-more-sheet"
+    >
+        <span class="messis-mobile-nav-icon">•••</span>
+        <span class="messis-mobile-nav-label">More</span>
+
+        <span
+            class="messis-mobile-nav-badge"
+            id="messis-mobile-notification-badge"
+        >
+            0
+        </span>
+    </button>
+</nav>
+
+<script
+    src="/static/pwa/mobile-shell.js?v=001b"
+    defer
+></script>
+
+</body>
+</html>

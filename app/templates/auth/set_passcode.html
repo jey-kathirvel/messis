@@ -46,6 +46,43 @@
         .back { display: block; margin-top: 17px; color: #176c32; font-size: 14px; font-weight: 700; text-align: center; text-decoration: none; }
         @media (max-width: 520px) { body { align-items: flex-start; padding: 28px 16px; } .card { padding: 24px 20px; } }
     </style>
+
+    <!-- PATCH-PWA-001A-METADATA -->
+    <link
+        rel="manifest"
+        href="/static/pwa/manifest.webmanifest"
+    >
+
+    <meta
+        name="theme-color"
+        content="#064e3b"
+    >
+
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="default"
+    >
+
+    <meta
+        name="apple-mobile-web-app-title"
+        content="Messis AI"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="/static/pwa/icon-192.png"
+    >
+
 </head>
 <body>
     <main class="page">
@@ -104,5 +141,68 @@
             }
         });
     </script>
+
+<!-- PATCH-PWA-001A-REGISTRATION -->
+<script>
+    (() => {
+        if (!("serviceWorker" in navigator)) {
+            return;
+        }
+
+        window.addEventListener(
+            "load",
+            async () => {
+                try {
+                    const registration =
+                        await navigator
+                            .serviceWorker
+                            .register(
+                                "/service-worker.js",
+                                {
+                                    scope: "/"
+                                }
+                            );
+
+                    registration.addEventListener(
+                        "updatefound",
+                        () => {
+                            const worker =
+                                registration.installing;
+
+                            if (!worker) {
+                                return;
+                            }
+
+                            worker.addEventListener(
+                                "statechange",
+                                () => {
+                                    if (
+                                        worker.state
+                                            === "installed"
+                                        && navigator
+                                            .serviceWorker
+                                            .controller
+                                    ) {
+                                        window.dispatchEvent(
+                                            new CustomEvent(
+                                                "messis:pwa-update"
+                                            )
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    );
+                } catch (error) {
+                    console.warn(
+                        "Messis PWA registration:",
+                        error
+                    );
+                }
+            }
+        );
+    })();
+</script>
+
 </body>
 </html>

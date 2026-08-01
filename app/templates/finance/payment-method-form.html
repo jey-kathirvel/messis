@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>{{ page_title }} · Messis AI</title>
+
+    <link
+        rel="manifest"
+        href="/static/pwa/manifest.webmanifest"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/static/pwa/mobile-shell.css?v=001b"
+    >
+
+    <style>
+        :root {
+            --green-900: #064e3b;
+            --green-800: #065f46;
+            --green-500: #10b981;
+            --green-100: #d1fae5;
+            --green-50: #ecfdf5;
+
+            --slate-950: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-300: #cbd5e1;
+            --slate-200: #e2e8f0;
+
+            --danger: #b91c1c;
+
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            color: var(--slate-950);
+
+            background:
+                radial-gradient(
+                    circle at 92% 4%,
+                    rgba(16, 185, 129, 0.13),
+                    transparent 28%
+                ),
+                #f4faf6;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        .topbar {
+            display: flex;
+            min-height: 72px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+
+            padding: 12px clamp(16px, 4vw, 48px);
+
+            background: white;
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            color: var(--green-900);
+            text-decoration: none;
+            font-weight: 900;
+        }
+
+        .brand-icon {
+            display: grid;
+            width: 44px;
+            height: 44px;
+            place-items: center;
+
+            color: white;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-500)
+                );
+
+            border-radius: 14px;
+            font-size: 22px;
+        }
+
+        .nav-button {
+            display: inline-flex;
+            min-height: 42px;
+            align-items: center;
+            justify-content: center;
+
+            padding: 9px 14px;
+
+            color: var(--green-800);
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+            border-radius: 11px;
+
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        main {
+            width: min(880px, calc(100% - 32px));
+            margin: 36px auto 70px;
+        }
+
+        .breadcrumb {
+            margin-bottom: 14px;
+
+            color: var(--green-800);
+            font-size: 12px;
+            font-weight: 850;
+        }
+
+        .breadcrumb a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .panel {
+            padding: clamp(22px, 4vw, 38px);
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 22px;
+            box-shadow: 0 14px 42px rgba(15, 23, 42, 0.08);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(27px, 4vw, 38px);
+            letter-spacing: -0.03em;
+        }
+
+        .description {
+            margin: 9px 0 26px;
+
+            color: var(--slate-500);
+            line-height: 1.6;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+            gap: 17px;
+        }
+
+        .full {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+
+            color: var(--slate-600);
+            font-size: 11px;
+            font-weight: 850;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            min-height: 47px;
+
+            padding: 11px 13px;
+
+            color: var(--slate-800);
+            background: white;
+            border: 1px solid var(--slate-300);
+            border-radius: 12px;
+            outline: none;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--green-500);
+
+            box-shadow:
+                0
+                0
+                0
+                3px
+                rgba(16, 185, 129, 0.12);
+        }
+
+        .system-note {
+            margin-bottom: 18px;
+            padding: 12px;
+
+            color: #075985;
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 12px;
+
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .checkbox-row {
+            display: flex;
+            min-height: 47px;
+            align-items: center;
+            gap: 10px;
+
+            padding: 11px 13px;
+
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+            border-radius: 12px;
+        }
+
+        .checkbox-row input {
+            width: 18px;
+            min-height: auto;
+            height: 18px;
+            margin: 0;
+        }
+
+        .checkbox-row label {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .field-error {
+            margin-top: 6px;
+
+            color: var(--danger);
+            font-size: 10px;
+            font-weight: 750;
+        }
+
+        .form-error {
+            margin-bottom: 18px;
+            padding: 12px;
+
+            color: var(--danger);
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 11px;
+
+            margin-top: 24px;
+        }
+
+        .button {
+            display: inline-flex;
+            min-height: 45px;
+            align-items: center;
+            justify-content: center;
+
+            padding: 10px 17px;
+
+            border-radius: 12px;
+
+            text-decoration: none;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .button-secondary {
+            color: var(--slate-700);
+            background: white;
+            border: 1px solid var(--slate-300);
+        }
+
+        .button-primary {
+            color: white;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-500)
+                );
+
+            border: 0;
+        }
+
+        @media (max-width: 650px) {
+            .topbar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .full {
+                grid-column: auto;
+            }
+
+            .actions {
+                display: grid;
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+        }
+    </style>
+</head>
+
+<body>
+<header class="topbar">
+    <a class="brand" href="/dashboard">
+        <span class="brand-icon">🌴</span>
+        <span>Messis AI</span>
+    </a>
+
+    <a
+        class="nav-button"
+        href="/payment-methods/manage"
+    >
+        ← Back to Payment Methods
+    </a>
+</header>
+
+<main>
+    <div class="breadcrumb">
+        <a href="/dashboard">Dashboard</a>
+        /
+        <a href="/payment-methods/manage">
+            Payment Methods
+        </a>
+        /
+        {{ page_title }}
+    </div>
+
+    <section class="panel">
+        <h1>{{ page_title }}</h1>
+
+        <p class="description">
+            Configure the name, icon and display order used
+            when recording payments.
+        </p>
+
+        {% if is_system %}
+            <div class="system-note">
+                This is a protected system payment method.
+                Its display details may be changed, but its
+                system identity is preserved.
+            </div>
+        {% endif %}
+
+        {% if errors.form %}
+            <div class="form-error">
+                {{ errors.form }}
+            </div>
+        {% endif %}
+
+        <form method="post" action="{{ form_action }}">
+            <div class="form-grid">
+                <div class="full">
+                    <label for="name">
+                        Payment method name *
+                    </label>
+
+                    <input
+                        id="name"
+                        name="name"
+                        type="text"
+                        maxlength="120"
+                        required
+                        autofocus
+                        value="{{ form_data.name }}"
+                    >
+
+                    {% if errors.name %}
+                        <div class="field-error">
+                            {{ errors.name }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="icon">Icon *</label>
+
+                    <select
+                        id="icon"
+                        name="icon"
+                        required
+                    >
+                        {% for option in icon_options %}
+                            <option
+                                value="{{ option }}"
+                                {% if form_data.icon == option %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ option }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    {% if errors.icon %}
+                        <div class="field-error">
+                            {{ errors.icon }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="display_order">
+                        Display order *
+                    </label>
+
+                    <input
+                        id="display_order"
+                        name="display_order"
+                        type="number"
+                        min="1"
+                        max="9999"
+                        step="1"
+                        required
+                        value="{{ form_data.display_order }}"
+                    >
+
+                    {% if errors.display_order %}
+                        <div class="field-error">
+                            {{ errors.display_order }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="full">
+                    <label for="notes">Notes</label>
+
+                    <textarea
+                        id="notes"
+                        name="notes"
+                        maxlength="1000"
+                    >{{ form_data.notes }}</textarea>
+
+                    {% if errors.notes %}
+                        <div class="field-error">
+                            {{ errors.notes }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="full">
+                    <div class="checkbox-row">
+                        <input
+                            id="is_default"
+                            name="is_default"
+                            type="checkbox"
+                            value="true"
+                            {% if form_data.is_default %}
+                                checked
+                            {% endif %}
+                        >
+
+                        <label for="is_default">
+                            Set as the default payment method
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <a
+                    class="button button-secondary"
+                    href="/payment-methods/manage"
+                >
+                    Cancel
+                </a>
+
+                <button
+                    class="button button-primary"
+                    type="submit"
+                >
+                    {{ submit_label }}
+                </button>
+            </div>
+        </form>
+    </section>
+</main>
+
+<script
+    src="/static/pwa/mobile-shell.js?v=001b"
+    defer
+></script>
+</body>
+</html>

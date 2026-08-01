@@ -629,6 +629,27 @@ class ExpenseCategory(Base):
         nullable=False,
     )
 
+    icon: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="📂",
+        server_default="📂",
+    )
+
+    color: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="#059669",
+        server_default="#059669",
+    )
+
+    display_order: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=100,
+        server_default="100",
+    )
+
     is_system: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
@@ -677,6 +698,13 @@ class Vendor(Base):
     name: Mapped[str] = mapped_column(
         String(160),
         nullable=False,
+    )
+
+    vendor_type: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="General",
+        server_default="General",
     )
 
     mobile_number: Mapped[str | None] = mapped_column(
