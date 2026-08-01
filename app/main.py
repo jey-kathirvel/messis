@@ -4276,7 +4276,8 @@ def expense_create_page(
                 "expense_date": date.today().isoformat(),
                 "farm_id": "",
                 "category_id": "",
-                "vendor_id": "",
+                "custom_category_name": "",
+                "vendor_name": "",
                 "description": "",
                 "amount": "",
                 "payment_mode": "Cash",
@@ -4295,11 +4296,12 @@ def expense_create_page(
 def expense_create_html(
     request: Request,
     expense_date: date = Form(...),
-    category_id: int = Form(...),
+    category_id: str = Form(...),
+    custom_category_name: str = Form(""),
     description: str = Form(...),
     amount: str = Form(...),
     farm_id: str = Form(""),
-    vendor_id: str = Form(""),
+    vendor_name: str = Form(""),
     payment_mode: str = Form("Cash"),
     reference_number: str = Form(""),
     is_recurring: bool = Form(False),
@@ -4338,7 +4340,8 @@ def expense_create_html(
         "expense_date": expense_date.isoformat(),
         "farm_id": farm_id,
         "category_id": category_id,
-        "vendor_id": vendor_id,
+        "custom_category_name": custom_category_name,
+        "vendor_name": vendor_name,
         "description": description,
         "amount": amount,
         "payment_mode": payment_mode,
@@ -4391,17 +4394,70 @@ def expense_create_html(
     if payment_mode not in EXPENSE_PAYMENT_MODES:
         return render_error("Invalid payment mode.")
 
-    try:
-        category = require_available_expense_category(
-            category_id=category_id,
-            user=user,
-            db=db,
+    normalized_custom_category = (
+        custom_category_name.strip()
+    )
+
+    if category_id == "__other__":
+        if not normalized_custom_category:
+            return render_error(
+                "Enter the new expense category name."
+            )
+
+        if len(normalized_custom_category) > 100:
+            return render_error(
+                "Category name cannot exceed 100 characters."
+            )
+
+        category = db.scalar(
+            select(ExpenseCategory).where(
+                ExpenseCategory.owner_id == user.id,
+                func.lower(ExpenseCategory.name)
+                == normalized_custom_category.lower(),
+            )
         )
-    except HTTPException:
-        return render_error(
-            "Expense category not found.",
-            404,
-        )
+
+        if category is None:
+            category = ExpenseCategory(
+                owner_id=user.id,
+                name=normalized_custom_category,
+                is_system=False,
+                is_active=True,
+            )
+
+            db.add(category)
+            db.flush()
+
+            audit(
+                db,
+                request,
+                "expense_category_created",
+                user.id,
+                (
+                    f"Category ID: {category.id}; "
+                    f"Name: {category.name}; "
+                    "Created from expense form"
+                ),
+            )
+    else:
+        try:
+            selected_category_id = int(category_id)
+        except (TypeError, ValueError):
+            return render_error(
+                "Select a valid expense category."
+            )
+
+        try:
+            category = require_available_expense_category(
+                category_id=selected_category_id,
+                user=user,
+                db=db,
+            )
+        except HTTPException:
+            return render_error(
+                "Expense category not found.",
+                404,
+            )
 
     farm = None
 
@@ -4421,21 +4477,45 @@ def expense_create_html(
             return render_error("Farm not found.", 404)
 
     vendor = None
+    normalized_vendor_name = vendor_name.strip()
 
-    if vendor_id.strip():
-        try:
-            selected_vendor_id = int(vendor_id)
-        except ValueError:
-            return render_error("Invalid vendor.")
-
-        try:
-            vendor = require_owned_vendor(
-                vendor_id=selected_vendor_id,
-                user=user,
-                db=db,
+    if normalized_vendor_name:
+        if len(normalized_vendor_name) > 160:
+            return render_error(
+                "Vendor name cannot exceed 160 characters."
             )
-        except HTTPException:
-            return render_error("Vendor not found.", 404)
+
+        vendor = db.scalar(
+            select(Vendor).where(
+                Vendor.owner_id == user.id,
+                func.lower(Vendor.name)
+                == normalized_vendor_name.lower(),
+            )
+        )
+
+        if vendor is None:
+            vendor = Vendor(
+                owner_id=user.id,
+                name=normalized_vendor_name,
+                is_active=True,
+            )
+
+            db.add(vendor)
+            db.flush()
+
+            audit(
+                db,
+                request,
+                "vendor_created",
+                user.id,
+                (
+                    f"Vendor ID: {vendor.id}; "
+                    f"Name: {vendor.name}; "
+                    "Created from expense form"
+                ),
+            )
+        elif not vendor.is_active:
+            vendor.is_active = True
 
     expense = Expense(
         owner_id=user.id,
@@ -7970,6 +8050,1012 @@ def reports_center(
                 ),
                 "profitability": (
                     "/reports/profitability.csv" + suffix
+                ),
+            },
+        },
+    )
+
+
+
+# PATCH-ANALYTICS-001A: YIELD AND FINANCIAL TREND ANALYTICS
+
+
+def analytics_month_start(value: date) -> date:
+    return value.replace(day=1)
+
+
+def analytics_add_months(
+    value: date,
+    months: int,
+) -> date:
+    month_index = (
+        value.year * 12
+        + value.month
+        - 1
+        + months
+    )
+
+    year = month_index // 12
+    month = month_index % 12 + 1
+
+    return date(
+        year=year,
+        month=month,
+        day=1,
+    )
+
+
+def analytics_month_key(value: date) -> str:
+    return value.strftime("%Y-%m")
+
+
+def analytics_month_label(value: date) -> str:
+    return value.strftime("%b %Y")
+
+
+def analytics_default_period() -> tuple[date, date]:
+    today = date.today()
+    current_month = analytics_month_start(today)
+
+    return (
+        analytics_add_months(
+            current_month,
+            -11,
+        ),
+        today,
+    )
+
+
+def analytics_resolve_period(
+    date_from: date | None,
+    date_to: date | None,
+) -> tuple[date, date]:
+    default_from, default_to = (
+        analytics_default_period()
+    )
+
+    resolved_from = date_from or default_from
+    resolved_to = date_to or default_to
+
+    if resolved_from > resolved_to:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "From date cannot be later "
+                "than to date."
+            ),
+        )
+
+    maximum_months = 60
+
+    month_difference = (
+        (
+            resolved_to.year
+            - resolved_from.year
+        )
+        * 12
+        + resolved_to.month
+        - resolved_from.month
+    )
+
+    if month_difference >= maximum_months:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Analytics period cannot exceed "
+                "60 months."
+            ),
+        )
+
+    return resolved_from, resolved_to
+
+
+def analytics_month_series(
+    date_from: date,
+    date_to: date,
+) -> list[date]:
+    months: list[date] = []
+
+    current = analytics_month_start(date_from)
+    final_month = analytics_month_start(date_to)
+
+    while current <= final_month:
+        months.append(current)
+        current = analytics_add_months(
+            current,
+            1,
+        )
+
+    return months
+
+
+def analytics_decimal(
+    value: object,
+) -> Decimal:
+    if value is None:
+        return Decimal("0.00")
+
+    return Decimal(str(value)).quantize(
+        Decimal("0.01")
+    )
+
+
+def analytics_safe_divide(
+    numerator: Decimal,
+    denominator: Decimal,
+) -> Decimal:
+    if denominator == 0:
+        return Decimal("0.00")
+
+    return (
+        numerator / denominator
+    ).quantize(Decimal("0.01"))
+
+
+@app.get(
+    "/analytics/trends",
+    response_class=JSONResponse,
+)
+def analytics_trends(
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    resolved_from, resolved_to = (
+        analytics_resolve_period(
+            date_from=date_from,
+            date_to=date_to,
+        )
+    )
+
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    if farm_id is not None:
+        selected_farm = require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+
+        analytics_farms = [selected_farm]
+    else:
+        analytics_farms = farms
+
+    selected_farm_ids = {
+        farm.id
+        for farm in analytics_farms
+    }
+
+    months = analytics_month_series(
+        date_from=resolved_from,
+        date_to=resolved_to,
+    )
+
+    month_data: dict[str, dict[str, object]] = {}
+
+    for month in months:
+        key = analytics_month_key(month)
+
+        month_data[key] = {
+            "month": key,
+            "label": analytics_month_label(month),
+            "mature_coconuts": 0,
+            "tender_coconuts": 0,
+            "damaged_coconuts": 0,
+            "total_coconuts": 0,
+            "trees_harvested": 0,
+            "harvest_cost": Decimal("0.00"),
+            "sales_revenue": Decimal("0.00"),
+            "paid_amount": Decimal("0.00"),
+            "outstanding_amount": Decimal("0.00"),
+            "operating_expense": Decimal("0.00"),
+        }
+
+    harvest_statement = (
+        select(HarvestRecord)
+        .where(
+            HarvestRecord.owner_id == user.id,
+            HarvestRecord.harvest_date
+            >= resolved_from,
+            HarvestRecord.harvest_date
+            <= resolved_to,
+        )
+        .order_by(
+            HarvestRecord.harvest_date.asc(),
+            HarvestRecord.id.asc(),
+        )
+    )
+
+    sale_statement = (
+        select(Sale)
+        .where(
+            Sale.owner_id == user.id,
+            Sale.sale_date >= resolved_from,
+            Sale.sale_date <= resolved_to,
+        )
+        .order_by(
+            Sale.sale_date.asc(),
+            Sale.id.asc(),
+        )
+    )
+
+    expense_statement = (
+        select(Expense)
+        .where(
+            Expense.owner_id == user.id,
+            Expense.expense_date
+            >= resolved_from,
+            Expense.expense_date
+            <= resolved_to,
+        )
+        .order_by(
+            Expense.expense_date.asc(),
+            Expense.id.asc(),
+        )
+    )
+
+    if farm_id is not None:
+        harvest_statement = (
+            harvest_statement.where(
+                HarvestRecord.farm_id == farm_id
+            )
+        )
+
+        sale_statement = sale_statement.where(
+            Sale.farm_id == farm_id
+        )
+
+        expense_statement = (
+            expense_statement.where(
+                Expense.farm_id == farm_id
+            )
+        )
+
+    harvests = db.scalars(
+        harvest_statement
+    ).all()
+
+    sales = db.scalars(
+        sale_statement
+    ).all()
+
+    expenses = db.scalars(
+        expense_statement
+    ).all()
+
+    for record in harvests:
+        key = analytics_month_key(
+            record.harvest_date
+        )
+
+        bucket = month_data.get(key)
+
+        if bucket is None:
+            continue
+
+        bucket["mature_coconuts"] += int(
+            record.mature_coconuts or 0
+        )
+
+        bucket["tender_coconuts"] += int(
+            record.tender_coconuts or 0
+        )
+
+        bucket["damaged_coconuts"] += int(
+            record.damaged_coconuts or 0
+        )
+
+        bucket["total_coconuts"] += int(
+            record.total_coconuts or 0
+        )
+
+        bucket["trees_harvested"] += int(
+            record.trees_harvested or 0
+        )
+
+        bucket["harvest_cost"] += (
+            analytics_decimal(
+                record.total_harvest_cost
+            )
+        )
+
+    for sale in sales:
+        key = analytics_month_key(
+            sale.sale_date
+        )
+
+        bucket = month_data.get(key)
+
+        if bucket is None:
+            continue
+
+        bucket["sales_revenue"] += (
+            analytics_decimal(
+                sale.net_amount
+            )
+        )
+
+        bucket["paid_amount"] += (
+            analytics_decimal(
+                sale.paid_amount
+            )
+        )
+
+        bucket["outstanding_amount"] += (
+            analytics_decimal(
+                sale.balance_amount
+            )
+        )
+
+    for expense in expenses:
+        key = analytics_month_key(
+            expense.expense_date
+        )
+
+        bucket = month_data.get(key)
+
+        if bucket is None:
+            continue
+
+        bucket["operating_expense"] += (
+            analytics_decimal(
+                expense.amount
+            )
+        )
+
+    monthly_rows: list[dict[str, object]] = []
+
+    for month in months:
+        key = analytics_month_key(month)
+        bucket = month_data[key]
+
+        harvest_cost = analytics_decimal(
+            bucket["harvest_cost"]
+        )
+
+        sales_revenue = analytics_decimal(
+            bucket["sales_revenue"]
+        )
+
+        paid_amount = analytics_decimal(
+            bucket["paid_amount"]
+        )
+
+        outstanding_amount = analytics_decimal(
+            bucket["outstanding_amount"]
+        )
+
+        operating_expense = analytics_decimal(
+            bucket["operating_expense"]
+        )
+
+        total_cost = (
+            operating_expense
+            + harvest_cost
+        ).quantize(Decimal("0.01"))
+
+        net_profit = (
+            sales_revenue
+            - total_cost
+        ).quantize(Decimal("0.01"))
+
+        total_coconuts = int(
+            bucket["total_coconuts"]
+        )
+
+        trees_harvested = int(
+            bucket["trees_harvested"]
+        )
+
+        yield_per_tree = (
+            analytics_safe_divide(
+                Decimal(total_coconuts),
+                Decimal(trees_harvested),
+            )
+        )
+
+        damage_percentage = (
+            analytics_safe_divide(
+                Decimal(
+                    int(
+                        bucket[
+                            "damaged_coconuts"
+                        ]
+                    )
+                    * 100
+                ),
+                Decimal(total_coconuts),
+            )
+        )
+
+        monthly_rows.append(
+            {
+                "month": bucket["month"],
+                "label": bucket["label"],
+                "yield": {
+                    "mature_coconuts": int(
+                        bucket[
+                            "mature_coconuts"
+                        ]
+                    ),
+                    "tender_coconuts": int(
+                        bucket[
+                            "tender_coconuts"
+                        ]
+                    ),
+                    "damaged_coconuts": int(
+                        bucket[
+                            "damaged_coconuts"
+                        ]
+                    ),
+                    "total_coconuts": (
+                        total_coconuts
+                    ),
+                    "trees_harvested": (
+                        trees_harvested
+                    ),
+                    "yield_per_tree": str(
+                        yield_per_tree
+                    ),
+                    "damage_percentage": str(
+                        damage_percentage
+                    ),
+                },
+                "financial": {
+                    "sales_revenue": str(
+                        sales_revenue
+                    ),
+                    "operating_expense": str(
+                        operating_expense
+                    ),
+                    "harvest_cost": str(
+                        harvest_cost
+                    ),
+                    "total_cost": str(
+                        total_cost
+                    ),
+                    "net_profit": str(
+                        net_profit
+                    ),
+                    "paid_amount": str(
+                        paid_amount
+                    ),
+                    "outstanding_amount": str(
+                        outstanding_amount
+                    ),
+                },
+            }
+        )
+
+    farm_comparison: list[dict[str, object]] = []
+
+    for farm in analytics_farms:
+        result = calculate_farm_profitability(
+            farm=farm,
+            owner_id=user.id,
+            db=db,
+            date_from=resolved_from,
+            date_to=resolved_to,
+        )
+
+        farm_comparison.append(
+            {
+                key: (
+                    str(value)
+                    if isinstance(
+                        value,
+                        Decimal,
+                    )
+                    else value
+                )
+                for key, value in result.items()
+            }
+        )
+
+    farm_comparison.sort(
+        key=lambda item: Decimal(
+            str(item["net_profit"])
+        ),
+        reverse=True,
+    )
+
+    total_revenue = sum(
+        (
+            analytics_decimal(
+                sale.net_amount
+            )
+            for sale in sales
+        ),
+        Decimal("0.00"),
+    )
+
+    total_paid = sum(
+        (
+            analytics_decimal(
+                sale.paid_amount
+            )
+            for sale in sales
+        ),
+        Decimal("0.00"),
+    )
+
+    total_outstanding = sum(
+        (
+            analytics_decimal(
+                sale.balance_amount
+            )
+            for sale in sales
+        ),
+        Decimal("0.00"),
+    )
+
+    total_operating_expense = sum(
+        (
+            analytics_decimal(
+                expense.amount
+            )
+            for expense in expenses
+        ),
+        Decimal("0.00"),
+    )
+
+    total_harvest_cost = sum(
+        (
+            analytics_decimal(
+                record.total_harvest_cost
+            )
+            for record in harvests
+        ),
+        Decimal("0.00"),
+    )
+
+    total_cost = (
+        total_operating_expense
+        + total_harvest_cost
+    ).quantize(Decimal("0.01"))
+
+    total_profit = (
+        total_revenue - total_cost
+    ).quantize(Decimal("0.01"))
+
+    total_coconuts = sum(
+        int(record.total_coconuts or 0)
+        for record in harvests
+    )
+
+    total_trees_harvested = sum(
+        int(record.trees_harvested or 0)
+        for record in harvests
+    )
+
+    total_damaged = sum(
+        int(record.damaged_coconuts or 0)
+        for record in harvests
+    )
+
+    best_month = None
+
+    if monthly_rows:
+        best_month_row = max(
+            monthly_rows,
+            key=lambda item: Decimal(
+                item["financial"][
+                    "net_profit"
+                ]
+            ),
+        )
+
+        best_month = {
+            "month": best_month_row["month"],
+            "label": best_month_row["label"],
+            "net_profit": (
+                best_month_row[
+                    "financial"
+                ]["net_profit"]
+            ),
+        }
+
+    selected_farm = None
+
+    if farm_id is not None:
+        selected_farm = {
+            "id": analytics_farms[0].id,
+            "name": analytics_farms[0].name,
+        }
+
+    return {
+        "period": {
+            "date_from": (
+                resolved_from.isoformat()
+            ),
+            "date_to": (
+                resolved_to.isoformat()
+            ),
+            "month_count": len(months),
+        },
+        "filter": {
+            "farm": selected_farm,
+            "all_farms": farm_id is None,
+        },
+        "summary": {
+            "farm_count": len(
+                selected_farm_ids
+            ),
+            "harvest_count": len(harvests),
+            "sale_count": len(sales),
+            "expense_count": len(expenses),
+            "total_coconuts": total_coconuts,
+            "total_trees_harvested": (
+                total_trees_harvested
+            ),
+            "yield_per_tree": str(
+                analytics_safe_divide(
+                    Decimal(total_coconuts),
+                    Decimal(
+                        total_trees_harvested
+                    ),
+                )
+            ),
+            "damage_percentage": str(
+                analytics_safe_divide(
+                    Decimal(
+                        total_damaged * 100
+                    ),
+                    Decimal(total_coconuts),
+                )
+            ),
+            "total_revenue": str(
+                total_revenue.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "total_paid": str(
+                total_paid.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "total_outstanding": str(
+                total_outstanding.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "operating_expense": str(
+                total_operating_expense.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "harvest_cost": str(
+                total_harvest_cost.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "total_cost": str(total_cost),
+            "net_profit": str(total_profit),
+            "profitability_percentage": str(
+                profitability_percentage(
+                    total_profit,
+                    total_cost,
+                )
+            ),
+            "profit_per_coconut": str(
+                analytics_safe_divide(
+                    total_profit,
+                    Decimal(total_coconuts),
+                )
+            ),
+            "best_month": best_month,
+        },
+        "monthly": monthly_rows,
+        "farm_comparison": farm_comparison,
+    }
+
+
+@app.get(
+    "/analytics/farm-comparison",
+    response_class=JSONResponse,
+)
+def analytics_farm_comparison(
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    resolved_from, resolved_to = (
+        analytics_resolve_period(
+            date_from=date_from,
+            date_to=date_to,
+        )
+    )
+
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    results = [
+        calculate_farm_profitability(
+            farm=farm,
+            owner_id=user.id,
+            db=db,
+            date_from=resolved_from,
+            date_to=resolved_to,
+        )
+        for farm in farms
+    ]
+
+    results.sort(
+        key=lambda item: item["net_profit"],
+        reverse=True,
+    )
+
+    return {
+        "period": {
+            "date_from": (
+                resolved_from.isoformat()
+            ),
+            "date_to": (
+                resolved_to.isoformat()
+            ),
+        },
+        "farm_count": len(results),
+        "items": [
+            {
+                key: (
+                    str(value)
+                    if isinstance(
+                        value,
+                        Decimal,
+                    )
+                    else value
+                )
+                for key, value in result.items()
+            }
+            for result in results
+        ],
+    }
+
+
+
+# PATCH-ANALYTICS-001B: ANALYTICS DASHBOARD UI
+
+
+def analytics_chart_percentage(
+    value: object,
+    maximum: Decimal,
+) -> Decimal:
+    parsed_value = abs(
+        Decimal(str(value or 0))
+    )
+
+    if maximum <= 0:
+        return Decimal("0.00")
+
+    percentage = (
+        parsed_value
+        / maximum
+        * Decimal("100")
+    ).quantize(Decimal("0.01"))
+
+    if parsed_value > 0 and percentage < 2:
+        return Decimal("2.00")
+
+    return min(
+        percentage,
+        Decimal("100.00"),
+    )
+
+
+@app.get(
+    "/analytics/manage",
+    response_class=HTMLResponse,
+)
+def analytics_management_page(
+    request: Request,
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    analytics_data = analytics_trends(
+        farm_id=farm_id,
+        date_from=date_from,
+        date_to=date_to,
+        user=user,
+        db=db,
+    )
+
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    monthly = analytics_data["monthly"]
+
+    maximum_financial = max(
+        [
+            abs(
+                Decimal(
+                    row["financial"][
+                        "sales_revenue"
+                    ]
+                )
+            )
+            for row in monthly
+        ]
+        + [
+            abs(
+                Decimal(
+                    row["financial"][
+                        "total_cost"
+                    ]
+                )
+            )
+            for row in monthly
+        ]
+        + [
+            abs(
+                Decimal(
+                    row["financial"][
+                        "net_profit"
+                    ]
+                )
+            )
+            for row in monthly
+        ]
+        + [Decimal("0.00")]
+    )
+
+    maximum_yield = max(
+        [
+            Decimal(
+                row["yield"][
+                    "mature_coconuts"
+                ]
+            )
+            for row in monthly
+        ]
+        + [
+            Decimal(
+                row["yield"][
+                    "tender_coconuts"
+                ]
+            )
+            for row in monthly
+        ]
+        + [
+            Decimal(
+                row["yield"][
+                    "damaged_coconuts"
+                ]
+            )
+            for row in monthly
+        ]
+        + [Decimal("0.00")]
+    )
+
+    maximum_payment = max(
+        [
+            Decimal(
+                row["financial"][
+                    "paid_amount"
+                ]
+            )
+            for row in monthly
+        ]
+        + [
+            Decimal(
+                row["financial"][
+                    "outstanding_amount"
+                ]
+            )
+            for row in monthly
+        ]
+        + [Decimal("0.00")]
+    )
+
+    for row in monthly:
+        financial = row["financial"]
+        yield_data = row["yield"]
+
+        row["chart"] = {
+            "revenue_height": str(
+                analytics_chart_percentage(
+                    financial["sales_revenue"],
+                    maximum_financial,
+                )
+            ),
+            "cost_height": str(
+                analytics_chart_percentage(
+                    financial["total_cost"],
+                    maximum_financial,
+                )
+            ),
+            "profit_height": str(
+                analytics_chart_percentage(
+                    financial["net_profit"],
+                    maximum_financial,
+                )
+            ),
+            "mature_height": str(
+                analytics_chart_percentage(
+                    yield_data[
+                        "mature_coconuts"
+                    ],
+                    maximum_yield,
+                )
+            ),
+            "tender_height": str(
+                analytics_chart_percentage(
+                    yield_data[
+                        "tender_coconuts"
+                    ],
+                    maximum_yield,
+                )
+            ),
+            "damaged_height": str(
+                analytics_chart_percentage(
+                    yield_data[
+                        "damaged_coconuts"
+                    ],
+                    maximum_yield,
+                )
+            ),
+            "paid_height": str(
+                analytics_chart_percentage(
+                    financial["paid_amount"],
+                    maximum_payment,
+                )
+            ),
+            "outstanding_height": str(
+                analytics_chart_percentage(
+                    financial[
+                        "outstanding_amount"
+                    ],
+                    maximum_payment,
+                )
+            ),
+        }
+
+    resolved_period = analytics_data["period"]
+
+    return templates.TemplateResponse(
+        request=request,
+        name="analytics/index.html",
+        context={
+            "current_user": user,
+            "farms": farms,
+            "summary": analytics_data[
+                "summary"
+            ],
+            "monthly": monthly,
+            "farm_comparison": analytics_data[
+                "farm_comparison"
+            ],
+            "period": resolved_period,
+            "filters": {
+                "farm_id": farm_id or "",
+                "date_from": (
+                    date_from.isoformat()
+                    if date_from
+                    else resolved_period[
+                        "date_from"
+                    ]
+                ),
+                "date_to": (
+                    date_to.isoformat()
+                    if date_to
+                    else resolved_period[
+                        "date_to"
+                    ]
                 ),
             },
         },
@@ -14114,3 +15200,90 @@ templates.env.globals.update({
         tree_activity_status_transition_allowed
     ),
 })
+
+# PATCH-ROUTE-ORDER-001A: STATIC ROUTE PRIORITY
+
+
+def _messis_promote_static_route(
+    static_path: str,
+    dynamic_path: str,
+) -> None:
+    """
+    Ensure a literal route such as /harvests/manage is checked
+    before a dynamic route such as /harvests/{cycle_id}.
+    """
+
+    routes = app.router.routes
+
+    static_route = next(
+        (
+            route
+            for route in routes
+            if getattr(route, "path", None) == static_path
+        ),
+        None,
+    )
+
+    dynamic_route = next(
+        (
+            route
+            for route in routes
+            if getattr(route, "path", None) == dynamic_path
+        ),
+        None,
+    )
+
+    if static_route is None or dynamic_route is None:
+        return
+
+    static_index = routes.index(static_route)
+    dynamic_index = routes.index(dynamic_route)
+
+    if static_index < dynamic_index:
+        return
+
+    routes.remove(static_route)
+
+    dynamic_index = routes.index(dynamic_route)
+    routes.insert(dynamic_index, static_route)
+
+
+_MESSIS_STATIC_ROUTE_PRIORITIES = (
+    (
+        "/harvests/manage",
+        "/harvests/{cycle_id}",
+    ),
+    (
+        "/harvest-records/manage",
+        "/harvest-records/{record_id}",
+    ),
+    (
+        "/expenses/manage",
+        "/expenses/{expense_id}",
+    ),
+    (
+        "/expenses/new",
+        "/expenses/{expense_id}",
+    ),
+    (
+        "/sales/manage",
+        "/sales/{sale_id}",
+    ),
+    (
+        "/sales/new",
+        "/sales/{sale_id}",
+    ),
+    (
+        "/farms/new",
+        "/farms/{farm_id}",
+    ),
+)
+
+for (
+    _messis_static_path,
+    _messis_dynamic_path,
+) in _MESSIS_STATIC_ROUTE_PRIORITIES:
+    _messis_promote_static_route(
+        static_path=_messis_static_path,
+        dynamic_path=_messis_dynamic_path,
+    )

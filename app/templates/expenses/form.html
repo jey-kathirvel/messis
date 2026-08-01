@@ -240,38 +240,102 @@
 
                 <div>
                     <label for="category_id">Category</label>
-                    <select id="category_id" name="category_id" required>
+
+                    <select
+                        id="category_id"
+                        name="category_id"
+                        required
+                    >
                         <option value="">Select category</option>
 
                         {% for category in categories %}
                             <option
                                 value="{{ category.id }}"
-                                {% if form_data.category_id|string == category.id|string %}
+                                {% if
+                                    form_data.category_id|string
+                                    == category.id|string
+                                %}
                                     selected
                                 {% endif %}
                             >
                                 {{ category.name }}
                             </option>
                         {% endfor %}
+
+                        <option
+                            value="__other__"
+                            {% if
+                                form_data.category_id
+                                == "__other__"
+                            %}
+                                selected
+                            {% endif %}
+                        >
+                            Others — Add new category
+                        </option>
                     </select>
+
+                    <div
+                        id="custom-category-wrap"
+                        style="
+                            display:none;
+                            margin-top:10px;
+                        "
+                    >
+                        <label for="custom_category_name">
+                            New category name
+                        </label>
+
+                        <input
+                            id="custom_category_name"
+                            name="custom_category_name"
+                            type="text"
+                            maxlength="100"
+                            placeholder="Example: Tree cleaning"
+                            value="{{ form_data.custom_category_name or '' }}"
+                        >
+
+                        <small
+                            style="
+                                display:block;
+                                margin-top:6px;
+                                color:#64748b;
+                            "
+                        >
+                            This category will be saved for future use.
+                        </small>
+                    </div>
                 </div>
 
                 <div>
-                    <label for="vendor_id">Vendor</label>
-                    <select id="vendor_id" name="vendor_id">
-                        <option value="">No vendor</option>
+                    <label for="vendor_name">Vendor</label>
 
+                    <input
+                        id="vendor_name"
+                        name="vendor_name"
+                        type="text"
+                        maxlength="160"
+                        list="vendor-suggestions"
+                        autocomplete="off"
+                        placeholder="Search or type a new vendor"
+                        value="{{ form_data.vendor_name or '' }}"
+                    >
+
+                    <datalist id="vendor-suggestions">
                         {% for vendor in vendors %}
-                            <option
-                                value="{{ vendor.id }}"
-                                {% if form_data.vendor_id|string == vendor.id|string %}
-                                    selected
-                                {% endif %}
-                            >
-                                {{ vendor.name }}
-                            </option>
+                            <option value="{{ vendor.name }}"></option>
                         {% endfor %}
-                    </select>
+                    </datalist>
+
+                    <small
+                        style="
+                            display:block;
+                            margin-top:6px;
+                            color:#64748b;
+                        "
+                    >
+                        Select an existing vendor or type a new name.
+                    </small>
                 </div>
 
                 <div>
@@ -364,17 +428,60 @@
 </main>
 
 <script>
-    const amountInput = document.getElementById("amount");
+    const amountInput =
+        document.getElementById("amount");
+
     const amountPreview =
         document.getElementById("amount_preview");
 
+    const categorySelect =
+        document.getElementById("category_id");
+
+    const customCategoryWrap =
+        document.getElementById(
+            "custom-category-wrap"
+        );
+
+    const customCategoryInput =
+        document.getElementById(
+            "custom_category_name"
+        );
+
     function refreshAmount() {
-        const amount = Number(amountInput.value || 0);
-        amountPreview.textContent = "₹" + amount.toFixed(2);
+        const amount = Number(
+            amountInput.value || 0
+        );
+
+        amountPreview.textContent =
+            "₹" + amount.toFixed(2);
     }
 
-    amountInput.addEventListener("input", refreshAmount);
+    function refreshCustomCategory() {
+        const isOther =
+            categorySelect.value === "__other__";
+
+        customCategoryWrap.style.display =
+            isOther ? "block" : "none";
+
+        customCategoryInput.required = isOther;
+
+        if (!isOther) {
+            customCategoryInput.value = "";
+        }
+    }
+
+    amountInput.addEventListener(
+        "input",
+        refreshAmount
+    );
+
+    categorySelect.addEventListener(
+        "change",
+        refreshCustomCategory
+    );
+
     refreshAmount();
+    refreshCustomCategory();
 </script>
 
 <script>
