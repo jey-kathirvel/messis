@@ -2,21 +2,61 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1"
     >
-    <title>Business Dashboard · Messis AI</title>
+
+    <title>Dashboard · Messis AI</title>
 
     <style>
         :root {
-            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-            color: #17351f;
-            background: #f3faf4;
+            --sidebar-width: 276px;
+            --sidebar-collapsed-width: 82px;
+
+            --green-950: #052e16;
+            --green-900: #064e3b;
+            --green-800: #065f46;
+            --green-700: #047857;
+            --green-600: #059669;
+            --green-500: #10b981;
+            --green-100: #d1fae5;
+            --green-50: #ecfdf5;
+
+            --slate-950: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-300: #cbd5e1;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+
+            --surface: #ffffff;
+            --page: #f5faf6;
+            --danger: #dc2626;
+            --warning: #d97706;
+
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            color: var(--slate-950);
+            background: var(--page);
         }
 
         * {
             box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
         }
 
         body {
@@ -24,110 +64,435 @@
             min-height: 100vh;
             background:
                 radial-gradient(
-                    circle at 90% 5%,
-                    rgba(34, 197, 94, 0.17),
+                    circle at 85% 5%,
+                    rgba(16, 185, 129, 0.10),
                     transparent 28%
                 ),
                 radial-gradient(
-                    circle at 5% 30%,
-                    rgba(250, 204, 21, 0.10),
-                    transparent 24%
+                    circle at 15% 90%,
+                    rgba(250, 204, 21, 0.07),
+                    transparent 26%
                 ),
-                #f3faf4;
+                var(--page);
         }
 
-        header {
-            padding: 22px clamp(18px, 5vw, 72px);
+        a {
+            color: inherit;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        .app-shell {
+            min-height: 100vh;
+        }
+
+        /* SIDEBAR */
+
+        .sidebar {
+            position: fixed;
+            inset: 0 auto 0 0;
+            z-index: 1000;
+
+            display: flex;
+            width: var(--sidebar-width);
+            flex-direction: column;
+
+            color: white;
+            background:
+                linear-gradient(
+                    180deg,
+                    var(--green-950),
+                    var(--green-900) 55%,
+                    #063d2d
+                );
+
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 14px 0 38px rgba(5, 46, 22, 0.16);
+
+            transition:
+                transform 180ms ease,
+                width 180ms ease;
+        }
+
+        .brand {
+            display: flex;
+            min-height: 92px;
+            align-items: center;
+            gap: 13px;
+            padding: 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+        }
+
+        .brand-mark {
+            display: grid;
+            width: 48px;
+            height: 48px;
+            flex: 0 0 48px;
+            place-items: center;
+
+            color: var(--green-900);
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 9px 24px rgba(0, 0, 0, 0.18);
+
+            font-size: 25px;
+        }
+
+        .brand-copy {
+            min-width: 0;
+        }
+
+        .brand-copy strong {
+            display: block;
+            font-size: 22px;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-copy span {
+            display: block;
+            margin-top: 3px;
+            overflow: hidden;
+            color: #a7f3d0;
+            font-size: 12px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .sidebar-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 12px;
+            scrollbar-width: thin;
+        }
+
+        .menu-section {
+            margin-bottom: 18px;
+        }
+
+        .menu-label {
+            padding: 8px 11px;
+            color: #86efac;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+        }
+
+        .menu-link,
+        .submenu-summary {
+            display: flex;
+            width: 100%;
+            min-height: 44px;
+            align-items: center;
+            gap: 11px;
+
+            margin: 3px 0;
+            padding: 10px 12px;
+
+            color: #ecfdf5;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 12px;
+
+            text-decoration: none;
+            cursor: pointer;
+            transition:
+                background 140ms ease,
+                border-color 140ms ease,
+                transform 140ms ease;
+        }
+
+        .menu-link:hover,
+        .submenu-summary:hover {
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.08);
+            transform: translateX(2px);
+        }
+
+        .menu-link.active {
             color: white;
             background:
                 linear-gradient(
                     135deg,
-                    rgba(20, 83, 45, 0.98),
-                    rgba(21, 128, 61, 0.94)
+                    rgba(34, 197, 94, 0.88),
+                    rgba(21, 128, 61, 0.92)
                 );
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
         }
 
-        .header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 20px;
-            flex-wrap: wrap;
+        .menu-icon {
+            display: grid;
+            width: 24px;
+            height: 24px;
+            flex: 0 0 24px;
+            place-items: center;
+            font-size: 17px;
         }
 
-        h1 {
-            margin: 0;
-            font-size: clamp(27px, 4vw, 43px);
-        }
-
-        header p {
-            margin: 7px 0 0;
-            color: #dcfce7;
-        }
-
-        nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 9px;
-            margin-top: 20px;
-        }
-
-        nav a {
-            padding: 9px 13px;
-            color: white;
-            text-decoration: none;
-            border: 1px solid rgba(255, 255, 255, 0.16);
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.11);
+        .menu-text {
+            min-width: 0;
+            flex: 1;
+            overflow: hidden;
             font-size: 14px;
-            font-weight: 800;
+            font-weight: 750;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        .period {
-            padding: 12px 15px;
+        .menu-badge {
+            padding: 2px 7px;
             color: #14532d;
-            background: #f0fdf4;
-            border-radius: 15px;
+            background: #bbf7d0;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        details.menu-group {
+            margin: 3px 0;
+        }
+
+        details.menu-group > summary {
+            list-style: none;
+        }
+
+        details.menu-group > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .submenu-chevron {
+            font-size: 12px;
+            transition: transform 160ms ease;
+        }
+
+        details[open] .submenu-chevron {
+            transform: rotate(90deg);
+        }
+
+        .submenu {
+            margin: 4px 0 7px 34px;
+            padding-left: 10px;
+            border-left: 1px solid rgba(255, 255, 255, 0.17);
+        }
+
+        .submenu .menu-link {
+            min-height: 38px;
+            padding: 8px 10px;
+        }
+
+        .submenu .menu-text {
+            font-size: 13px;
+            font-weight: 650;
+        }
+
+        .sidebar-footer {
+            padding: 13px;
+            border-top: 1px solid rgba(255, 255, 255, 0.10);
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 11px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            border-radius: 14px;
+        }
+
+        .user-avatar {
+            display: grid;
+            width: 38px;
+            height: 38px;
+            flex: 0 0 38px;
+            place-items: center;
+            color: var(--green-900);
+            background: #d1fae5;
+            border-radius: 12px;
+            font-weight: 900;
+        }
+
+        .user-info {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .user-info strong,
+        .user-info span {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .user-info strong {
+            font-size: 13px;
+        }
+
+        .user-info span {
+            margin-top: 2px;
+            color: #a7f3d0;
+            font-size: 11px;
+        }
+
+        /* MAIN */
+
+        .main-area {
+            min-height: 100vh;
+            margin-left: var(--sidebar-width);
+            transition: margin-left 180ms ease;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 800;
+
+            display: flex;
+            min-height: 72px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+
+            padding: 12px 24px;
+
+            background: rgba(255, 255, 255, 0.91);
+            border-bottom: 1px solid rgba(203, 213, 225, 0.75);
+            backdrop-filter: blur(13px);
+        }
+
+        .topbar-left,
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-toggle {
+            display: none;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+
+            color: var(--green-900);
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .page-title strong {
+            display: block;
+            color: var(--slate-950);
+            font-size: 20px;
+        }
+
+        .page-title span {
+            display: block;
+            margin-top: 2px;
+            color: var(--slate-500);
+            font-size: 12px;
+        }
+
+        .period-pill {
+            padding: 10px 13px;
+            color: var(--green-900);
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 850;
+        }
+
+        .top-link {
+            display: inline-flex;
+            min-height: 42px;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 13px;
+
+            color: var(--slate-700);
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 12px;
+
+            text-decoration: none;
+            font-size: 13px;
             font-weight: 800;
         }
 
-        main {
-            width: min(1240px, calc(100% - 32px));
-            margin: 26px auto 60px;
+        .content {
+            width: min(1480px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 24px 0 50px;
+        }
+
+        .welcome {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .welcome h1 {
+            margin: 0;
+            font-size: clamp(24px, 3vw, 34px);
+            letter-spacing: -0.025em;
+        }
+
+        .welcome p {
+            margin: 7px 0 0;
+            color: var(--slate-500);
         }
 
         .filters {
             display: grid;
             grid-template-columns:
-                minmax(0, 1.3fr)
-                minmax(0, 1fr)
-                minmax(0, 1fr)
+                minmax(190px, 1.3fr)
+                minmax(160px, 1fr)
+                minmax(160px, 1fr)
+                auto
                 auto;
             gap: 12px;
+
             padding: 18px;
             margin-bottom: 20px;
+
             background: white;
-            border: 1px solid #dcfce7;
-            border-radius: 19px;
-            box-shadow: 0 12px 34px rgba(20, 83, 45, 0.06);
+            border: 1px solid var(--slate-200);
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.045);
         }
 
-        .filters label {
+        .field label {
             display: block;
-            margin-bottom: 6px;
-            color: #475569;
-            font-size: 13px;
-            font-weight: 800;
+            margin-bottom: 7px;
+            color: var(--slate-600);
+            font-size: 12px;
+            font-weight: 850;
         }
 
-        .filters select,
-        .filters input {
+        .field input,
+        .field select {
             width: 100%;
-            padding: 11px 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 11px;
+            min-height: 44px;
+            padding: 10px 12px;
+            color: var(--slate-800);
             background: white;
-            font: inherit;
+            border: 1px solid var(--slate-300);
+            border-radius: 11px;
+            outline: none;
+        }
+
+        .field input:focus,
+        .field select:focus {
+            border-color: var(--green-500);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
         }
 
         .filter-action {
@@ -137,18 +502,39 @@
 
         .button {
             display: inline-flex;
+            min-height: 44px;
             align-items: center;
             justify-content: center;
-            padding: 11px 16px;
-            border: 0;
-            border-radius: 12px;
+            gap: 8px;
+
+            padding: 10px 16px;
+
             color: white;
-            background: #15803d;
-            font: inherit;
-            font-weight: 900;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-700),
+                    var(--green-600)
+                );
+            border: 0;
+            border-radius: 11px;
+
             text-decoration: none;
+            font-weight: 850;
             cursor: pointer;
         }
+
+        .button:hover {
+            filter: brightness(0.97);
+        }
+
+        .button-secondary {
+            color: var(--green-800);
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+        }
+
+        /* KPIs */
 
         .kpi-grid {
             display: grid;
@@ -160,63 +546,76 @@
         .kpi {
             position: relative;
             overflow: hidden;
-            padding: 20px;
+            min-height: 146px;
+            padding: 18px;
+
             background: white;
-            border: 1px solid #dcfce7;
-            border-radius: 20px;
-            box-shadow: 0 14px 38px rgba(20, 83, 45, 0.07);
+            border: 1px solid var(--slate-200);
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.045);
         }
 
-        .kpi::after {
-            content: "";
-            position: absolute;
-            top: -28px;
-            right: -28px;
-            width: 86px;
-            height: 86px;
-            border-radius: 50%;
-            background: rgba(34, 197, 94, 0.09);
+        .kpi-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .kpi-icon {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+            color: var(--green-700);
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+            border-radius: 13px;
+            font-size: 20px;
         }
 
         .kpi small {
             display: block;
-            margin-bottom: 7px;
-            color: #64748b;
-            font-weight: 700;
+            color: var(--slate-500);
+            font-weight: 750;
         }
 
         .kpi strong {
-            position: relative;
-            z-index: 1;
             display: block;
-            color: #15803d;
-            font-size: clamp(24px, 3vw, 31px);
+            margin-top: 11px;
+            color: var(--green-700);
+            font-size: clamp(24px, 2.5vw, 31px);
+            letter-spacing: -0.02em;
         }
 
-        .kpi.loss strong,
-        .negative {
-            color: #b91c1c;
+        .kpi.loss strong {
+            color: var(--danger);
         }
 
         .kpi span {
             display: block;
-            margin-top: 6px;
-            color: #64748b;
-            font-size: 13px;
+            margin-top: 7px;
+            color: var(--slate-500);
+            font-size: 12px;
+            line-height: 1.45;
         }
 
-        .layout {
+        /* DASHBOARD LAYOUT */
+
+        .dashboard-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.8fr);
+            grid-template-columns:
+                minmax(0, 1.55fr)
+                minmax(290px, 0.65fr);
             gap: 18px;
         }
 
         .panel {
             padding: 20px;
             background: white;
-            border: 1px solid #dcfce7;
-            border-radius: 21px;
-            box-shadow: 0 14px 38px rgba(20, 83, 45, 0.07);
+            border: 1px solid var(--slate-200);
+            border-radius: 19px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.045);
         }
 
         .panel + .panel {
@@ -225,33 +624,37 @@
 
         .panel-title {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
             gap: 14px;
-            margin-bottom: 17px;
+            margin-bottom: 16px;
         }
 
         .panel-title h2 {
+            display: flex;
+            align-items: center;
+            gap: 9px;
             margin: 0;
-            font-size: 20px;
+            font-size: 18px;
         }
 
         .panel-title a {
-            color: #15803d;
+            color: var(--green-700);
             text-decoration: none;
-            font-weight: 900;
+            font-size: 13px;
+            font-weight: 850;
         }
 
         .farm-row {
             display: grid;
             grid-template-columns:
-                minmax(150px, 1.3fr)
-                repeat(3, minmax(105px, 0.8fr))
+                minmax(160px, 1.3fr)
+                repeat(3, minmax(90px, 0.7fr))
                 auto;
             gap: 12px;
             align-items: center;
-            padding: 15px 0;
-            border-bottom: 1px solid #e2e8f0;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--slate-200);
         }
 
         .farm-row:last-child {
@@ -261,93 +664,118 @@
         .farm-row small {
             display: block;
             margin-bottom: 4px;
-            color: #64748b;
+            color: var(--slate-500);
+            font-size: 11px;
         }
 
         .farm-name {
-            font-size: 17px;
+            font-size: 15px;
             font-weight: 900;
         }
 
         .detail-link {
-            padding: 9px 12px;
-            color: #166534;
-            background: #dcfce7;
-            border-radius: 11px;
+            display: inline-flex;
+            min-height: 36px;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 11px;
+
+            color: var(--green-800);
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+            border-radius: 10px;
+
             text-decoration: none;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 900;
-            white-space: nowrap;
         }
 
-        .activity {
-            display: flex;
-            justify-content: space-between;
-            gap: 14px;
-            padding: 14px 0;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .activity:last-child {
-            border-bottom: 0;
-        }
-
-        .activity strong {
-            display: block;
-        }
-
-        .activity small {
-            display: block;
-            margin-top: 4px;
-            color: #64748b;
-        }
-
-        .money-positive {
-            color: #15803d;
-            font-weight: 900;
-            white-space: nowrap;
-        }
-
-        .money-negative {
-            color: #b91c1c;
-            font-weight: 900;
-            white-space: nowrap;
+        .negative {
+            color: var(--danger);
         }
 
         .quick-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 11px;
+            grid-template-columns: 1fr;
+            gap: 10px;
         }
 
         .quick-action {
-            min-height: 92px;
-            padding: 15px;
-            color: #14532d;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 16px;
+            display: flex;
+            min-height: 64px;
+            align-items: center;
+            gap: 12px;
+
+            padding: 12px;
+
+            color: var(--slate-800);
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+            border-radius: 13px;
+
             text-decoration: none;
-            font-weight: 900;
+            transition:
+                transform 140ms ease,
+                box-shadow 140ms ease;
         }
 
-        .quick-action span {
+        .quick-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(5, 150, 105, 0.10);
+        }
+
+        .quick-icon {
+            display: grid;
+            width: 38px;
+            height: 38px;
+            flex: 0 0 38px;
+            place-items: center;
+
+            color: var(--green-800);
+            background: white;
+            border: 1px solid var(--green-100);
+            border-radius: 11px;
+
+            font-size: 17px;
+        }
+
+        .quick-copy {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .quick-copy strong,
+        .quick-copy span {
             display: block;
-            margin-top: 7px;
-            color: #64748b;
-            font-size: 12px;
-            font-weight: 600;
+        }
+
+        .quick-copy strong {
+            font-size: 13px;
+        }
+
+        .quick-copy span {
+            margin-top: 3px;
+            color: var(--slate-500);
+            font-size: 11px;
+        }
+
+        .quick-arrow {
+            color: var(--green-700);
+            font-weight: 900;
         }
 
         .harvest-alert {
             display: flex;
+            align-items: flex-start;
             justify-content: space-between;
-            gap: 14px;
-            padding: 14px;
+            gap: 12px;
+
+            padding: 13px;
             margin-bottom: 10px;
+
             background: #fffbeb;
             border: 1px solid #fde68a;
-            border-radius: 15px;
+            border-radius: 13px;
         }
 
         .harvest-alert.overdue {
@@ -357,21 +785,22 @@
 
         .harvest-alert strong {
             display: block;
+            font-size: 13px;
         }
 
         .harvest-alert small {
             display: block;
             margin-top: 4px;
-            color: #64748b;
+            color: var(--slate-500);
+            font-size: 11px;
         }
 
         .badge {
-            height: fit-content;
-            padding: 6px 9px;
-            border-radius: 999px;
+            padding: 5px 8px;
             color: #92400e;
             background: #fef3c7;
-            font-size: 12px;
+            border-radius: 999px;
+            font-size: 10px;
             font-weight: 900;
             white-space: nowrap;
         }
@@ -381,27 +810,128 @@
             background: #fee2e2;
         }
 
-        .empty {
-            padding: 24px;
-            color: #64748b;
-            text-align: center;
-            border: 2px dashed #d1fae5;
-            border-radius: 16px;
+        .activity {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 13px 0;
+            border-bottom: 1px solid var(--slate-200);
         }
 
-        @media (max-width: 1020px) {
+        .activity:last-child {
+            border-bottom: 0;
+        }
+
+        .activity strong,
+        .activity small {
+            display: block;
+        }
+
+        .activity strong {
+            font-size: 13px;
+        }
+
+        .activity small {
+            margin-top: 4px;
+            color: var(--slate-500);
+            font-size: 11px;
+        }
+
+        .money-positive,
+        .money-negative {
+            white-space: nowrap;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .money-positive {
+            color: var(--green-700);
+        }
+
+        .money-negative {
+            color: var(--danger);
+        }
+
+        .empty {
+            padding: 28px 18px;
+            color: var(--slate-500);
+            text-align: center;
+            background: #fafdfb;
+            border: 2px dashed var(--green-100);
+            border-radius: 14px;
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 950;
+            display: none;
+            background: rgba(15, 23, 42, 0.52);
+            backdrop-filter: blur(2px);
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 1180px) {
             .kpi-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
-            .layout {
+            .dashboard-grid {
                 grid-template-columns: 1fr;
             }
         }
 
-        @media (max-width: 760px) {
+        @media (max-width: 960px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            body.sidebar-open .sidebar {
+                transform: translateX(0);
+            }
+
+            body.sidebar-open .sidebar-overlay {
+                display: block;
+            }
+
+            .main-area {
+                margin-left: 0;
+            }
+
+            .sidebar-toggle {
+                display: grid;
+            }
+
+            .topbar {
+                padding-inline: 16px;
+            }
+
+            .content {
+                width: min(100% - 24px, 1480px);
+            }
+
             .filters {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .filter-action {
+                align-items: stretch;
+            }
+
+            .filter-action .button {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .topbar-right .top-link {
+                display: none;
+            }
+
+            .welcome {
+                flex-direction: column;
             }
 
             .farm-row {
@@ -414,315 +944,794 @@
             }
 
             .detail-link {
-                text-align: center;
+                width: 100%;
             }
         }
 
         @media (max-width: 520px) {
+            .sidebar {
+                width: min(88vw, 310px);
+            }
+
+            .page-title span,
+            .period-pill {
+                display: none;
+            }
+
+            .filters,
             .kpi-grid,
-            .quick-grid,
             .farm-row {
                 grid-template-columns: 1fr;
             }
 
-            .button {
-                width: 100%;
+            .content {
+                padding-top: 16px;
             }
         }
     </style>
 </head>
 
 <body>
-<header>
-    <div class="header-row">
-        <div>
-            <h1>Messis AI Business Dashboard</h1>
-            <p>
-                Harvest, crop, reaping season — your complete farm overview.
-            </p>
-        </div>
+<div class="app-shell">
 
-        <div class="period">
-            {{ period_label }}
-        </div>
-    </div>
-
-    <nav>
-        <a href="/dashboard">Home</a>
-        <a href="/farms">Farms</a>
-        <a href="/harvests/manage">Harvest Cycles</a>
-        <a href="/harvest-records/manage">Harvest Records</a>
-        <a href="/expenses/manage">Expenses</a>
-        <a href="/sales/manage">Sales</a>
-        <a href="/profitability/manage">Profitability</a>
-    </nav>
-</header>
-
-<main>
-    <form
-        class="filters"
-        method="get"
-        action="/business-dashboard"
+    <aside
+        class="sidebar"
+        id="messis-sidebar"
+        aria-label="Messis AI navigation"
     >
-        <div>
-            <label for="farm_id">Farm</label>
-            <select id="farm_id" name="farm_id">
-                <option value="">All farms</option>
+        <div class="brand">
+            <div class="brand-mark">🌴</div>
 
-                {% for farm in farms %}
-                    <option
-                        value="{{ farm.id }}"
-                        {% if filters.farm_id|string == farm.id|string %}
-                            selected
-                        {% endif %}
-                    >
-                        {{ farm.name }}
-                    </option>
-                {% endfor %}
-            </select>
+            <div class="brand-copy">
+                <strong>Messis AI</strong>
+                <span>Smart Agriculture Management</span>
+            </div>
         </div>
 
-        <div>
-            <label for="date_from">From date</label>
-            <input
-                id="date_from"
-                name="date_from"
-                type="date"
-                value="{{ filters.date_from }}"
-            >
+        <div class="sidebar-scroll">
+
+            <section class="menu-section">
+                <div class="menu-label">Overview</div>
+
+                <a class="menu-link active" href="/dashboard">
+                    <span class="menu-icon">⌂</span>
+                    <span class="menu-text">Dashboard</span>
+                </a>
+            </section>
+
+            <section class="menu-section">
+                <div class="menu-label">Farm Management</div>
+
+                <details class="menu-group" open>
+                    <summary class="submenu-summary">
+                        <span class="menu-icon">🌴</span>
+                        <span class="menu-text">Farms & Trees</span>
+                        <span class="submenu-chevron">›</span>
+                    </summary>
+
+                    <div class="submenu">
+                        <a class="menu-link" href="/farms">
+                            <span class="menu-icon">▦</span>
+                            <span class="menu-text">All Farms</span>
+                        </a>
+
+                        <a class="menu-link" href="/farms/new">
+                            <span class="menu-icon">＋</span>
+                            <span class="menu-text">Add Farm</span>
+                        </a>
+
+                        <a class="menu-link" href="/farms">
+                            <span class="menu-icon">♧</span>
+                            <span class="menu-text">Coconut Trees</span>
+                        </a>
+                    </div>
+                </details>
+            </section>
+
+            <section class="menu-section">
+                <div class="menu-label">Harvest Management</div>
+
+                <details class="menu-group" open>
+                    <summary class="submenu-summary">
+                        <span class="menu-icon">🥥</span>
+                        <span class="menu-text">Harvest</span>
+                        <span class="submenu-chevron">›</span>
+                    </summary>
+
+                    <div class="submenu">
+                        <a class="menu-link" href="/harvests/manage">
+                            <span class="menu-icon">▣</span>
+                            <span class="menu-text">Harvest Cycles</span>
+                        </a>
+
+                        <a
+                            class="menu-link"
+                            href="/harvest-records/manage"
+                        >
+                            <span class="menu-icon">☷</span>
+                            <span class="menu-text">Harvest Records</span>
+                        </a>
+                    </div>
+                </details>
+            </section>
+
+            <section class="menu-section">
+                <div class="menu-label">Financial Management</div>
+
+                <details class="menu-group" open>
+                    <summary class="submenu-summary">
+                        <span class="menu-icon">₹</span>
+                        <span class="menu-text">Finance</span>
+                        <span class="submenu-chevron">›</span>
+                    </summary>
+
+                    <div class="submenu">
+                        <a class="menu-link" href="/expenses/manage">
+                            <span class="menu-icon">↙</span>
+                            <span class="menu-text">Expenses</span>
+                        </a>
+
+                        <a class="menu-link" href="/expenses/new">
+                            <span class="menu-icon">＋</span>
+                            <span class="menu-text">Add Expense</span>
+                        </a>
+
+                        <a class="menu-link" href="/sales/manage">
+                            <span class="menu-icon">↗</span>
+                            <span class="menu-text">Sales</span>
+                        </a>
+
+                        <a class="menu-link" href="/sales/new">
+                            <span class="menu-icon">＋</span>
+                            <span class="menu-text">Record Sale</span>
+                        </a>
+                    </div>
+                </details>
+
+                <details class="menu-group">
+                    <summary class="submenu-summary">
+                        <span class="menu-icon">⚙</span>
+                        <span class="menu-text">Finance Setup</span>
+                        <span class="submenu-chevron">›</span>
+                    </summary>
+
+                    <div class="submenu">
+                        <a
+                            class="menu-link"
+                            href="/buyers"
+                            target="_blank"
+                        >
+                            <span class="menu-icon">♙</span>
+                            <span class="menu-text">Buyers API</span>
+                            <span class="menu-badge">API</span>
+                        </a>
+
+                        <a
+                            class="menu-link"
+                            href="/vendors"
+                            target="_blank"
+                        >
+                            <span class="menu-icon">♙</span>
+                            <span class="menu-text">Vendors API</span>
+                            <span class="menu-badge">API</span>
+                        </a>
+
+                        <a
+                            class="menu-link"
+                            href="/expense-categories"
+                            target="_blank"
+                        >
+                            <span class="menu-icon">♢</span>
+                            <span class="menu-text">Expense Categories</span>
+                            <span class="menu-badge">API</span>
+                        </a>
+                    </div>
+                </details>
+            </section>
+
+            <section class="menu-section">
+                <div class="menu-label">Analytics & Reports</div>
+
+                <a
+                    class="menu-link"
+                    href="/profitability/manage"
+                >
+                    <span class="menu-icon">📊</span>
+                    <span class="menu-text">Profitability</span>
+                </a>
+
+                <a class="menu-link" href="/reports">
+                    <span class="menu-icon">📄</span>
+                    <span class="menu-text">Reports Center</span>
+                </a>
+
+                <a
+                    class="menu-link"
+                    href="/reports/summary"
+                    target="_blank"
+                >
+                    <span class="menu-icon">⌘</span>
+                    <span class="menu-text">Summary API</span>
+                    <span class="menu-badge">API</span>
+                </a>
+            </section>
+
+            <section class="menu-section">
+                <div class="menu-label">Developer & System</div>
+
+                <details class="menu-group">
+                    <summary class="submenu-summary">
+                        <span class="menu-icon">⚡</span>
+                        <span class="menu-text">System</span>
+                        <span class="submenu-chevron">›</span>
+                    </summary>
+
+                    <div class="submenu">
+                        <a
+                            class="menu-link"
+                            href="/docs"
+                            target="_blank"
+                        >
+                            <span class="menu-icon">⌘</span>
+                            <span class="menu-text">API Documentation</span>
+                        </a>
+
+                        <a
+                            class="menu-link"
+                            href="/health"
+                            target="_blank"
+                        >
+                            <span class="menu-icon">●</span>
+                            <span class="menu-text">System Health</span>
+                        </a>
+                    </div>
+                </details>
+            </section>
         </div>
 
-        <div>
-            <label for="date_to">To date</label>
-            <input
-                id="date_to"
-                name="date_to"
-                type="date"
-                value="{{ filters.date_to }}"
-            >
-        </div>
-
-        <div class="filter-action">
-            <button class="button" type="submit">
-                Refresh
-            </button>
-        </div>
-    </form>
-
-    <section class="kpi-grid">
-        <article class="kpi">
-            <small>Sales revenue</small>
-            <strong>₹{{ '%.2f'|format(kpis.revenue) }}</strong>
-            <span>{{ kpis.sale_count }} sale entries</span>
-        </article>
-
-        <article class="kpi">
-            <small>Total cost</small>
-            <strong>₹{{ '%.2f'|format(kpis.total_cost) }}</strong>
-            <span>
-                Operating ₹{{ '%.2f'|format(kpis.operating_expense) }}
-                + Harvest ₹{{ '%.2f'|format(kpis.harvest_cost) }}
-            </span>
-        </article>
-
-        <article
-            class="kpi {% if kpis.net_profit < 0 %}loss{% endif %}"
-        >
-            <small>Net profit</small>
-            <strong>₹{{ '%.2f'|format(kpis.net_profit) }}</strong>
-            <span>
-                {{ '%.2f'|format(kpis.profitability_percentage) }}%
-                return on cost
-            </span>
-        </article>
-
-        <article class="kpi">
-            <small>Outstanding sales</small>
-            <strong>₹{{ '%.2f'|format(kpis.outstanding) }}</strong>
-            <span>{{ kpis.unpaid_sales }} unpaid or partial sales</span>
-        </article>
-
-        <article class="kpi">
-            <small>Coconuts harvested</small>
-            <strong>{{ kpis.total_coconuts }}</strong>
-            <span>{{ kpis.harvest_count }} completed harvest records</span>
-        </article>
-
-        <article class="kpi">
-            <small>Profit per coconut</small>
-            <strong>₹{{ '%.2f'|format(kpis.profit_per_coconut) }}</strong>
-            <span>Across the selected period</span>
-        </article>
-
-        <article class="kpi">
-            <small>Harvests due</small>
-            <strong>{{ kpis.harvests_due }}</strong>
-            <span>{{ kpis.harvests_overdue }} overdue</span>
-        </article>
-
-        <article class="kpi">
-            <small>Registered farms</small>
-            <strong>{{ kpis.farm_count }}</strong>
-            <span>{{ kpis.total_trees }} coconut trees</span>
-        </article>
-    </section>
-
-    <section class="layout">
-        <div>
-            <article class="panel">
-                <div class="panel-title">
-                    <h2>Farm performance</h2>
-                    <a href="/profitability/manage">Full analysis</a>
+        <div class="sidebar-footer">
+            <div class="user-card">
+                <div class="user-avatar">
+                    {{ (current_user.name or current_user.email or 'M')[0]|upper }}
                 </div>
 
-                {% if farm_results %}
-                    {% for item in farm_results %}
-                        <div class="farm-row">
-                            <div class="farm-name">
-                                {{ item.farm_name }}
-                                <small>
-                                    {{ item.total_farm_trees }} trees
-                                </small>
-                            </div>
+                <div class="user-info">
+                    <strong>
+                        {{ current_user.name or current_user.email or 'Farm Owner' }}
+                    </strong>
+                    <span>Messis AI User</span>
+                </div>
+            </div>
+        </div>
+    </aside>
 
-                            <div>
-                                <small>Revenue</small>
-                                <strong>
-                                    ₹{{ '%.2f'|format(item.revenue) }}
-                                </strong>
-                            </div>
+    <div
+        class="sidebar-overlay"
+        id="sidebar-overlay"
+        aria-hidden="true"
+    ></div>
 
-                            <div>
-                                <small>Total cost</small>
-                                <strong>
-                                    ₹{{ '%.2f'|format(item.total_cost) }}
-                                </strong>
-                            </div>
+    <div class="main-area">
 
-                            <div>
-                                <small>Net profit</small>
-                                <strong
-                                    class="{% if item.net_profit < 0 %}negative{% endif %}"
-                                >
-                                    ₹{{ '%.2f'|format(item.net_profit) }}
-                                </strong>
-                            </div>
+        <header class="topbar">
+            <div class="topbar-left">
+                <button
+                    class="sidebar-toggle"
+                    id="sidebar-toggle"
+                    type="button"
+                    aria-label="Open navigation menu"
+                    aria-controls="messis-sidebar"
+                    aria-expanded="false"
+                >
+                    ☰
+                </button>
 
-                            <a
-                                class="detail-link"
-                                href="/farms/{{ item.farm_id }}/profitability/view"
+                <div class="page-title">
+                    <strong>Dashboard</strong>
+                    <span>Farm operations and business performance</span>
+                </div>
+            </div>
+
+            <div class="topbar-right">
+                <a class="top-link" href="/reports">
+                    📄 Reports
+                </a>
+
+                <a class="top-link" href="/profitability/manage">
+                    📊 Profitability
+                </a>
+
+                <div class="period-pill">
+                    📅 {{ period_label }}
+                </div>
+            </div>
+        </header>
+
+        <main class="content">
+
+            <section class="welcome">
+                <div>
+                    <h1>
+                        Welcome to Messis AI 👋
+                    </h1>
+
+                    <p>
+                        Review farm performance, record daily operations,
+                        and test every completed module from one place.
+                    </p>
+                </div>
+            </section>
+
+            <form
+                class="filters"
+                method="get"
+                action="/dashboard"
+            >
+                <div class="field">
+                    <label for="farm_id">Farm</label>
+
+                    <select id="farm_id" name="farm_id">
+                        <option value="">All farms</option>
+
+                        {% for farm in farms %}
+                            <option
+                                value="{{ farm.id }}"
+                                {% if
+                                    filters.farm_id|string
+                                    == farm.id|string
+                                %}
+                                    selected
+                                {% endif %}
                             >
-                                Analyse
+                                {{ farm.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="date_from">From date</label>
+
+                    <input
+                        id="date_from"
+                        name="date_from"
+                        type="date"
+                        value="{{ filters.date_from }}"
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="date_to">To date</label>
+
+                    <input
+                        id="date_to"
+                        name="date_to"
+                        type="date"
+                        value="{{ filters.date_to }}"
+                    >
+                </div>
+
+                <div class="filter-action">
+                    <button class="button" type="submit">
+                        🔍 Apply
+                    </button>
+                </div>
+
+                <div class="filter-action">
+                    <a
+                        class="button button-secondary"
+                        href="/dashboard"
+                    >
+                        ↻ Reset
+                    </a>
+                </div>
+            </form>
+
+            <section class="kpi-grid">
+                <article class="kpi">
+                    <div class="kpi-top">
+                        <small>Sales revenue</small>
+                        <span class="kpi-icon">₹</span>
+                    </div>
+
+                    <strong>
+                        ₹{{ '%.2f'|format(kpis.revenue) }}
+                    </strong>
+
+                    <span>
+                        {{ kpis.sale_count }} sale entries
+                    </span>
+                </article>
+
+                <article class="kpi">
+                    <div class="kpi-top">
+                        <small>Total cost</small>
+                        <span class="kpi-icon">↙</span>
+                    </div>
+
+                    <strong>
+                        ₹{{ '%.2f'|format(kpis.total_cost) }}
+                    </strong>
+
+                    <span>
+                        Operating
+                        ₹{{ '%.2f'|format(kpis.operating_expense) }}
+                        · Harvest
+                        ₹{{ '%.2f'|format(kpis.harvest_cost) }}
+                    </span>
+                </article>
+
+                <article
+                    class="kpi {% if kpis.net_profit < 0 %}loss{% endif %}"
+                >
+                    <div class="kpi-top">
+                        <small>Net profit</small>
+                        <span class="kpi-icon">📈</span>
+                    </div>
+
+                    <strong>
+                        ₹{{ '%.2f'|format(kpis.net_profit) }}
+                    </strong>
+
+                    <span>
+                        {{ '%.2f'|format(kpis.profitability_percentage) }}%
+                        return on cost
+                    </span>
+                </article>
+
+                <article class="kpi">
+                    <div class="kpi-top">
+                        <small>Outstanding sales</small>
+                        <span class="kpi-icon">◫</span>
+                    </div>
+
+                    <strong>
+                        ₹{{ '%.2f'|format(kpis.outstanding) }}
+                    </strong>
+
+                    <span>
+                        {{ kpis.unpaid_sales }}
+                        unpaid or partial sales
+                    </span>
+                </article>
+
+                <article class="kpi">
+                    <div class="kpi-top">
+                        <small>Coconuts harvested</small>
+                        <span class="kpi-icon">🥥</span>
+                    </div>
+
+                    <strong>{{ kpis.total_coconuts }}</strong>
+
+                    <span>
+                        {{ kpis.harvest_count }}
+                        completed harvest records
+                    </span>
+                </article>
+
+                <article class="kpi">
+                    <div class="kpi-top">
+                        <small>Profit per coconut</small>
+                        <span class="kpi-icon">◉</span>
+                    </div>
+
+                    <strong>
+                        ₹{{ '%.2f'|format(kpis.profit_per_coconut) }}
+                    </strong>
+
+                    <span>Across the selected period</span>
+                </article>
+
+                <article class="kpi">
+                    <div class="kpi-top">
+                        <small>Harvests due</small>
+                        <span class="kpi-icon">📅</span>
+                    </div>
+
+                    <strong>{{ kpis.harvests_due }}</strong>
+
+                    <span>
+                        {{ kpis.harvests_overdue }} overdue
+                    </span>
+                </article>
+
+                <article class="kpi">
+                    <div class="kpi-top">
+                        <small>Registered farms</small>
+                        <span class="kpi-icon">🌴</span>
+                    </div>
+
+                    <strong>{{ kpis.farm_count }}</strong>
+
+                    <span>
+                        {{ kpis.total_trees }} coconut trees
+                    </span>
+                </article>
+            </section>
+
+            <section class="dashboard-grid">
+
+                <div>
+                    <article class="panel">
+                        <div class="panel-title">
+                            <h2>📊 Farm performance</h2>
+
+                            <a href="/profitability/manage">
+                                Full analysis →
                             </a>
                         </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="empty">
-                        No farm performance data available.
-                    </div>
-                {% endif %}
-            </article>
 
-            <article class="panel">
-                <div class="panel-title">
-                    <h2>Recent business activity</h2>
-                </div>
+                        {% if farm_results %}
+                            {% for item in farm_results %}
+                                <div class="farm-row">
+                                    <div class="farm-name">
+                                        {{ item.farm_name }}
 
-                {% if recent_activity %}
-                    {% for item in recent_activity %}
-                        <div class="activity">
-                            <div>
-                                <strong>{{ item.title }}</strong>
-                                <small>
-                                    {{ item.subtitle }}
-                                </small>
+                                        <small>
+                                            {{ item.total_farm_trees }}
+                                            trees
+                                        </small>
+                                    </div>
+
+                                    <div>
+                                        <small>Revenue</small>
+                                        <strong>
+                                            ₹{{ '%.2f'|format(item.revenue) }}
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <small>Total cost</small>
+                                        <strong>
+                                            ₹{{ '%.2f'|format(item.total_cost) }}
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        <small>Net profit</small>
+
+                                        <strong
+                                            class="{% if item.net_profit < 0 %}negative{% endif %}"
+                                        >
+                                            ₹{{ '%.2f'|format(item.net_profit) }}
+                                        </strong>
+                                    </div>
+
+                                    <a
+                                        class="detail-link"
+                                        href="/farms/{{ item.farm_id }}/profitability/view"
+                                    >
+                                        Analyse
+                                    </a>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty">
+                                No farm performance data available.
                             </div>
+                        {% endif %}
+                    </article>
 
-                            <div
-                                class="{% if item.kind == 'sale' %}money-positive{% else %}money-negative{% endif %}"
-                            >
-                                {% if item.kind == 'sale' %}+{% else %}-{% endif %}
-                                ₹{{ '%.2f'|format(item.amount) }}
-                            </div>
+                    <article class="panel">
+                        <div class="panel-title">
+                            <h2>☷ Recent business activity</h2>
                         </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="empty">
-                        No sales or expenses recorded yet.
-                    </div>
-                {% endif %}
-            </article>
-        </div>
 
-        <aside>
-            <article class="panel">
-                <div class="panel-title">
-                    <h2>Quick actions</h2>
-                </div>
+                        {% if recent_activity %}
+                            {% for item in recent_activity %}
+                                <div class="activity">
+                                    <div>
+                                        <strong>{{ item.title }}</strong>
 
-                <div class="quick-grid">
-                    <a class="quick-action" href="/expenses/new">
-                        Add expense
-                        <span>Record daily farm spending</span>
-                    </a>
+                                        <small>
+                                            {{ item.subtitle }}
+                                        </small>
+                                    </div>
 
-                    <a class="quick-action" href="/sales/new">
-                        Record sale
-                        <span>Capture revenue and payment</span>
-                    </a>
+                                    <div
+                                        class="{% if item.kind == 'sale' %}money-positive{% else %}money-negative{% endif %}"
+                                    >
+                                        {% if item.kind == 'sale' %}
+                                            +
+                                        {% else %}
+                                            -
+                                        {% endif %}
 
-                    <a
-                        class="quick-action"
-                        href="/harvest-records/manage"
-                    >
-                        Record harvest
-                        <span>Add completed harvest yield</span>
-                    </a>
-
-                    <a
-                        class="quick-action"
-                        href="/harvests/manage"
-                    >
-                        Plan harvest
-                        <span>Manage 45–50 day cycles</span>
-                    </a>
-                </div>
-            </article>
-
-            <article class="panel">
-                <div class="panel-title">
-                    <h2>Harvest alerts</h2>
-                    <a href="/harvests/manage">View all</a>
-                </div>
-
-                {% if harvest_alerts %}
-                    {% for item in harvest_alerts %}
-                        <div
-                            class="harvest-alert {% if item.status == 'Overdue' %}overdue{% endif %}"
-                        >
-                            <div>
-                                <strong>{{ item.farm_name }}</strong>
-                                <small>
-                                    Planned:
-                                    {{ item.planned_date.strftime('%d %b %Y') }}
-                                </small>
+                                        ₹{{ '%.2f'|format(item.amount) }}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty">
+                                No recent sales or expenses.
                             </div>
+                        {% endif %}
+                    </article>
+                </div>
 
-                            <span
-                                class="badge {% if item.status == 'Overdue' %}overdue{% endif %}"
-                            >
-                                {{ item.status }}
-                            </span>
+                <aside>
+                    <article class="panel">
+                        <div class="panel-title">
+                            <h2>⚡ Quick actions</h2>
                         </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="empty">
-                        No harvests currently due.
-                    </div>
-                {% endif %}
-            </article>
-        </aside>
-    </section>
-</main>
+
+                        <div class="quick-grid">
+                            <a
+                                class="quick-action"
+                                href="/expenses/new"
+                            >
+                                <span class="quick-icon">↙</span>
+
+                                <span class="quick-copy">
+                                    <strong>Add Expense</strong>
+                                    <span>Record daily farm spending</span>
+                                </span>
+
+                                <span class="quick-arrow">›</span>
+                            </a>
+
+                            <a
+                                class="quick-action"
+                                href="/sales/new"
+                            >
+                                <span class="quick-icon">↗</span>
+
+                                <span class="quick-copy">
+                                    <strong>Record Sale</strong>
+                                    <span>Capture revenue and payment</span>
+                                </span>
+
+                                <span class="quick-arrow">›</span>
+                            </a>
+
+                            <a
+                                class="quick-action"
+                                href="/harvest-records/manage"
+                            >
+                                <span class="quick-icon">🥥</span>
+
+                                <span class="quick-copy">
+                                    <strong>Record Harvest</strong>
+                                    <span>Add completed harvest yield</span>
+                                </span>
+
+                                <span class="quick-arrow">›</span>
+                            </a>
+
+                            <a
+                                class="quick-action"
+                                href="/harvests/manage"
+                            >
+                                <span class="quick-icon">📅</span>
+
+                                <span class="quick-copy">
+                                    <strong>Plan Harvest</strong>
+                                    <span>Manage the 45–50 day cycle</span>
+                                </span>
+
+                                <span class="quick-arrow">›</span>
+                            </a>
+
+                            <a
+                                class="quick-action"
+                                href="/profitability/manage"
+                            >
+                                <span class="quick-icon">📊</span>
+
+                                <span class="quick-copy">
+                                    <strong>View Profitability</strong>
+                                    <span>Compare farm performance</span>
+                                </span>
+
+                                <span class="quick-arrow">›</span>
+                            </a>
+
+                            <a
+                                class="quick-action"
+                                href="/reports"
+                            >
+                                <span class="quick-icon">📄</span>
+
+                                <span class="quick-copy">
+                                    <strong>Reports Center</strong>
+                                    <span>Download business reports</span>
+                                </span>
+
+                                <span class="quick-arrow">›</span>
+                            </a>
+                        </div>
+                    </article>
+
+                    <article class="panel">
+                        <div class="panel-title">
+                            <h2>🔔 Harvest alerts</h2>
+
+                            <a href="/harvests/manage">
+                                View all
+                            </a>
+                        </div>
+
+                        {% if harvest_alerts %}
+                            {% for item in harvest_alerts %}
+                                <div
+                                    class="harvest-alert {% if item.status == 'Overdue' %}overdue{% endif %}"
+                                >
+                                    <div>
+                                        <strong>
+                                            {{ item.farm_name }}
+                                        </strong>
+
+                                        <small>
+                                            Planned:
+                                            {{ item.planned_date.strftime('%d %b %Y') }}
+                                        </small>
+                                    </div>
+
+                                    <span
+                                        class="badge {% if item.status == 'Overdue' %}overdue{% endif %}"
+                                    >
+                                        {{ item.status }}
+                                    </span>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty">
+                                No harvests currently due.
+                            </div>
+                        {% endif %}
+                    </article>
+                </aside>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const body = document.body;
+        const toggle = document.getElementById("sidebar-toggle");
+        const overlay = document.getElementById("sidebar-overlay");
+        const sidebar = document.getElementById("messis-sidebar");
+
+        function setSidebar(open) {
+            body.classList.toggle("sidebar-open", open);
+
+            toggle?.setAttribute(
+                "aria-expanded",
+                open ? "true" : "false"
+            );
+        }
+
+        toggle?.addEventListener("click", () => {
+            setSidebar(
+                !body.classList.contains("sidebar-open")
+            );
+        });
+
+        overlay?.addEventListener("click", () => {
+            setSidebar(false);
+        });
+
+        sidebar?.querySelectorAll("a").forEach((link) => {
+            link.addEventListener("click", () => {
+                if (window.innerWidth <= 960) {
+                    setSidebar(false);
+                }
+            });
+        });
+
+        window.addEventListener("resize", () => {
+            if (window.innerWidth > 960) {
+                setSidebar(false);
+            }
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                setSidebar(false);
+            }
+        });
+    })();
+</script>
 </body>
 </html>
