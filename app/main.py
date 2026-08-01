@@ -252,6 +252,72 @@ def authentication_error(
     )
 
 
+
+# PATCH-AUTH-003A.1: SECURE LOGOUT BACKEND
+
+
+@app.post(
+    "/logout",
+    include_in_schema=False,
+)
+def secure_logout(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    session_user_id = request.session.get(
+        "user_id"
+    )
+
+    if isinstance(session_user_id, int):
+        try:
+            audit(
+                db,
+                request,
+                "user_logged_out",
+                session_user_id,
+                "User ended the authenticated session.",
+            )
+
+            db.commit()
+        except SQLAlchemyError:
+            db.rollback()
+
+    request.session.clear()
+
+    response = RedirectResponse(
+        url="/?success="
+        + quote(
+            "You have been logged out securely."
+        ),
+        status_code=303,
+    )
+
+    response.delete_cookie(
+        key=settings.session_cookie_name,
+        path="/",
+        secure=(
+            settings.app_env == "production"
+        ),
+        httponly=True,
+        samesite="lax",
+    )
+
+    response.headers[
+        "Cache-Control"
+    ] = (
+        "no-store, no-cache, must-revalidate, "
+        "max-age=0"
+    )
+
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    response.headers["Clear-Site-Data"] = (
+        '"cache"'
+    )
+
+    return response
+
+
 @app.get(
     "/favicon.ico",
     include_in_schema=False,

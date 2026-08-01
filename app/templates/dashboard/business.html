@@ -2114,6 +2114,247 @@
             border: 1px solid var(--green-100);
         }
 
+
+        /* PATCH-AUTH-003A.2-DESKTOP-ACCOUNT-MENU */
+
+        .messis-account-menu {
+            position: fixed;
+            top: 16px;
+            right: 20px;
+            z-index: 1300;
+
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+        }
+
+        .messis-account-trigger {
+            display: flex;
+            min-height: 46px;
+            align-items: center;
+            gap: 10px;
+
+            padding: 7px 11px 7px 7px;
+
+            color: #0f5132;
+            background: rgba(255, 255, 255, 0.97);
+            border: 1px solid rgba(16, 185, 129, 0.22);
+            border-radius: 14px;
+            box-shadow:
+                0 10px 30px
+                rgba(15, 23, 42, 0.13);
+
+            cursor: pointer;
+            backdrop-filter: blur(14px);
+        }
+
+        .messis-account-trigger:hover {
+            border-color: rgba(16, 185, 129, 0.48);
+            box-shadow:
+                0 13px 34px
+                rgba(15, 23, 42, 0.17);
+        }
+
+        .messis-account-avatar {
+            display: grid;
+            width: 34px;
+            height: 34px;
+            flex: 0 0 auto;
+            place-items: center;
+
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    #065f46,
+                    #10b981
+                );
+
+            border-radius: 11px;
+            font-size: 16px;
+        }
+
+        .messis-account-copy {
+            min-width: 0;
+            text-align: left;
+        }
+
+        .messis-account-copy strong,
+        .messis-account-copy span {
+            display: block;
+        }
+
+        .messis-account-copy strong {
+            max-width: 145px;
+            overflow: hidden;
+
+            color: #0f172a;
+            font-size: 11px;
+            line-height: 1.25;
+
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .messis-account-copy span {
+            margin-top: 2px;
+
+            color: #64748b;
+            font-size: 8px;
+            font-weight: 700;
+        }
+
+        .messis-account-chevron {
+            color: #64748b;
+            font-size: 10px;
+            transition: transform 0.18s ease;
+        }
+
+        .messis-account-menu.open
+        .messis-account-chevron {
+            transform: rotate(180deg);
+        }
+
+        .messis-account-dropdown {
+            position: absolute;
+            top: calc(100% + 9px);
+            right: 0;
+
+            display: none;
+            width: 260px;
+            overflow: hidden;
+
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow:
+                0 18px 46px
+                rgba(15, 23, 42, 0.18);
+        }
+
+        .messis-account-menu.open
+        .messis-account-dropdown {
+            display: block;
+            animation:
+                messisAccountMenuOpen
+                0.16s ease-out;
+        }
+
+        @keyframes messisAccountMenuOpen {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .messis-account-header {
+            padding: 16px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #ecfdf5,
+                    #ffffff
+                );
+
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .messis-account-header strong {
+            display: block;
+
+            color: #0f172a;
+            font-size: 13px;
+        }
+
+        .messis-account-header span {
+            display: block;
+            margin-top: 4px;
+
+            color: #64748b;
+            font-size: 9px;
+            line-height: 1.45;
+        }
+
+        .messis-account-links {
+            padding: 8px;
+        }
+
+        .messis-account-link {
+            display: flex;
+            width: 100%;
+            min-height: 42px;
+            align-items: center;
+            gap: 11px;
+
+            padding: 9px 10px;
+
+            color: #334155;
+            background: transparent;
+            border: 0;
+            border-radius: 10px;
+
+            text-decoration: none;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .messis-account-link:hover {
+            color: #065f46;
+            background: #ecfdf5;
+        }
+
+        .messis-account-link-icon {
+            display: grid;
+            width: 29px;
+            height: 29px;
+            flex: 0 0 auto;
+            place-items: center;
+
+            background: #f1f5f9;
+            border-radius: 9px;
+            font-size: 14px;
+        }
+
+        .messis-account-divider {
+            height: 1px;
+            margin: 5px 8px;
+
+            background: #e2e8f0;
+        }
+
+        .messis-account-logout {
+            color: #b91c1c;
+        }
+
+        .messis-account-logout:hover {
+            color: #991b1b;
+            background: #fef2f2;
+        }
+
+        .messis-account-logout
+        .messis-account-link-icon {
+            background: #fee2e2;
+        }
+
+        @media (max-width: 760px) {
+            .messis-account-menu {
+                display: none;
+            }
+        }
+
 </style>
 
     <!-- PATCH-PWA-001A-METADATA -->
@@ -5443,6 +5684,227 @@
     src="/static/pwa/mobile-shell.js?v=001b"
     defer
 ></script>
+
+
+<!-- PATCH-AUTH-003A.2-DESKTOP-ACCOUNT-MENU -->
+<div
+    class="messis-account-menu"
+    id="messis-account-menu"
+>
+    <button
+        class="messis-account-trigger"
+        id="messis-account-trigger"
+        type="button"
+        aria-haspopup="true"
+        aria-expanded="false"
+        aria-controls="messis-account-dropdown"
+    >
+        <span class="messis-account-avatar">
+            👤
+        </span>
+
+        <span class="messis-account-copy">
+            <strong>
+                {{ current_user.name
+                   if current_user.name is defined
+                   and current_user.name
+                   else "Farm Owner" }}
+            </strong>
+
+            <span>Account Menu</span>
+        </span>
+
+        <span class="messis-account-chevron">
+            ▼
+        </span>
+    </button>
+
+    <div
+        class="messis-account-dropdown"
+        id="messis-account-dropdown"
+        role="menu"
+    >
+        <div class="messis-account-header">
+            <strong>
+                {{ current_user.name
+                   if current_user.name is defined
+                   and current_user.name
+                   else "Farm Owner" }}
+            </strong>
+
+            <span>
+                Securely manage your Messis AI
+                account and business preferences.
+            </span>
+        </div>
+
+        <div class="messis-account-links">
+            <a
+                class="messis-account-link"
+                href="/business-settings/manage"
+                role="menuitem"
+            >
+                <span class="messis-account-link-icon">
+                    ⚙️
+                </span>
+
+                <span>Business Settings</span>
+            </a>
+
+            <a
+                class="messis-account-link"
+                href="/notifications/manage"
+                role="menuitem"
+            >
+                <span class="messis-account-link-icon">
+                    🔔
+                </span>
+
+                <span>Notifications</span>
+            </a>
+
+            <div class="messis-account-divider"></div>
+
+            <form
+                method="post"
+                action="/logout"
+                id="messis-desktop-logout-form"
+            >
+                <button
+                    class="
+                        messis-account-link
+                        messis-account-logout
+                    "
+                    type="submit"
+                    role="menuitem"
+                >
+                    <span class="messis-account-link-icon">
+                        🚪
+                    </span>
+
+                    <span>Logout</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    (() => {
+        const menu = document.getElementById(
+            "messis-account-menu"
+        );
+
+        const trigger = document.getElementById(
+            "messis-account-trigger"
+        );
+
+        const dropdown = document.getElementById(
+            "messis-account-dropdown"
+        );
+
+        const logoutForm = document.getElementById(
+            "messis-desktop-logout-form"
+        );
+
+        if (
+            !menu
+            || !trigger
+            || !dropdown
+        ) {
+            return;
+        }
+
+        function closeMenu() {
+            menu.classList.remove("open");
+
+            trigger.setAttribute(
+                "aria-expanded",
+                "false"
+            );
+        }
+
+        function toggleMenu() {
+            const opening =
+                !menu.classList.contains(
+                    "open"
+                );
+
+            menu.classList.toggle(
+                "open",
+                opening
+            );
+
+            trigger.setAttribute(
+                "aria-expanded",
+                String(opening)
+            );
+        }
+
+        trigger.addEventListener(
+            "click",
+            event => {
+                event.stopPropagation();
+                toggleMenu();
+            }
+        );
+
+        dropdown.addEventListener(
+            "click",
+            event => {
+                event.stopPropagation();
+            }
+        );
+
+        document.addEventListener(
+            "click",
+            closeMenu
+        );
+
+        document.addEventListener(
+            "keydown",
+            event => {
+                if (event.key === "Escape") {
+                    closeMenu();
+                    trigger.focus();
+                }
+            }
+        );
+
+        logoutForm?.addEventListener(
+            "submit",
+            event => {
+                const confirmed =
+                    window.confirm(
+                        "Logout from Messis AI?\n\n"
+                        + "Your current secure session "
+                        + "will be closed."
+                    );
+
+                if (!confirmed) {
+                    event.preventDefault();
+                    return;
+                }
+
+                try {
+                    localStorage.setItem(
+                        "messis-auth-event",
+                        JSON.stringify({
+                            type: "logout",
+                            timestamp: Date.now()
+                        })
+                    );
+                } catch (error) {
+                    console.debug(
+                        "Logout synchronization "
+                        + "storage unavailable.",
+                        error
+                    );
+                }
+            }
+        );
+    })();
+</script>
 
 </body>
 </html>

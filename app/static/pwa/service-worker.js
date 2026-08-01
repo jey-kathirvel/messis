@@ -1,4 +1,4 @@
-const CACHE_VERSION = "messis-pwa-v2";
+const CACHE_VERSION = "messis-pwa-v3";
 
 const STATIC_CACHE =
     `${CACHE_VERSION}-static`;
