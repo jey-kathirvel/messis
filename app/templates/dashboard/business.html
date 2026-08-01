@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>Business Dashboard · Messis AI</title>
+
+    <style>
+        :root {
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            color: #17351f;
+            background: #f3faf4;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(
+                    circle at 90% 5%,
+                    rgba(34, 197, 94, 0.17),
+                    transparent 28%
+                ),
+                radial-gradient(
+                    circle at 5% 30%,
+                    rgba(250, 204, 21, 0.10),
+                    transparent 24%
+                ),
+                #f3faf4;
+        }
+
+        header {
+            padding: 22px clamp(18px, 5vw, 72px);
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(20, 83, 45, 0.98),
+                    rgba(21, 128, 61, 0.94)
+                );
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(27px, 4vw, 43px);
+        }
+
+        header p {
+            margin: 7px 0 0;
+            color: #dcfce7;
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+            margin-top: 20px;
+        }
+
+        nav a {
+            padding: 9px 13px;
+            color: white;
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.11);
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .period {
+            padding: 12px 15px;
+            color: #14532d;
+            background: #f0fdf4;
+            border-radius: 15px;
+            font-weight: 800;
+        }
+
+        main {
+            width: min(1240px, calc(100% - 32px));
+            margin: 26px auto 60px;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns:
+                minmax(0, 1.3fr)
+                minmax(0, 1fr)
+                minmax(0, 1fr)
+                auto;
+            gap: 12px;
+            padding: 18px;
+            margin-bottom: 20px;
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 19px;
+            box-shadow: 0 12px 34px rgba(20, 83, 45, 0.06);
+        }
+
+        .filters label {
+            display: block;
+            margin-bottom: 6px;
+            color: #475569;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .filters select,
+        .filters input {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 11px;
+            background: white;
+            font: inherit;
+        }
+
+        .filter-action {
+            display: flex;
+            align-items: end;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 11px 16px;
+            border: 0;
+            border-radius: 12px;
+            color: white;
+            background: #15803d;
+            font: inherit;
+            font-weight: 900;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .kpi {
+            position: relative;
+            overflow: hidden;
+            padding: 20px;
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 20px;
+            box-shadow: 0 14px 38px rgba(20, 83, 45, 0.07);
+        }
+
+        .kpi::after {
+            content: "";
+            position: absolute;
+            top: -28px;
+            right: -28px;
+            width: 86px;
+            height: 86px;
+            border-radius: 50%;
+            background: rgba(34, 197, 94, 0.09);
+        }
+
+        .kpi small {
+            display: block;
+            margin-bottom: 7px;
+            color: #64748b;
+            font-weight: 700;
+        }
+
+        .kpi strong {
+            position: relative;
+            z-index: 1;
+            display: block;
+            color: #15803d;
+            font-size: clamp(24px, 3vw, 31px);
+        }
+
+        .kpi.loss strong,
+        .negative {
+            color: #b91c1c;
+        }
+
+        .kpi span {
+            display: block;
+            margin-top: 6px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.8fr);
+            gap: 18px;
+        }
+
+        .panel {
+            padding: 20px;
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 21px;
+            box-shadow: 0 14px 38px rgba(20, 83, 45, 0.07);
+        }
+
+        .panel + .panel {
+            margin-top: 18px;
+        }
+
+        .panel-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 17px;
+        }
+
+        .panel-title h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .panel-title a {
+            color: #15803d;
+            text-decoration: none;
+            font-weight: 900;
+        }
+
+        .farm-row {
+            display: grid;
+            grid-template-columns:
+                minmax(150px, 1.3fr)
+                repeat(3, minmax(105px, 0.8fr))
+                auto;
+            gap: 12px;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .farm-row:last-child {
+            border-bottom: 0;
+        }
+
+        .farm-row small {
+            display: block;
+            margin-bottom: 4px;
+            color: #64748b;
+        }
+
+        .farm-name {
+            font-size: 17px;
+            font-weight: 900;
+        }
+
+        .detail-link {
+            padding: 9px 12px;
+            color: #166534;
+            background: #dcfce7;
+            border-radius: 11px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .activity {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 14px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .activity:last-child {
+            border-bottom: 0;
+        }
+
+        .activity strong {
+            display: block;
+        }
+
+        .activity small {
+            display: block;
+            margin-top: 4px;
+            color: #64748b;
+        }
+
+        .money-positive {
+            color: #15803d;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .money-negative {
+            color: #b91c1c;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 11px;
+        }
+
+        .quick-action {
+            min-height: 92px;
+            padding: 15px;
+            color: #14532d;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 16px;
+            text-decoration: none;
+            font-weight: 900;
+        }
+
+        .quick-action span {
+            display: block;
+            margin-top: 7px;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .harvest-alert {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 14px;
+            margin-bottom: 10px;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 15px;
+        }
+
+        .harvest-alert.overdue {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+
+        .harvest-alert strong {
+            display: block;
+        }
+
+        .harvest-alert small {
+            display: block;
+            margin-top: 4px;
+            color: #64748b;
+        }
+
+        .badge {
+            height: fit-content;
+            padding: 6px 9px;
+            border-radius: 999px;
+            color: #92400e;
+            background: #fef3c7;
+            font-size: 12px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .badge.overdue {
+            color: #991b1b;
+            background: #fee2e2;
+        }
+
+        .empty {
+            padding: 24px;
+            color: #64748b;
+            text-align: center;
+            border: 2px dashed #d1fae5;
+            border-radius: 16px;
+        }
+
+        @media (max-width: 1020px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .filters {
+                grid-template-columns: 1fr;
+            }
+
+            .farm-row {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .farm-name,
+            .farm-row .detail-link {
+                grid-column: 1 / -1;
+            }
+
+            .detail-link {
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .kpi-grid,
+            .quick-grid,
+            .farm-row {
+                grid-template-columns: 1fr;
+            }
+
+            .button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<header>
+    <div class="header-row">
+        <div>
+            <h1>Messis AI Business Dashboard</h1>
+            <p>
+                Harvest, crop, reaping season — your complete farm overview.
+            </p>
+        </div>
+
+        <div class="period">
+            {{ period_label }}
+        </div>
+    </div>
+
+    <nav>
+        <a href="/dashboard">Home</a>
+        <a href="/farms">Farms</a>
+        <a href="/harvests/manage">Harvest Cycles</a>
+        <a href="/harvest-records/manage">Harvest Records</a>
+        <a href="/expenses/manage">Expenses</a>
+        <a href="/sales/manage">Sales</a>
+        <a href="/profitability/manage">Profitability</a>
+    </nav>
+</header>
+
+<main>
+    <form
+        class="filters"
+        method="get"
+        action="/business-dashboard"
+    >
+        <div>
+            <label for="farm_id">Farm</label>
+            <select id="farm_id" name="farm_id">
+                <option value="">All farms</option>
+
+                {% for farm in farms %}
+                    <option
+                        value="{{ farm.id }}"
+                        {% if filters.farm_id|string == farm.id|string %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ farm.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="date_from">From date</label>
+            <input
+                id="date_from"
+                name="date_from"
+                type="date"
+                value="{{ filters.date_from }}"
+            >
+        </div>
+
+        <div>
+            <label for="date_to">To date</label>
+            <input
+                id="date_to"
+                name="date_to"
+                type="date"
+                value="{{ filters.date_to }}"
+            >
+        </div>
+
+        <div class="filter-action">
+            <button class="button" type="submit">
+                Refresh
+            </button>
+        </div>
+    </form>
+
+    <section class="kpi-grid">
+        <article class="kpi">
+            <small>Sales revenue</small>
+            <strong>₹{{ '%.2f'|format(kpis.revenue) }}</strong>
+            <span>{{ kpis.sale_count }} sale entries</span>
+        </article>
+
+        <article class="kpi">
+            <small>Total cost</small>
+            <strong>₹{{ '%.2f'|format(kpis.total_cost) }}</strong>
+            <span>
+                Operating ₹{{ '%.2f'|format(kpis.operating_expense) }}
+                + Harvest ₹{{ '%.2f'|format(kpis.harvest_cost) }}
+            </span>
+        </article>
+
+        <article
+            class="kpi {% if kpis.net_profit < 0 %}loss{% endif %}"
+        >
+            <small>Net profit</small>
+            <strong>₹{{ '%.2f'|format(kpis.net_profit) }}</strong>
+            <span>
+                {{ '%.2f'|format(kpis.profitability_percentage) }}%
+                return on cost
+            </span>
+        </article>
+
+        <article class="kpi">
+            <small>Outstanding sales</small>
+            <strong>₹{{ '%.2f'|format(kpis.outstanding) }}</strong>
+            <span>{{ kpis.unpaid_sales }} unpaid or partial sales</span>
+        </article>
+
+        <article class="kpi">
+            <small>Coconuts harvested</small>
+            <strong>{{ kpis.total_coconuts }}</strong>
+            <span>{{ kpis.harvest_count }} completed harvest records</span>
+        </article>
+
+        <article class="kpi">
+            <small>Profit per coconut</small>
+            <strong>₹{{ '%.2f'|format(kpis.profit_per_coconut) }}</strong>
+            <span>Across the selected period</span>
+        </article>
+
+        <article class="kpi">
+            <small>Harvests due</small>
+            <strong>{{ kpis.harvests_due }}</strong>
+            <span>{{ kpis.harvests_overdue }} overdue</span>
+        </article>
+
+        <article class="kpi">
+            <small>Registered farms</small>
+            <strong>{{ kpis.farm_count }}</strong>
+            <span>{{ kpis.total_trees }} coconut trees</span>
+        </article>
+    </section>
+
+    <section class="layout">
+        <div>
+            <article class="panel">
+                <div class="panel-title">
+                    <h2>Farm performance</h2>
+                    <a href="/profitability/manage">Full analysis</a>
+                </div>
+
+                {% if farm_results %}
+                    {% for item in farm_results %}
+                        <div class="farm-row">
+                            <div class="farm-name">
+                                {{ item.farm_name }}
+                                <small>
+                                    {{ item.total_farm_trees }} trees
+                                </small>
+                            </div>
+
+                            <div>
+                                <small>Revenue</small>
+                                <strong>
+                                    ₹{{ '%.2f'|format(item.revenue) }}
+                                </strong>
+                            </div>
+
+                            <div>
+                                <small>Total cost</small>
+                                <strong>
+                                    ₹{{ '%.2f'|format(item.total_cost) }}
+                                </strong>
+                            </div>
+
+                            <div>
+                                <small>Net profit</small>
+                                <strong
+                                    class="{% if item.net_profit < 0 %}negative{% endif %}"
+                                >
+                                    ₹{{ '%.2f'|format(item.net_profit) }}
+                                </strong>
+                            </div>
+
+                            <a
+                                class="detail-link"
+                                href="/farms/{{ item.farm_id }}/profitability/view"
+                            >
+                                Analyse
+                            </a>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty">
+                        No farm performance data available.
+                    </div>
+                {% endif %}
+            </article>
+
+            <article class="panel">
+                <div class="panel-title">
+                    <h2>Recent business activity</h2>
+                </div>
+
+                {% if recent_activity %}
+                    {% for item in recent_activity %}
+                        <div class="activity">
+                            <div>
+                                <strong>{{ item.title }}</strong>
+                                <small>
+                                    {{ item.subtitle }}
+                                </small>
+                            </div>
+
+                            <div
+                                class="{% if item.kind == 'sale' %}money-positive{% else %}money-negative{% endif %}"
+                            >
+                                {% if item.kind == 'sale' %}+{% else %}-{% endif %}
+                                ₹{{ '%.2f'|format(item.amount) }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty">
+                        No sales or expenses recorded yet.
+                    </div>
+                {% endif %}
+            </article>
+        </div>
+
+        <aside>
+            <article class="panel">
+                <div class="panel-title">
+                    <h2>Quick actions</h2>
+                </div>
+
+                <div class="quick-grid">
+                    <a class="quick-action" href="/expenses/new">
+                        Add expense
+                        <span>Record daily farm spending</span>
+                    </a>
+
+                    <a class="quick-action" href="/sales/new">
+                        Record sale
+                        <span>Capture revenue and payment</span>
+                    </a>
+
+                    <a
+                        class="quick-action"
+                        href="/harvest-records/manage"
+                    >
+                        Record harvest
+                        <span>Add completed harvest yield</span>
+                    </a>
+
+                    <a
+                        class="quick-action"
+                        href="/harvests/manage"
+                    >
+                        Plan harvest
+                        <span>Manage 45–50 day cycles</span>
+                    </a>
+                </div>
+            </article>
+
+            <article class="panel">
+                <div class="panel-title">
+                    <h2>Harvest alerts</h2>
+                    <a href="/harvests/manage">View all</a>
+                </div>
+
+                {% if harvest_alerts %}
+                    {% for item in harvest_alerts %}
+                        <div
+                            class="harvest-alert {% if item.status == 'Overdue' %}overdue{% endif %}"
+                        >
+                            <div>
+                                <strong>{{ item.farm_name }}</strong>
+                                <small>
+                                    Planned:
+                                    {{ item.planned_date.strftime('%d %b %Y') }}
+                                </small>
+                            </div>
+
+                            <span
+                                class="badge {% if item.status == 'Overdue' %}overdue{% endif %}"
+                            >
+                                {{ item.status }}
+                            </span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty">
+                        No harvests currently due.
+                    </div>
+                {% endif %}
+            </article>
+        </aside>
+    </section>
+</main>
+</body>
+</html>

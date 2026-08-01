@@ -41,6 +41,84 @@
 </head>
 
 <body class="min-h-screen text-slate-800">
+<!-- PATCH-DASHBOARD-001B-FARM-ACTIONS -->
+<div style="
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin:18px 0;
+">
+    <a
+        href="/farms/{{ farm.id }}/harvests/new"
+        style="
+            padding:10px 14px;
+            border-radius:12px;
+            background:#dcfce7;
+            color:#166534;
+            font-weight:800;
+            text-decoration:none;
+        "
+    >
+        Plan Harvest
+    </a>
+
+    <a
+        href="/farms/{{ farm.id }}/harvest-records/new"
+        style="
+            padding:10px 14px;
+            border-radius:12px;
+            background:#fef3c7;
+            color:#92400e;
+            font-weight:800;
+            text-decoration:none;
+        "
+    >
+        Record Harvest
+    </a>
+
+    <a
+        href="/expenses/new?farm_id={{ farm.id }}"
+        style="
+            padding:10px 14px;
+            border-radius:12px;
+            background:#fee2e2;
+            color:#991b1b;
+            font-weight:800;
+            text-decoration:none;
+        "
+    >
+        Add Expense
+    </a>
+
+    <a
+        href="/sales/new?farm_id={{ farm.id }}"
+        style="
+            padding:10px 14px;
+            border-radius:12px;
+            background:#dbeafe;
+            color:#1d4ed8;
+            font-weight:800;
+            text-decoration:none;
+        "
+    >
+        Record Sale
+    </a>
+
+    <a
+        href="/farms/{{ farm.id }}/profitability/view"
+        style="
+            padding:10px 14px;
+            border-radius:12px;
+            background:#ede9fe;
+            color:#6d28d9;
+            font-weight:800;
+            text-decoration:none;
+        "
+    >
+        View Profitability
+    </a>
+</div>
+
     <header
         class="sticky top-0 z-40 border-b border-white/70
                bg-white/85 backdrop-blur-xl"

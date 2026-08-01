@@ -619,49 +619,25 @@ def logout(
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
+@app.get(
+    "/dashboard",
+    response_class=HTMLResponse,
+)
 def dashboard(
     request: Request,
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     user: User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    farm_count = (
-        db.scalar(
-            select(func.count(Farm.id)).where(
-                Farm.owner_id == user.id
-            )
-        )
-        or 0
-    )
-
-    total_trees = (
-        db.scalar(
-            select(
-                func.coalesce(
-                    func.sum(Farm.total_trees),
-                    0,
-                )
-            ).where(Farm.owner_id == user.id)
-        )
-        or 0
-    )
-
-    farms = db.scalars(
-        select(Farm)
-        .where(Farm.owner_id == user.id)
-        .order_by(Farm.id.desc())
-        .limit(5)
-    ).all()
-
-    return templates.TemplateResponse(
+    return business_dashboard_page(
         request=request,
-        name="dashboard/index.html",
-        context={
-            "page_title": "Dashboard",
-            "current_user": user,
-            "farm_count": farm_count,
-            "total_trees": total_trees,
-            "farms": farms,
-        },
+        farm_id=farm_id,
+        date_from=date_from,
+        date_to=date_to,
+        user=user,
+        db=db,
     )
 
 
@@ -6781,6 +6757,1221 @@ def farm_profitability_detail_page(
                 else None
             ),
             "query_string": "&".join(query_parts),
+        },
+    )
+
+
+
+# PATCH-DASHBOARD-001A: BUSINESS DASHBOARD
+
+
+@app.get(
+    "/business-dashboard",
+    response_class=HTMLResponse,
+)
+def business_dashboard_page(
+    request: Request,
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    if (
+        date_from is not None
+        and date_to is not None
+        and date_from > date_to
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="From date cannot be later than to date.",
+        )
+
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    if farm_id is not None:
+        selected_farm = require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+        result_farms = [selected_farm]
+    else:
+        result_farms = farms
+
+    farm_results = [
+        calculate_farm_profitability(
+            farm=farm,
+            owner_id=user.id,
+            db=db,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        for farm in result_farms
+    ]
+
+    sale_statement = select(Sale).where(
+        Sale.owner_id == user.id
+    )
+
+    expense_statement = select(Expense).where(
+        Expense.owner_id == user.id
+    )
+
+    harvest_statement = select(HarvestRecord).where(
+        HarvestRecord.owner_id == user.id
+    )
+
+    cycle_statement = select(HarvestCycle).where(
+        HarvestCycle.owner_id == user.id
+    )
+
+    if farm_id is not None:
+        sale_statement = sale_statement.where(
+            Sale.farm_id == farm_id
+        )
+        expense_statement = expense_statement.where(
+            Expense.farm_id == farm_id
+        )
+        harvest_statement = harvest_statement.where(
+            HarvestRecord.farm_id == farm_id
+        )
+        cycle_statement = cycle_statement.where(
+            HarvestCycle.farm_id == farm_id
+        )
+
+    if date_from is not None:
+        sale_statement = sale_statement.where(
+            Sale.sale_date >= date_from
+        )
+        expense_statement = expense_statement.where(
+            Expense.expense_date >= date_from
+        )
+        harvest_statement = harvest_statement.where(
+            HarvestRecord.harvest_date >= date_from
+        )
+
+    if date_to is not None:
+        sale_statement = sale_statement.where(
+            Sale.sale_date <= date_to
+        )
+        expense_statement = expense_statement.where(
+            Expense.expense_date <= date_to
+        )
+        harvest_statement = harvest_statement.where(
+            HarvestRecord.harvest_date <= date_to
+        )
+
+    sales = db.scalars(
+        sale_statement.order_by(
+            Sale.sale_date.desc(),
+            Sale.id.desc(),
+        )
+    ).all()
+
+    expenses = db.scalars(
+        expense_statement.order_by(
+            Expense.expense_date.desc(),
+            Expense.id.desc(),
+        )
+    ).all()
+
+    harvest_records = db.scalars(
+        harvest_statement.order_by(
+            HarvestRecord.harvest_date.desc(),
+            HarvestRecord.id.desc(),
+        )
+    ).all()
+
+    cycles = db.scalars(
+        cycle_statement.order_by(
+            HarvestCycle.planned_harvest_date.asc()
+        )
+    ).all()
+
+    total_revenue = sum(
+        Decimal(sale.net_amount or 0)
+        for sale in sales
+    )
+
+    operating_expense = sum(
+        Decimal(expense.amount or 0)
+        for expense in expenses
+    )
+
+    harvest_cost = sum(
+        Decimal(record.total_harvest_cost or 0)
+        for record in harvest_records
+    )
+
+    total_cost = operating_expense + harvest_cost
+    net_profit = total_revenue - total_cost
+
+    total_coconuts = sum(
+        int(record.total_coconuts or 0)
+        for record in harvest_records
+    )
+
+    outstanding = sum(
+        Decimal(sale.balance_amount or 0)
+        for sale in sales
+    )
+
+    unpaid_sales = sum(
+        Decimal(sale.balance_amount or 0) > 0
+        for sale in sales
+    )
+
+    today = date.today()
+
+    harvest_alerts = []
+
+    farm_names = {
+        farm.id: farm.name
+        for farm in farms
+    }
+
+    for cycle in cycles:
+        if cycle.status in {
+            "Completed",
+            "Cancelled",
+        }:
+            continue
+
+        calculated_status = harvest_cycle_status(
+            cycle.planned_harvest_date,
+            cycle.minimum_due_date,
+            cycle.maximum_due_date,
+            today,
+        )
+
+        if cycle.status != calculated_status:
+            cycle.status = calculated_status
+
+        if calculated_status in {
+            "Due Soon",
+            "Due",
+            "Overdue",
+        }:
+            harvest_alerts.append(
+                {
+                    "farm_name": farm_names.get(
+                        cycle.farm_id,
+                        "Farm",
+                    ),
+                    "planned_date": (
+                        cycle.planned_harvest_date
+                    ),
+                    "status": calculated_status,
+                }
+            )
+
+    if cycles:
+        db.commit()
+
+    recent_activity = []
+
+    for sale in sales[:5]:
+        recent_activity.append(
+            {
+                "kind": "sale",
+                "sort_date": sale.sale_date,
+                "title": sale.product_type,
+                "subtitle": (
+                    farm_names.get(
+                        sale.farm_id,
+                        "Farm",
+                    )
+                    + " · Sale"
+                ),
+                "amount": Decimal(
+                    sale.net_amount or 0
+                ),
+            }
+        )
+
+    for expense in expenses[:5]:
+        recent_activity.append(
+            {
+                "kind": "expense",
+                "sort_date": expense.expense_date,
+                "title": expense.description,
+                "subtitle": (
+                    farm_names.get(
+                        expense.farm_id,
+                        "General",
+                    )
+                    + " · Expense"
+                ),
+                "amount": Decimal(
+                    expense.amount or 0
+                ),
+            }
+        )
+
+    recent_activity.sort(
+        key=lambda item: item["sort_date"],
+        reverse=True,
+    )
+
+    recent_activity = recent_activity[:8]
+
+    selected_tree_total = sum(
+        int(farm.total_trees or 0)
+        for farm in result_farms
+    )
+
+    kpis = {
+        "revenue": total_revenue,
+        "sale_count": len(sales),
+        "operating_expense": operating_expense,
+        "harvest_cost": harvest_cost,
+        "total_cost": total_cost,
+        "net_profit": net_profit,
+        "profitability_percentage": (
+            profitability_percentage(
+                net_profit,
+                total_cost,
+            )
+        ),
+        "outstanding": outstanding,
+        "unpaid_sales": unpaid_sales,
+        "total_coconuts": total_coconuts,
+        "harvest_count": len(harvest_records),
+        "profit_per_coconut": (
+            net_profit
+            / Decimal(total_coconuts)
+        ).quantize(
+            Decimal("0.01")
+        )
+        if total_coconuts > 0
+        else Decimal("0.00"),
+        "harvests_due": sum(
+            item["status"] in {"Due Soon", "Due", "Overdue"}
+            for item in harvest_alerts
+        ),
+        "harvests_overdue": sum(
+            item["status"] == "Overdue"
+            for item in harvest_alerts
+        ),
+        "farm_count": len(result_farms),
+        "total_trees": selected_tree_total,
+    }
+
+    if date_from or date_to:
+        period_label = (
+            f"{date_from.isoformat() if date_from else 'Beginning'}"
+            f" to "
+            f"{date_to.isoformat() if date_to else 'Today'}"
+        )
+    else:
+        period_label = "All-time overview"
+
+    return templates.TemplateResponse(
+        request=request,
+        name="dashboard/business.html",
+        context={
+            "current_user": user,
+            "farms": farms,
+            "farm_results": farm_results,
+            "kpis": kpis,
+            "harvest_alerts": harvest_alerts[:6],
+            "recent_activity": recent_activity,
+            "period_label": period_label,
+            "filters": {
+                "farm_id": farm_id or "",
+                "date_from": (
+                    date_from.isoformat()
+                    if date_from
+                    else ""
+                ),
+                "date_to": (
+                    date_to.isoformat()
+                    if date_to
+                    else ""
+                ),
+            },
+        },
+    )
+
+
+
+# PATCH-REPORTS-001A: BUSINESS REPORTS BACKEND
+
+
+def validate_report_dates(
+    date_from: date | None,
+    date_to: date | None,
+) -> None:
+    if (
+        date_from is not None
+        and date_to is not None
+        and date_from > date_to
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="From date cannot be later than to date.",
+        )
+
+
+def report_period_label(
+    date_from: date | None,
+    date_to: date | None,
+) -> str:
+    start = (
+        date_from.isoformat()
+        if date_from
+        else "Beginning"
+    )
+
+    end = (
+        date_to.isoformat()
+        if date_to
+        else "Today"
+    )
+
+    return f"{start} to {end}"
+
+
+def csv_download_response(
+    filename: str,
+    headers: list[str],
+    rows: list[list[object]],
+) -> StreamingResponse:
+    output = io.StringIO()
+    output.write("\ufeff")
+
+    writer = csv.writer(output)
+    writer.writerow(headers)
+
+    for row in rows:
+        writer.writerow(
+            [
+                "" if value is None else value
+                for value in row
+            ]
+        )
+
+    content = output.getvalue().encode("utf-8")
+    output.close()
+
+    return StreamingResponse(
+        iter([content]),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{filename}"'
+            ),
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@app.get(
+    "/reports/summary",
+    response_class=JSONResponse,
+)
+def business_report_summary(
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    validate_report_dates(
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    if farm_id is not None:
+        farm = require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+        report_farms = [farm]
+    else:
+        report_farms = farms
+
+    farm_results = [
+        calculate_farm_profitability(
+            farm=farm,
+            owner_id=user.id,
+            db=db,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        for farm in report_farms
+    ]
+
+    sale_statement = select(Sale).where(
+        Sale.owner_id == user.id
+    )
+
+    expense_statement = select(Expense).where(
+        Expense.owner_id == user.id
+    )
+
+    harvest_statement = select(HarvestRecord).where(
+        HarvestRecord.owner_id == user.id
+    )
+
+    if farm_id is not None:
+        sale_statement = sale_statement.where(
+            Sale.farm_id == farm_id
+        )
+        expense_statement = expense_statement.where(
+            Expense.farm_id == farm_id
+        )
+        harvest_statement = harvest_statement.where(
+            HarvestRecord.farm_id == farm_id
+        )
+
+    if date_from is not None:
+        sale_statement = sale_statement.where(
+            Sale.sale_date >= date_from
+        )
+        expense_statement = expense_statement.where(
+            Expense.expense_date >= date_from
+        )
+        harvest_statement = harvest_statement.where(
+            HarvestRecord.harvest_date >= date_from
+        )
+
+    if date_to is not None:
+        sale_statement = sale_statement.where(
+            Sale.sale_date <= date_to
+        )
+        expense_statement = expense_statement.where(
+            Expense.expense_date <= date_to
+        )
+        harvest_statement = harvest_statement.where(
+            HarvestRecord.harvest_date <= date_to
+        )
+
+    sales = db.scalars(
+        sale_statement.order_by(
+            Sale.sale_date.desc(),
+            Sale.id.desc(),
+        )
+    ).all()
+
+    expenses = db.scalars(
+        expense_statement.order_by(
+            Expense.expense_date.desc(),
+            Expense.id.desc(),
+        )
+    ).all()
+
+    harvests = db.scalars(
+        harvest_statement.order_by(
+            HarvestRecord.harvest_date.desc(),
+            HarvestRecord.id.desc(),
+        )
+    ).all()
+
+    total_revenue = sum(
+        Decimal(sale.net_amount or 0)
+        for sale in sales
+    )
+
+    operating_expense = sum(
+        Decimal(expense.amount or 0)
+        for expense in expenses
+    )
+
+    harvest_cost = sum(
+        Decimal(record.total_harvest_cost or 0)
+        for record in harvests
+    )
+
+    total_cost = operating_expense + harvest_cost
+    net_profit = total_revenue - total_cost
+
+    total_coconuts = sum(
+        int(record.total_coconuts or 0)
+        for record in harvests
+    )
+
+    total_paid = sum(
+        Decimal(sale.paid_amount or 0)
+        for sale in sales
+    )
+
+    outstanding = sum(
+        Decimal(sale.balance_amount or 0)
+        for sale in sales
+    )
+
+    return {
+        "period": report_period_label(
+            date_from=date_from,
+            date_to=date_to,
+        ),
+        "filters": {
+            "farm_id": farm_id,
+            "date_from": (
+                date_from.isoformat()
+                if date_from
+                else None
+            ),
+            "date_to": (
+                date_to.isoformat()
+                if date_to
+                else None
+            ),
+        },
+        "summary": {
+            "farm_count": len(report_farms),
+            "sale_count": len(sales),
+            "expense_count": len(expenses),
+            "harvest_count": len(harvests),
+            "total_revenue": str(
+                total_revenue.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "operating_expense": str(
+                operating_expense.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "harvest_cost": str(
+                harvest_cost.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "total_cost": str(
+                total_cost.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "net_profit": str(
+                net_profit.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "profitability_percentage": str(
+                profitability_percentage(
+                    net_profit,
+                    total_cost,
+                )
+            ),
+            "total_coconuts": total_coconuts,
+            "total_paid": str(
+                total_paid.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "outstanding": str(
+                outstanding.quantize(
+                    Decimal("0.01")
+                )
+            ),
+            "profit_per_coconut": str(
+                (
+                    net_profit
+                    / Decimal(total_coconuts)
+                ).quantize(
+                    Decimal("0.01")
+                )
+                if total_coconuts > 0
+                else Decimal("0.00")
+            ),
+        },
+        "farms": [
+            {
+                key: (
+                    str(value)
+                    if isinstance(value, Decimal)
+                    else value
+                )
+                for key, value in result.items()
+            }
+            for result in farm_results
+        ],
+    }
+
+
+@app.get(
+    "/reports/sales.csv",
+)
+def sales_report_csv(
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    validate_report_dates(
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    statement = select(Sale).where(
+        Sale.owner_id == user.id
+    )
+
+    if farm_id is not None:
+        require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+        statement = statement.where(
+            Sale.farm_id == farm_id
+        )
+
+    if date_from is not None:
+        statement = statement.where(
+            Sale.sale_date >= date_from
+        )
+
+    if date_to is not None:
+        statement = statement.where(
+            Sale.sale_date <= date_to
+        )
+
+    sales = db.scalars(
+        statement.order_by(
+            Sale.sale_date.asc(),
+            Sale.id.asc(),
+        )
+    ).all()
+
+    farm_ids = {
+        sale.farm_id
+        for sale in sales
+    }
+
+    buyer_ids = {
+        sale.buyer_id
+        for sale in sales
+        if sale.buyer_id is not None
+    }
+
+    farms = {
+        farm.id: farm.name
+        for farm in db.scalars(
+            select(Farm).where(
+                Farm.owner_id == user.id,
+                Farm.id.in_(farm_ids),
+            )
+        ).all()
+    } if farm_ids else {}
+
+    buyers = {
+        buyer.id: buyer.name
+        for buyer in db.scalars(
+            select(Buyer).where(
+                Buyer.owner_id == user.id,
+                Buyer.id.in_(buyer_ids),
+            )
+        ).all()
+    } if buyer_ids else {}
+
+    rows = [
+        [
+            sale.id,
+            sale.sale_date.isoformat(),
+            farms.get(sale.farm_id, ""),
+            buyers.get(sale.buyer_id, ""),
+            sale.product_type,
+            sale.quantity,
+            sale.unit,
+            sale.rate,
+            sale.gross_amount,
+            sale.transport_deduction,
+            sale.commission_deduction,
+            sale.other_deduction,
+            sale.net_amount,
+            sale.paid_amount,
+            sale.balance_amount,
+            sale.payment_status,
+            (
+                sale.payment_due_date.isoformat()
+                if sale.payment_due_date
+                else ""
+            ),
+            sale.reference_number,
+            sale.notes,
+        ]
+        for sale in sales
+    ]
+
+    return csv_download_response(
+        filename=(
+            "messis-sales-report-"
+            f"{date.today().isoformat()}.csv"
+        ),
+        headers=[
+            "Sale ID",
+            "Sale Date",
+            "Farm",
+            "Buyer",
+            "Product",
+            "Quantity",
+            "Unit",
+            "Rate",
+            "Gross Amount",
+            "Transport Deduction",
+            "Commission Deduction",
+            "Other Deduction",
+            "Net Amount",
+            "Paid Amount",
+            "Balance Amount",
+            "Payment Status",
+            "Payment Due Date",
+            "Reference Number",
+            "Notes",
+        ],
+        rows=rows,
+    )
+
+
+@app.get(
+    "/reports/expenses.csv",
+)
+def expenses_report_csv(
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    validate_report_dates(
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    statement = select(Expense).where(
+        Expense.owner_id == user.id
+    )
+
+    if farm_id is not None:
+        require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+        statement = statement.where(
+            Expense.farm_id == farm_id
+        )
+
+    if date_from is not None:
+        statement = statement.where(
+            Expense.expense_date >= date_from
+        )
+
+    if date_to is not None:
+        statement = statement.where(
+            Expense.expense_date <= date_to
+        )
+
+    expenses = db.scalars(
+        statement.order_by(
+            Expense.expense_date.asc(),
+            Expense.id.asc(),
+        )
+    ).all()
+
+    farm_ids = {
+        expense.farm_id
+        for expense in expenses
+        if expense.farm_id is not None
+    }
+
+    category_ids = {
+        expense.category_id
+        for expense in expenses
+    }
+
+    vendor_ids = {
+        expense.vendor_id
+        for expense in expenses
+        if expense.vendor_id is not None
+    }
+
+    farms = {
+        farm.id: farm.name
+        for farm in db.scalars(
+            select(Farm).where(
+                Farm.owner_id == user.id,
+                Farm.id.in_(farm_ids),
+            )
+        ).all()
+    } if farm_ids else {}
+
+    categories = {
+        category.id: category.name
+        for category in db.scalars(
+            select(ExpenseCategory).where(
+                ExpenseCategory.id.in_(category_ids)
+            )
+        ).all()
+    } if category_ids else {}
+
+    vendors = {
+        vendor.id: vendor.name
+        for vendor in db.scalars(
+            select(Vendor).where(
+                Vendor.owner_id == user.id,
+                Vendor.id.in_(vendor_ids),
+            )
+        ).all()
+    } if vendor_ids else {}
+
+    rows = [
+        [
+            expense.id,
+            expense.expense_date.isoformat(),
+            farms.get(expense.farm_id, "General"),
+            categories.get(
+                expense.category_id,
+                "",
+            ),
+            vendors.get(expense.vendor_id, ""),
+            expense.description,
+            expense.amount,
+            expense.payment_mode,
+            expense.reference_number,
+            "Yes" if expense.is_recurring else "No",
+            expense.notes,
+        ]
+        for expense in expenses
+    ]
+
+    return csv_download_response(
+        filename=(
+            "messis-expense-report-"
+            f"{date.today().isoformat()}.csv"
+        ),
+        headers=[
+            "Expense ID",
+            "Expense Date",
+            "Farm",
+            "Category",
+            "Vendor",
+            "Description",
+            "Amount",
+            "Payment Mode",
+            "Reference Number",
+            "Recurring",
+            "Notes",
+        ],
+        rows=rows,
+    )
+
+
+@app.get(
+    "/reports/harvests.csv",
+)
+def harvests_report_csv(
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    validate_report_dates(
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    statement = select(HarvestRecord).where(
+        HarvestRecord.owner_id == user.id
+    )
+
+    if farm_id is not None:
+        require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+        statement = statement.where(
+            HarvestRecord.farm_id == farm_id
+        )
+
+    if date_from is not None:
+        statement = statement.where(
+            HarvestRecord.harvest_date >= date_from
+        )
+
+    if date_to is not None:
+        statement = statement.where(
+            HarvestRecord.harvest_date <= date_to
+        )
+
+    records = db.scalars(
+        statement.order_by(
+            HarvestRecord.harvest_date.asc(),
+            HarvestRecord.id.asc(),
+        )
+    ).all()
+
+    farm_ids = {
+        record.farm_id
+        for record in records
+    }
+
+    farms = {
+        farm.id: farm.name
+        for farm in db.scalars(
+            select(Farm).where(
+                Farm.owner_id == user.id,
+                Farm.id.in_(farm_ids),
+            )
+        ).all()
+    } if farm_ids else {}
+
+    rows = [
+        [
+            record.id,
+            record.harvest_date.isoformat(),
+            farms.get(record.farm_id, ""),
+            record.harvest_cycle_id,
+            record.trees_harvested,
+            record.mature_coconuts,
+            record.tender_coconuts,
+            record.damaged_coconuts,
+            record.total_coconuts,
+            record.estimated_weight_kg,
+            record.labour_count,
+            record.labour_cost,
+            record.climbing_cost,
+            record.transport_cost,
+            record.other_cost,
+            record.total_harvest_cost,
+            record.buyer_or_destination,
+            record.notes,
+        ]
+        for record in records
+    ]
+
+    return csv_download_response(
+        filename=(
+            "messis-harvest-report-"
+            f"{date.today().isoformat()}.csv"
+        ),
+        headers=[
+            "Harvest ID",
+            "Harvest Date",
+            "Farm",
+            "Harvest Cycle ID",
+            "Trees Harvested",
+            "Mature Coconuts",
+            "Tender Coconuts",
+            "Damaged Coconuts",
+            "Total Coconuts",
+            "Estimated Weight Kg",
+            "Labour Count",
+            "Labour Cost",
+            "Climbing Cost",
+            "Transport Cost",
+            "Other Cost",
+            "Total Harvest Cost",
+            "Buyer or Destination",
+            "Notes",
+        ],
+        rows=rows,
+    )
+
+
+@app.get(
+    "/reports/profitability.csv",
+)
+def profitability_report_csv(
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    validate_report_dates(
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    if farm_id is not None:
+        farms = [
+            require_owned_farm(
+                db=db,
+                farm_id=farm_id,
+                owner_id=user.id,
+            )
+        ]
+    else:
+        farms = db.scalars(
+            select(Farm)
+            .where(Farm.owner_id == user.id)
+            .order_by(func.lower(Farm.name))
+        ).all()
+
+    results = [
+        calculate_farm_profitability(
+            farm=farm,
+            owner_id=user.id,
+            db=db,
+            date_from=date_from,
+            date_to=date_to,
+        )
+        for farm in farms
+    ]
+
+    rows = [
+        [
+            result["farm_id"],
+            result["farm_name"],
+            result["total_farm_trees"],
+            result["harvested_trees"],
+            result["total_coconuts"],
+            result["revenue"],
+            result["operating_expense"],
+            result["harvest_cost"],
+            result["total_cost"],
+            result["net_profit"],
+            result["profitability_percentage"],
+            result["revenue_per_tree"],
+            result["cost_per_tree"],
+            result["profit_per_tree"],
+            result["revenue_per_coconut"],
+            result["cost_per_coconut"],
+            result["profit_per_coconut"],
+            result["yield_per_harvested_tree"],
+        ]
+        for result in results
+    ]
+
+    return csv_download_response(
+        filename=(
+            "messis-profitability-report-"
+            f"{date.today().isoformat()}.csv"
+        ),
+        headers=[
+            "Farm ID",
+            "Farm Name",
+            "Registered Trees",
+            "Harvested Trees",
+            "Total Coconuts",
+            "Revenue",
+            "Operating Expense",
+            "Harvest Cost",
+            "Total Cost",
+            "Net Profit",
+            "Return on Cost Percentage",
+            "Revenue per Tree",
+            "Cost per Tree",
+            "Profit per Tree",
+            "Revenue per Coconut",
+            "Cost per Coconut",
+            "Profit per Coconut",
+            "Yield per Harvested Tree",
+        ],
+        rows=rows,
+    )
+
+
+
+# PATCH-REPORTS-001B: REPORT CENTER UI
+
+
+@app.get(
+    "/reports",
+    response_class=HTMLResponse,
+)
+def reports_center(
+    request: Request,
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    validate_report_dates(
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    farms = db.scalars(
+        select(Farm)
+        .where(Farm.owner_id == user.id)
+        .order_by(func.lower(Farm.name))
+    ).all()
+
+    if farm_id is not None:
+        require_owned_farm(
+            db=db,
+            farm_id=farm_id,
+            owner_id=user.id,
+        )
+
+    query_parts = []
+
+    if farm_id is not None:
+        query_parts.append(
+            f"farm_id={farm_id}"
+        )
+
+    if date_from is not None:
+        query_parts.append(
+            f"date_from={date_from.isoformat()}"
+        )
+
+    if date_to is not None:
+        query_parts.append(
+            f"date_to={date_to.isoformat()}"
+        )
+
+    query_string = "&".join(query_parts)
+    suffix = f"?{query_string}" if query_string else ""
+
+    return templates.TemplateResponse(
+        request=request,
+        name="reports/index.html",
+        context={
+            "current_user": user,
+            "farms": farms,
+            "filters": {
+                "farm_id": farm_id or "",
+                "date_from": (
+                    date_from.isoformat()
+                    if date_from
+                    else ""
+                ),
+                "date_to": (
+                    date_to.isoformat()
+                    if date_to
+                    else ""
+                ),
+            },
+            "urls": {
+                "summary": (
+                    "/reports/summary" + suffix
+                ),
+                "sales": (
+                    "/reports/sales.csv" + suffix
+                ),
+                "expenses": (
+                    "/reports/expenses.csv" + suffix
+                ),
+                "harvests": (
+                    "/reports/harvests.csv" + suffix
+                ),
+                "profitability": (
+                    "/reports/profitability.csv" + suffix
+                ),
+            },
         },
     )
 
