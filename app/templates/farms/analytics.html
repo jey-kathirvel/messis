@@ -39,9 +39,55 @@
                 );
         }
     </style>
+
+    <!-- PATCH-UI-SUBPAGES-001A -->
+    <link
+        rel="stylesheet"
+        href="/static/css/messis-subpages.css?v=001a"
+    >
+
 </head>
 
-<body class="min-h-screen text-slate-800">
+<body class="messis-modern-subpage min-h-screen text-slate-800">
+
+<!-- PATCH-UI-SUBPAGES-001A-TOOLBAR -->
+<header class="messis-page-toolbar">
+    <div class="messis-page-toolbar-left">
+        <a
+            class="messis-page-brand"
+            href="/dashboard"
+            aria-label="Messis AI Dashboard"
+        >
+            <span class="messis-page-brand-icon">🌴</span>
+
+            <span class="messis-page-brand-copy">
+                <strong>Messis AI</strong>
+                <span>Smart Agriculture Management System</span>
+            </span>
+        </a>
+    </div>
+
+    <div class="messis-page-toolbar-right">
+        <button
+            class="messis-nav-button"
+            type="button"
+            onclick="messisGoBack()"
+        >
+            <span aria-hidden="true">←</span>
+            <span>Back</span>
+        </button>
+
+        <a
+            class="messis-nav-button messis-nav-button-primary"
+            href="/dashboard"
+        >
+            <span aria-hidden="true">⌂</span>
+            <span>Back to Dashboard</span>
+        </a>
+    </div>
+</header>
+
+
     <header
         class="sticky top-0 z-40 border-b border-white/70
                bg-white/85 backdrop-blur-xl"
@@ -544,5 +590,22 @@
             }
         );
     </script>
+
+<script>
+    function messisGoBack() {
+        const sameSiteReferrer =
+            document.referrer
+            && new URL(document.referrer).origin
+                === window.location.origin;
+
+        if (sameSiteReferrer && window.history.length > 1) {
+            window.history.back();
+            return;
+        }
+
+        window.location.href = "/dashboard";
+    }
+</script>
+
 </body>
 </html>
