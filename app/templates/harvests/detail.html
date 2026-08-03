@@ -252,6 +252,18 @@
         {% if cycle.notes %}
             <div class="notes">{{ cycle.notes }}</div>
         {% endif %}
+
+        <section style="margin-top:22px;padding:20px;border:1px solid #bbf7d0;border-radius:18px;background:linear-gradient(135deg,#f0fdf4,#ecfdf5)">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap">
+                <div>
+                    <small style="color:#047857;font-weight:900">✨ MESSIS AI LIFECYCLE PLAN</small>
+                    <h2 style="margin:7px 0 5px">{{ phase_context.total }} editable harvest phases</h2>
+                    <p style="margin:0;color:#64748b">{{ phase_context.completed }} completed · {{ phase_context.progress }}% overall progress</p>
+                </div>
+                <a href="/harvests/{{ cycle.id }}/phases" style="padding:11px 15px;border-radius:11px;color:white;background:#15803d">View & manage phases →</a>
+            </div>
+            <div style="height:10px;margin-top:16px;overflow:hidden;border-radius:99px;background:#d1fae5"><span style="display:block;width:{{ phase_context.progress }}%;height:100%;background:#16a34a"></span></div>
+        </section>
     </section>
 </main>
 

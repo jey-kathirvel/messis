@@ -462,6 +462,34 @@ class HarvestCycle(Base):
         onupdate=datetime.utcnow,
     )
 
+
+class HarvestPhase(Base):
+    """Editable operational stage within a harvest cycle."""
+    __tablename__ = "harvest_phases"
+    __table_args__ = (
+        UniqueConstraint("harvest_cycle_id", "phase_order", name="uq_harvest_phase_order"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    harvest_cycle_id: Mapped[int] = mapped_column(
+        ForeignKey("harvest_cycles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    phase_order: Mapped[int] = mapped_column(Integer, nullable=False)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    start_day: Mapped[int] = mapped_column(Integer, nullable=False)
+    end_day: Mapped[int] = mapped_column(Integer, nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    due_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="UPCOMING", nullable=False, index=True)
+    is_ai_recommended: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
 # PATCH-HARVEST-002A: HARVEST RECORDING FOUNDATION
 
 

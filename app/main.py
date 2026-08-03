@@ -46,6 +46,7 @@ from app.models import AuditLog, Buyer, CoconutTree, Expense, ExpenseCategory, F
 from app.agro_framework import farm_template_context, router as agro_router, seed_agro_framework
 from app.task_management import router as task_router
 from app.reminders import router as reminder_router
+from app.harvest_phases import lifecycle_context, router as harvest_phase_router
 from app.security import hash_passcode, valid_passcode, verify_passcode
 from app.version import APP_VERSION, RELEASE_NAME
 
@@ -56,6 +57,7 @@ app = FastAPI(title="Messis AI", version=APP_VERSION)
 app.include_router(agro_router)
 app.include_router(task_router)
 app.include_router(reminder_router)
+app.include_router(harvest_phase_router)
 
 app.add_middleware(
     SessionMiddleware,
@@ -2746,6 +2748,8 @@ def harvest_cycle_detail_page(
             cycle.status = status
             db.commit()
 
+    phase_context = lifecycle_context(db, cycle)
+
     return templates.TemplateResponse(
         request=request,
         name="harvests/detail.html",
@@ -2753,6 +2757,7 @@ def harvest_cycle_detail_page(
             "current_user": user,
             "farm": farm,
             "cycle": cycle,
+            "phase_context": phase_context,
         },
     )
 
@@ -7143,7 +7148,14 @@ def business_dashboard_page(
     else:
         type_names = sorted({ctx["farm_type_name"] for ctx in dashboard_farm_contexts.values()})
         dashboard_context = {
-            "assigned": False, "is_coconut": False, "farm_type_code": "mixed",
+            "assigned": False,
+            # All Farms must retain coconut-specific navigation whenever the
+            # owner's portfolio contains at least one coconut farm.
+            "is_coconut": any(
+                context.get("is_coconut", False)
+                for context in dashboard_farm_contexts.values()
+            ),
+            "farm_type_code": "mixed",
             "farm_type_name": "All Farms" if len(type_names) != 1 else (type_names[0] if type_names else "All Farms"),
             "icon": "🌱", "asset_label": "Farm capacity", "asset_value": "Mixed units",
             "terminology": {"production_unit": "Mixed units", "output": "Farm production", "production_event": "Production"},
