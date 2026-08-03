@@ -38,6 +38,20 @@
         }
         input:focus { border-color: #2f9345; box-shadow: 0 0 0 4px rgba(47,147,69,.13); }
         .passcode { letter-spacing: 8px; font-weight: 800; text-align: center; }
+
+        /* PATCH-AUTH-003B.1-OPTIONAL-REGISTRATION-CODE */
+        .field-help {
+            margin: 7px 2px 0;
+            color: #667b6b;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .optional-label {
+            color: #52705a;
+            font-size: 11px;
+            font-weight: 700;
+        }
         button {
             width: 100%; height: 54px; margin-top: 4px; border: 0; border-radius: 15px;
             cursor: pointer; color: #fff; background: linear-gradient(135deg, #176c32, #35a34b);
@@ -104,8 +118,26 @@
                     <input id="mobile_number" name="mobile_number" type="tel" inputmode="numeric" pattern="[0-9]{10,15}" maxlength="15" value="{{ form_values.get('mobile_number', '') }}" autocomplete="tel" required>
                 </div>
                 <div class="field">
-                    <label for="registration_code">Registration code</label>
-                    <input id="registration_code" name="registration_code" type="password" maxlength="128" autocomplete="one-time-code" required>
+                    <label for="registration_code">
+                        Registration Code
+                        <span class="optional-label">
+                            (Optional)
+                        </span>
+                    </label>
+
+                    <input
+                        id="registration_code"
+                        name="registration_code"
+                        type="password"
+                        maxlength="128"
+                        autocomplete="one-time-code"
+                        placeholder="Enter registration code (optional)"
+                    >
+
+                    <p class="field-help">
+                        Leave this blank unless a registration
+                        code has been provided to you.
+                    </p>
                 </div>
                 <div class="field">
                     <label for="new_passcode">New 6-digit passcode</label>

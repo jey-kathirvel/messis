@@ -451,11 +451,14 @@ def set_passcode(
     mobile_number: str = Form(...),
     passcode: str = Form(...),
     confirm_passcode: str = Form(...),
-    registration_code: str = Form(...),
+    registration_code: str = Form(""),
     db: Session = Depends(get_db),
 ):
     normalized_username = username.strip()
     normalized_mobile = "".join(mobile_number.split())
+    normalized_registration_code = (
+        registration_code.strip()
+    )
     client_key = (
         request.headers.get("x-forwarded-for", "").split(",")[0].strip()
         or (request.client.host if request.client else "unknown")
@@ -479,11 +482,23 @@ def set_passcode(
     if recent_attempt_count >= settings.signup_max_attempts:
         error_message = "Too many registration attempts. Try again later."
         error_status = 429
-    elif not settings.signup_access_code:
-        error_message = "Account registration is temporarily unavailable."
-        error_status = 503
-    elif not compare_digest(registration_code, settings.signup_access_code):
-        audit(db, request, "account_registration_rejected", detail="Invalid registration code")
+    # PATCH-AUTH-003B.1: OPTIONAL REGISTRATION CODE
+    elif (
+        normalized_registration_code
+        and (
+            not settings.signup_access_code
+            or not compare_digest(
+                normalized_registration_code,
+                settings.signup_access_code,
+            )
+        )
+    ):
+        audit(
+            db,
+            request,
+            "account_registration_rejected",
+            detail="Invalid registration code",
+        )
         db.commit()
         error_message = "Invalid registration code."
     elif not normalized_username:
