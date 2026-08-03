@@ -103,6 +103,7 @@
         href="/static/pwa/mobile-shell.css?v=001b"
     >
 
+    <link rel="stylesheet" href="/static/css/agri-theme.css?v=002">
 </head>
 
 <body class="messis-modern-subpage min-h-screen font-sans text-slate-800">
@@ -305,7 +306,7 @@
                         <h1
                             class="text-3xl font-black tracking-tight sm:text-4xl"
                         >
-                            Manage your coconut farms
+                            Manage all your farms
                         </h1>
 
                         <p
@@ -318,7 +319,7 @@
                     </div>
 
                     <a
-                        href="/farms/new"
+                        href="/farms/setup"
                         class="inline-flex items-center justify-center gap-2
                                rounded-2xl bg-white px-5 py-3 text-sm
                                font-black text-emerald-900 shadow-xl
@@ -373,7 +374,7 @@
                                 class="text-xs font-bold uppercase
                                        tracking-[0.18em] text-slate-500"
                             >
-                                Total Trees
+                                Coconut Trees
                             </p>
 
                             <p
@@ -471,7 +472,7 @@
                                     <th class="px-6 py-4">Farm</th>
                                     <th class="px-6 py-4">Location</th>
                                     <th class="px-6 py-4">Acreage</th>
-                                    <th class="px-6 py-4">Trees</th>
+                                    <th class="px-6 py-4">Farm Type</th>
                                     <th class="px-6 py-4">Created</th>
                                     <th class="px-6 py-4 text-right">
                                         Actions
@@ -522,6 +523,7 @@
                                             </div>
                                         </td>
 
+                                        {% set ctx = farm_contexts.get(farm.id) %}
                                         <td
                                             class="px-6 py-5 text-sm
                                                    font-medium text-slate-600"
@@ -548,11 +550,8 @@
                                             class="px-6 py-5 text-sm
                                                    font-black text-emerald-800"
                                         >
-                                            {{
-                                                "{:,}".format(
-                                                    farm.total_trees or 0
-                                                )
-                                            }}
+                                                {{ ctx.icon }} {{ ctx.farm_type_name }}<br>
+                                                <span class="text-xs font-medium text-slate-500">{{ ctx.asset_label }}: {{ ctx.asset_value }}</span>
                                         </td>
 
                                         <td
@@ -641,6 +640,7 @@
                                             {{ farm.name }}
                                         </h3>
 
+                                        {% set ctx = farm_contexts.get(farm.id) %}
                                         <p
                                             class="mt-1 truncate text-sm
                                                    text-slate-500"
@@ -685,18 +685,14 @@
                                                    tracking-wide
                                                    text-slate-400"
                                         >
-                                            Trees
+                                            {{ ctx.asset_label }}
                                         </p>
 
                                         <p
                                             class="mt-1 text-sm font-black
                                                    text-emerald-800"
                                         >
-                                            {{
-                                                "{:,}".format(
-                                                    farm.total_trees or 0
-                                                )
-                                            }}
+                                                {{ ctx.asset_value }}
                                         </p>
                                     </div>
                                 </div>
@@ -771,11 +767,11 @@
                                    text-slate-500"
                         >
                             Create your first farm record to begin tracking
-                            acreage and coconut tree population.
+                            acreage, production, activities, and farm-specific details.
                         </p>
 
                         <a
-                            href="/farms/new"
+                            href="/farms/setup"
                             class="mt-6 inline-flex items-center justify-center
                                    gap-2 rounded-2xl bg-emerald-700 px-5 py-3
                                    text-sm font-black text-white shadow-lg

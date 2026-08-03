@@ -11,6 +11,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    JSON,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
@@ -1079,3 +1080,122 @@ class SalePayment(Base):
         nullable=False,
         default=datetime.utcnow,
     )
+
+
+# AGRO-FRAMEWORK-001: additive, versioned universal farm configuration.
+# Existing coconut tables deliberately remain unchanged for zero-data-loss
+# migration and backward compatibility.
+class FarmCategory(Base):
+    __tablename__ = "farm_categories"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    icon: Mapped[str | None] = mapped_column(String(30))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class FarmType(Base):
+    __tablename__ = "farm_types"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("farm_categories.id"), nullable=False, index=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    icon: Mapped[str | None] = mapped_column(String(30))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class FarmTemplate(Base):
+    __tablename__ = "farm_templates"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    template_code: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    template_name: Mapped[str] = mapped_column(String(140), nullable=False)
+    farm_type_id: Mapped[int] = mapped_column(ForeignKey("farm_types.id"), nullable=False, index=True)
+    description: Mapped[str | None] = mapped_column(Text)
+    is_system_template: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class FarmTemplateVersion(Base):
+    __tablename__ = "farm_template_versions"
+    __table_args__ = (UniqueConstraint("template_id", "version", name="uq_template_version"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    template_id: Mapped[int] = mapped_column(ForeignKey("farm_templates.id", ondelete="CASCADE"), nullable=False, index=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="DRAFT", nullable=False, index=True)
+    terminology_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    dashboard_widgets_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class TemplateField(Base):
+    __tablename__ = "template_fields"
+    __table_args__ = (UniqueConstraint("template_version_id", "field_key", name="uq_template_field_key"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    template_version_id: Mapped[int] = mapped_column(ForeignKey("farm_template_versions.id", ondelete="CASCADE"), nullable=False, index=True)
+    section_name: Mapped[str] = mapped_column(String(100), default="Farm details", nullable=False)
+    field_key: Mapped[str] = mapped_column(String(80), nullable=False)
+    field_label: Mapped[str] = mapped_column(String(140), nullable=False)
+    field_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    help_text: Mapped[str | None] = mapped_column(Text)
+    is_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    default_value: Mapped[str | None] = mapped_column(Text)
+    validation_rules_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    conditional_rules_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    options_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    unit_type: Mapped[str | None] = mapped_column(String(40))
+    display_order: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+
+class UserSetupProfile(Base):
+    __tablename__ = "user_setup_profiles"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="NOT_STARTED", nullable=False)
+    current_step: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    draft_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class FarmTemplateAssignment(Base):
+    __tablename__ = "farm_template_assignments"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    template_version_id: Mapped[int] = mapped_column(ForeignKey("farm_template_versions.id"), nullable=False)
+    assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+class FarmFieldValue(Base):
+    __tablename__ = "farm_field_values"
+    __table_args__ = (UniqueConstraint("farm_id", "template_field_id", name="uq_farm_field_value"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    template_field_id: Mapped[int] = mapped_column(ForeignKey("template_fields.id", ondelete="CASCADE"), nullable=False)
+    value_json: Mapped[object | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class FarmTask(Base):
+    """A farm-scoped work item with a simple New -> Pending -> Closed lifecycle."""
+    __tablename__ = "farm_tasks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(180), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text)
+    priority: Mapped[str] = mapped_column(String(20), default="MEDIUM", nullable=False, index=True)
+    due_date: Mapped[date | None] = mapped_column(Date, index=True)
+    status: Mapped[str] = mapped_column(String(20), default="NEW", nullable=False, index=True)
+    worker_name: Mapped[str | None] = mapped_column(String(140))
+    worker_phone: Mapped[str | None] = mapped_column(String(30))
+    assignment_notes: Mapped[str | None] = mapped_column(Text)
+    assigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
