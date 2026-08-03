@@ -42,7 +42,11 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
 from app.database import Base, engine, get_db
-from app.models import AuditLog, Buyer, CoconutTree, Expense, ExpenseCategory, Farm, HarvestCycle, HarvestRecord, Sale, SalePayment, User, Vendor
+from app.models import AuditLog, Buyer, CoconutTree, Expense, ExpenseCategory, Farm, HarvestCycle, HarvestRecord, Sale, SalePayment, User, UserSetupProfile, Vendor
+from app.agro_framework import farm_template_context, router as agro_router, seed_agro_framework
+from app.task_management import router as task_router
+from app.reminders import router as reminder_router
+from app.harvest_phases import lifecycle_context, router as harvest_phase_router
 from app.security import hash_passcode, valid_passcode, verify_passcode
 from app.version import APP_VERSION, RELEASE_NAME
 
@@ -50,6 +54,10 @@ BASE_DIR = Path(__file__).resolve().parent
 settings = get_settings()
 
 app = FastAPI(title="Messis AI", version=APP_VERSION)
+app.include_router(agro_router)
+app.include_router(task_router)
+app.include_router(reminder_router)
+app.include_router(harvest_phase_router)
 
 app.add_middleware(
     SessionMiddleware,
@@ -140,6 +148,9 @@ async def enforce_csrf(request: Request, call_next):
 @app.on_event("startup")
 def startup() -> None:
     Base.metadata.create_all(bind=engine)
+    from app.database import SessionLocal
+    with SessionLocal() as db:
+        seed_agro_framework(db)
 
 
 def audit(
@@ -190,6 +201,73 @@ def current_user(
         )
 
     return user
+
+
+@app.get("/account/change-passcode", response_class=HTMLResponse)
+def change_passcode_page(
+    request: Request,
+    user: User = Depends(current_user),
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="auth/change_passcode.html",
+        context={
+            "page_title": "Change Passcode",
+            "current_user": user,
+            "error_message": request.query_params.get("error"),
+            "success_message": request.query_params.get("success"),
+        },
+    )
+
+
+@app.post("/account/change-passcode", response_class=HTMLResponse)
+def change_passcode(
+    request: Request,
+    current_passcode: str = Form(...),
+    new_passcode: str = Form(...),
+    confirm_passcode: str = Form(...),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    error: str | None = None
+    if not verify_passcode(user.passcode_hash, current_passcode):
+        error = "Current passcode is incorrect."
+    elif not valid_passcode(new_passcode):
+        error = "New passcode must contain exactly six digits."
+    elif new_passcode != confirm_passcode:
+        error = "New passcode and confirmation do not match."
+    elif verify_passcode(user.passcode_hash, new_passcode):
+        error = "New passcode must be different from the current passcode."
+
+    if error:
+        audit(db, request, "passcode_change_failed", user.id, error)
+        db.commit()
+        return templates.TemplateResponse(
+            request=request,
+            name="auth/change_passcode.html",
+            context={
+                "page_title": "Change Passcode",
+                "current_user": user,
+                "error_message": error,
+                "success_message": None,
+            },
+            status_code=400,
+        )
+
+    user.passcode_hash = hash_passcode(new_passcode)
+    audit(
+        db,
+        request,
+        "passcode_changed",
+        user.id,
+        "User changed the account passcode.",
+    )
+    db.commit()
+    return RedirectResponse(
+        "/account/change-passcode?success="
+        + quote("Passcode changed successfully."),
+        status_code=303,
+    )
 
 
 def normalize_optional_text(value: str | None) -> str | None:
@@ -565,6 +643,7 @@ def set_passcode(
 
     try:
         db.flush()
+        db.add(UserSetupProfile(owner_id=user.id, status="NOT_STARTED", current_step=1))
         audit(db, request, "account_created", user.id)
         db.commit()
     except IntegrityError:
@@ -696,8 +775,9 @@ def login(
         }
     )
 
+    setup = db.scalar(select(UserSetupProfile).where(UserSetupProfile.owner_id == user.id))
     return RedirectResponse(
-        "/dashboard",
+        "/setup" if setup and setup.status != "COMPLETED" else "/dashboard",
         status_code=303,
     )
 
@@ -821,6 +901,7 @@ def farm_list(
         .where(Farm.owner_id == user.id)
         .order_by(Farm.created_at.desc(), Farm.id.desc())
     ).all()
+    farm_contexts = {farm.id: farm_template_context(db, farm, user.id) for farm in farms}
 
     farm_count = len(farms)
 
@@ -845,6 +926,7 @@ def farm_list(
             "page_title": "Farms",
             "current_user": user,
             "farms": farms,
+            "farm_contexts": farm_contexts,
             "farm_count": farm_count,
             "total_trees": total_trees,
             "total_acreage": total_acreage,
@@ -1950,6 +2032,7 @@ def farm_detail_page(
         user=user,
         db=db,
     )
+    context = farm_template_context(db, farm, user.id)
 
     return templates.TemplateResponse(
         request=request,
@@ -1958,6 +2041,7 @@ def farm_detail_page(
             "page_title": farm.name,
             "current_user": user,
             "farm": farm,
+            "farm_context": context,
         },
     )
 
@@ -2664,6 +2748,8 @@ def harvest_cycle_detail_page(
             cycle.status = status
             db.commit()
 
+    phase_context = lifecycle_context(db, cycle)
+
     return templates.TemplateResponse(
         request=request,
         name="harvests/detail.html",
@@ -2671,6 +2757,7 @@ def harvest_cycle_detail_page(
             "current_user": user,
             "farm": farm,
             "cycle": cycle,
+            "phase_context": phase_context,
         },
     )
 
@@ -7052,6 +7139,29 @@ def business_dashboard_page(
     else:
         result_farms = farms
 
+    dashboard_farm_contexts = {
+        farm.id: farm_template_context(db, farm, user.id)
+        for farm in result_farms
+    }
+    if farm_id is not None:
+        dashboard_context = dashboard_farm_contexts[farm_id]
+    else:
+        type_names = sorted({ctx["farm_type_name"] for ctx in dashboard_farm_contexts.values()})
+        dashboard_context = {
+            "assigned": False,
+            # All Farms must retain coconut-specific navigation whenever the
+            # owner's portfolio contains at least one coconut farm.
+            "is_coconut": any(
+                context.get("is_coconut", False)
+                for context in dashboard_farm_contexts.values()
+            ),
+            "farm_type_code": "mixed",
+            "farm_type_name": "All Farms" if len(type_names) != 1 else (type_names[0] if type_names else "All Farms"),
+            "icon": "🌱", "asset_label": "Farm capacity", "asset_value": "Mixed units",
+            "terminology": {"production_unit": "Mixed units", "output": "Farm production", "production_event": "Production"},
+            "available_types": type_names,
+        }
+
     farm_results = [
         calculate_farm_profitability(
             farm=farm,
@@ -7327,6 +7437,8 @@ def business_dashboard_page(
             "current_user": user,
             "farms": farms,
             "farm_results": farm_results,
+            "farm_contexts": dashboard_farm_contexts,
+            "dashboard_context": dashboard_context,
             "kpis": kpis,
             "harvest_alerts": harvest_alerts[:6],
             "recent_activity": recent_activity,
@@ -7366,8 +7478,26 @@ MESSIS_PDF_DANGER = colors.HexColor("#B91C1C")
 
 
 def register_messis_pdf_fonts() -> dict[str, str]:
-    regular_name = "MessisTamilRegular"
-    bold_name = "MessisTamilBold"
+    # Tamil-only font files do not contain Latin glyphs, which made the
+    # English report headings and table labels render as blank. Use a
+    # Unicode Latin font for this English business report.
+    regular_name = "MessisUniversalRegular"
+    bold_name = "MessisUniversalBold"
+
+    regular_candidates = (
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        Path("/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"),
+        Path("C:/Windows/Fonts/arial.ttf"),
+    )
+    bold_candidates = (
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
+        Path("/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf"),
+        Path("C:/Windows/Fonts/arialbd.ttf"),
+    )
+    regular_path = next((path for path in regular_candidates if path.exists()), None)
+    bold_path = next((path for path in bold_candidates if path.exists()), None)
+    if regular_path is None or bold_path is None:
+        raise RuntimeError("A Unicode PDF font is not installed")
 
     registered = set(
         pdfmetrics.getRegisteredFontNames()
@@ -7377,7 +7507,7 @@ def register_messis_pdf_fonts() -> dict[str, str]:
         pdfmetrics.registerFont(
             TTFont(
                 regular_name,
-                '/usr/share/fonts/truetype/noto/NotoSerifTamil-Regular.ttf',
+                str(regular_path),
             )
         )
 
@@ -7385,7 +7515,7 @@ def register_messis_pdf_fonts() -> dict[str, str]:
         pdfmetrics.registerFont(
             TTFont(
                 bold_name,
-                '/usr/share/fonts/truetype/noto/NotoSansTamil-Bold.ttf',
+                str(bold_path),
             )
         )
 

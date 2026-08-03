@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% block content %}
+<link rel="stylesheet" href="/static/css/tasks.css?v=001">
+<main class="task-shell">
+ <section class="task-hero"><div><h1>✅ Farm Task Management</h1><p>Plan, assign and complete work across every farm.</p></div><a class="task-btn" href="/tasks/new">＋ Create Task</a></section>
+ {% if success_message %}<div class="task-alert">✓ {{ success_message }}</div>{% endif %}
+ <section class="task-stats">
+  <article class="task-stat"><span>New</span><strong>{{ counts.get('NEW',0) }}</strong></article>
+  <article class="task-stat"><span>Pending</span><strong>{{ counts.get('PENDING',0) }}</strong></article>
+  <article class="task-stat overdue"><span>Overdue</span><strong>{{ overdue_count }}</strong></article>
+  <article class="task-stat"><span>Closed</span><strong>{{ counts.get('CLOSED',0) }}</strong></article>
+ </section>
+ <form class="task-filter" method="get"><div class="task-field"><label for="farm_id">Farm</label><select id="farm_id" name="farm_id"><option value="">All farms</option>{% for farm in farms %}<option value="{{ farm.id }}" {% if selected_farm_id==farm.id %}selected{% endif %}>{{ farm.name }}</option>{% endfor %}</select></div><div class="task-field"><label for="status">Status</label><select id="status" name="status"><option value="ALL">All statuses</option>{% for value in ['NEW','PENDING','CLOSED'] %}<option value="{{ value }}" {% if selected_status==value %}selected{% endif %}>{{ value|title }}</option>{% endfor %}</select></div><button class="task-btn task-btn-primary" type="submit">Apply Filter</button></form>
+ <section class="task-list">{% for task,farm in rows %}<article class="task-card"><div><div><span class="task-badge status-{{ task.status|lower }}">{{ task.status }}</span> <span class="task-badge priority-{{ task.priority|lower }}">{{ task.priority }}</span></div><h2><a href="/tasks/{{ task.id }}">{{ task.title }}</a></h2><div class="task-meta"><span>🌱 {{ farm.name }}</span>{% if task.worker_name %}<span>👷 {{ task.worker_name }}</span>{% endif %}{% if task.due_date %}<span class="{% if task.status!='CLOSED' and task.due_date<today %}task-overdue{% endif %}">📅 {{ task.due_date.strftime('%d %b %Y') }}{% if task.status!='CLOSED' and task.due_date<today %} · Overdue{% endif %}</span>{% endif %}</div></div><div class="task-card-actions"><a class="task-btn task-btn-soft" href="/tasks/{{ task.id }}">View / Update →</a></div></article>{% else %}<div class="task-empty"><strong>No tasks found</strong><span>Create the first task for one of your farms.</span><div style="margin-top:16px"><a class="task-btn task-btn-primary" href="/tasks/new">Create Task</a></div></div>{% endfor %}</section>
+</main>{% endblock %}

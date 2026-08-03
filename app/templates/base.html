@@ -61,6 +61,7 @@
         href="/static/pwa/mobile-shell.css?v=001b"
     >
 
+    <link rel="stylesheet" href="/static/css/agri-theme.css?v=002">
 </head>
 <body class="messis-modern-subpage">
 
@@ -104,6 +105,7 @@
 
     {% block content %}{% endblock %}
     <script src="{{ url_for('static', path='js/app.js') }}"></script>
+    <script src="/static/js/reminder-popup.js?v=001" defer></script>
 
 <script>
     function messisGoBack() {
@@ -215,6 +217,24 @@
     </header>
 
     <div class="messis-mobile-more-grid">
+        <a
+            class="messis-mobile-more-link"
+            href="/account/change-passcode"
+            data-route-prefix="/account/change-passcode"
+        >
+            <span class="messis-mobile-more-icon">🔐</span>
+            <span>Change Passcode</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/tasks"
+            data-route-prefix="/tasks"
+        >
+            <span class="messis-mobile-more-icon">✓</span>
+            <span>Farm Tasks</span>
+        </a>
+
         <a
             class="messis-mobile-more-link"
             href="/mobile/quick-entry"

@@ -89,6 +89,7 @@
         href="/static/pwa/mobile-shell.css?v=001b"
     >
 
+    <link rel="stylesheet" href="/static/css/agri-theme.css?v=002">
 </head>
 
 <body class="messis-modern-subpage min-h-screen text-slate-800">
@@ -138,7 +139,7 @@
     gap:10px;
     margin:18px 0;
 ">
-    <a
+    {% if farm_context.is_coconut %}<a
         href="/farms/{{ farm.id }}/harvests/new"
         style="
             padding:10px 14px;
@@ -166,7 +167,7 @@
         Record Harvest
     </a>
 
-    <a
+    {% endif %}<a
         href="/expenses/new?farm_id={{ farm.id }}"
         style="
             padding:10px 14px;
@@ -180,7 +181,7 @@
         Add Expense
     </a>
 
-    <a
+    {% if farm_context.is_coconut %}<a
         href="/sales/new?farm_id={{ farm.id }}"
         style="
             padding:10px 14px;
@@ -194,7 +195,7 @@
         Record Sale
     </a>
 
-    <a
+    {% endif %}<a
         href="/farms/{{ farm.id }}/profitability/view"
         style="
             padding:10px 14px;
@@ -445,17 +446,17 @@
                     class="mt-5 text-xs font-black uppercase
                            tracking-[0.16em] text-slate-500"
                 >
-                    Coconut Trees
+                    {{ farm_context.asset_label }}
                 </p>
 
                 <p
                     class="mt-2 text-3xl font-black text-slate-900"
                 >
-                    {{ farm.total_trees or 0 }}
+                    {{ farm_context.asset_value }}
                 </p>
 
                 <p class="mt-1 text-sm font-semibold text-slate-500">
-                    Registered trees
+                    Template-configured value
                 </p>
             </article>
 
@@ -476,12 +477,13 @@
                     class="mt-5 text-xs font-black uppercase
                            tracking-[0.16em] text-slate-500"
                 >
-                    Trees per Acre
+                    Production Unit
                 </p>
 
                 <p
                     class="mt-2 text-3xl font-black text-slate-900"
                 >
+                    {% if farm_context.is_coconut %}
                     {% set acreage_value = farm.acreage | float %}
 
                     {% if acreage_value > 0 %}
@@ -494,10 +496,13 @@
                     {% else %}
                         —
                     {% endif %}
+                    {% else %}
+                    {{ farm_context.terminology.get('production_unit', 'Units') }}
+                    {% endif %}
                 </p>
 
                 <p class="mt-1 text-sm font-semibold text-slate-500">
-                    Planting density
+                    {{ farm_context.terminology.get('output', 'Farm output') }}
                 </p>
             </article>
 
@@ -566,7 +571,7 @@
                     </div>
 
                     <a
-                        href="/farms/{{ farm.id }}/edit"
+                        href="{% if farm_context.assigned %}/farms/{{ farm.id }}/dynamic-fields{% else %}/farms/{{ farm.id }}/edit{% endif %}"
                         class="rounded-xl bg-emerald-100
                                px-4 py-2 text-sm font-black
                                text-emerald-800 transition
@@ -645,16 +650,22 @@
                         class="grid gap-2 py-4 sm:grid-cols-3"
                     >
                         <dt class="font-bold text-slate-500">
-                            Total Trees
+                            {{ farm_context.asset_label }}
                         </dt>
 
                         <dd
                             class="font-black text-slate-900
                                    sm:col-span-2"
                         >
-                            {{ farm.total_trees or 0 }}
+                            {{ farm_context.asset_value }}
                         </dd>
                     </div>
+                    {% for field in farm_context.dynamic_fields %}
+                    <div class="grid gap-2 py-4 sm:grid-cols-3">
+                        <dt class="font-bold text-slate-500">{{ field.label }}</dt>
+                        <dd class="font-black text-slate-900 sm:col-span-2">{{ field.value if field.value is not none else 'Not provided' }}{% if field.unit %} {{ field.unit }}{% endif %}</dd>
+                    </div>
+                    {% endfor %}
                 </dl>
             </article>
 
