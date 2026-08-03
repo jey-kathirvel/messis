@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Business Settings · Messis AI</title>
+
+    <link
+        rel="manifest"
+        href="/static/pwa/manifest.webmanifest"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/static/pwa/mobile-shell.css?v=001b"
+    >
+
+    <style>
+        :root {
+            --green-950: #052e16;
+            --green-900: #064e3b;
+            --green-800: #065f46;
+            --green-700: #047857;
+            --green-600: #059669;
+            --green-500: #10b981;
+            --green-100: #d1fae5;
+            --green-50: #ecfdf5;
+
+            --slate-950: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-300: #cbd5e1;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+
+            --danger: #b91c1c;
+
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            color: var(--slate-950);
+
+            background:
+                radial-gradient(
+                    circle at 93% 4%,
+                    rgba(16, 185, 129, 0.14),
+                    transparent 28%
+                ),
+                #f4faf6;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+
+            display: flex;
+            min-height: 72px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+
+            padding: 12px clamp(16px, 4vw, 48px);
+
+            background: rgba(255, 255, 255, 0.95);
+            border-bottom: 1px solid var(--slate-200);
+            box-shadow: 0 8px 28px rgba(15, 23, 42, 0.05);
+            backdrop-filter: blur(14px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            text-decoration: none;
+        }
+
+        .brand-icon {
+            display: grid;
+            width: 44px;
+            height: 44px;
+            place-items: center;
+
+            color: white;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-500)
+                );
+
+            border-radius: 14px;
+            font-size: 22px;
+        }
+
+        .brand strong,
+        .brand small {
+            display: block;
+        }
+
+        .brand strong {
+            color: var(--green-900);
+            font-size: 17px;
+        }
+
+        .brand small {
+            margin-top: 3px;
+
+            color: var(--slate-500);
+            font-size: 10px;
+        }
+
+        .button {
+            display: inline-flex;
+            min-height: 42px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+
+            padding: 9px 14px;
+
+            border-radius: 11px;
+
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .button-secondary {
+            color: var(--slate-700);
+            background: white;
+            border: 1px solid var(--slate-200);
+        }
+
+        .button-primary {
+            color: white;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-500)
+                );
+
+            border: 0;
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+
+            padding:
+                40px
+                clamp(20px, 5vw, 70px)
+                78px;
+
+            color: white;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-950),
+                    var(--green-700)
+                );
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            top: -115px;
+            right: -65px;
+
+            width: 320px;
+            height: 320px;
+
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+        }
+
+        .hero h1 {
+            position: relative;
+            z-index: 1;
+
+            margin: 0;
+
+            font-size: clamp(29px, 4vw, 44px);
+            letter-spacing: -0.03em;
+        }
+
+        .hero p {
+            position: relative;
+            z-index: 1;
+
+            max-width: 760px;
+            margin: 9px 0 0;
+
+            color: #d1fae5;
+            line-height: 1.6;
+        }
+
+        main {
+            position: relative;
+            z-index: 2;
+
+            width: min(1080px, calc(100% - 32px));
+            margin: -42px auto 80px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 13px 15px;
+
+            border-radius: 13px;
+
+            font-size: 12px;
+            font-weight: 750;
+        }
+
+        .message-success {
+            color: var(--green-800);
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+        }
+
+        .message-error {
+            color: var(--danger);
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+
+        .panel {
+            padding: clamp(22px, 4vw, 40px);
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 22px;
+            box-shadow: 0 15px 46px rgba(15, 23, 42, 0.09);
+        }
+
+        .section {
+            padding-bottom: 28px;
+            margin-bottom: 28px;
+
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        .section:last-of-type {
+            padding-bottom: 0;
+            margin-bottom: 0;
+            border-bottom: 0;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+
+            margin-bottom: 19px;
+        }
+
+        .section-icon {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            flex: 0 0 auto;
+            place-items: center;
+
+            color: white;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-500)
+                );
+
+            border-radius: 13px;
+            font-size: 20px;
+        }
+
+        .section-heading h2 {
+            margin: 0;
+
+            font-size: 18px;
+        }
+
+        .section-heading p {
+            margin: 5px 0 0;
+
+            color: var(--slate-500);
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+            gap: 17px;
+        }
+
+        .full {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+
+            color: var(--slate-600);
+            font-size: 11px;
+            font-weight: 850;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            min-height: 47px;
+            padding: 11px 13px;
+
+            color: var(--slate-800);
+            background: white;
+            border: 1px solid var(--slate-300);
+            border-radius: 12px;
+            outline: none;
+        }
+
+        textarea {
+            min-height: 105px;
+            resize: vertical;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--green-500);
+
+            box-shadow:
+                0
+                0
+                0
+                3px
+                rgba(16, 185, 129, 0.12);
+        }
+
+        .field-help {
+            margin-top: 6px;
+
+            color: var(--slate-500);
+            font-size: 9px;
+            line-height: 1.45;
+        }
+
+        .field-error {
+            margin-top: 6px;
+
+            color: var(--danger);
+            font-size: 10px;
+            font-weight: 750;
+        }
+
+        .preview {
+            padding: 18px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-50),
+                    white
+                );
+
+            border: 1px solid var(--green-100);
+            border-radius: 16px;
+        }
+
+        .preview h3 {
+            margin: 0;
+
+            color: var(--green-900);
+            font-size: 18px;
+        }
+
+        .preview p {
+            margin: 7px 0 0;
+
+            color: var(--slate-500);
+            font-size: 11px;
+            line-height: 1.55;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 11px;
+
+            margin-top: 28px;
+        }
+
+        @media (max-width: 700px) {
+            .topbar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .full {
+                grid-column: auto;
+            }
+
+            .actions {
+                display: grid;
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            main {
+                width: calc(100% - 20px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+<header class="topbar">
+    <a class="brand" href="/dashboard">
+        <span class="brand-icon">🌴</span>
+
+        <span>
+            <strong>Messis AI</strong>
+            <small>Smart Agriculture Management System</small>
+        </span>
+    </a>
+
+    <a
+        class="button button-secondary"
+        href="/dashboard"
+    >
+        ← Back to Dashboard
+    </a>
+</header>
+
+<section class="hero">
+    <h1>Business Settings</h1>
+
+    <p>
+        Configure your farm business identity, financial defaults,
+        report information and regional preferences.
+    </p>
+</section>
+
+<main>
+    {% if success_message %}
+        <div class="message message-success">
+            {{ success_message }}
+        </div>
+    {% endif %}
+
+    {% if error_message %}
+        <div class="message message-error">
+            {{ error_message }}
+        </div>
+    {% endif %}
+
+    <form
+        class="panel"
+        method="post"
+        action="/business-settings/manage"
+    >
+        <section class="section">
+            <div class="section-heading">
+                <span class="section-icon">🏢</span>
+
+                <div>
+                    <h2>Business Identity</h2>
+
+                    <p>
+                        Information displayed in reports and
+                        business documents.
+                    </p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div>
+                    <label for="business_name">
+                        Business name *
+                    </label>
+
+                    <input
+                        id="business_name"
+                        name="business_name"
+                        type="text"
+                        maxlength="180"
+                        required
+                        value="{{ settings.business_name }}"
+                    >
+
+                    {% if errors.business_name %}
+                        <div class="field-error">
+                            {{ errors.business_name }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="owner_name">
+                        Owner name
+                    </label>
+
+                    <input
+                        id="owner_name"
+                        name="owner_name"
+                        type="text"
+                        maxlength="180"
+                        value="{{ settings.owner_name }}"
+                    >
+                </div>
+
+                <div>
+                    <label for="phone">Phone</label>
+
+                    <input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        maxlength="30"
+                        value="{{ settings.phone }}"
+                    >
+
+                    {% if errors.phone %}
+                        <div class="field-error">
+                            {{ errors.phone }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="email">Email</label>
+
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        maxlength="180"
+                        value="{{ settings.email }}"
+                    >
+
+                    {% if errors.email %}
+                        <div class="field-error">
+                            {{ errors.email }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="gstin">
+                        GSTIN
+                    </label>
+
+                    <input
+                        id="gstin"
+                        name="gstin"
+                        type="text"
+                        maxlength="20"
+                        value="{{ settings.gstin }}"
+                        style="text-transform: uppercase"
+                    >
+
+                    <div class="field-help">
+                        Optional. Used only when your farm business
+                        is GST registered.
+                    </div>
+
+                    {% if errors.gstin %}
+                        <div class="field-error">
+                            {{ errors.gstin }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="full">
+                    <label for="address">
+                        Business address
+                    </label>
+
+                    <textarea
+                        id="address"
+                        name="address"
+                        maxlength="1500"
+                    >{{ settings.address }}</textarea>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-heading">
+                <span class="section-icon">₹</span>
+
+                <div>
+                    <h2>Finance Defaults</h2>
+
+                    <p>
+                        Configure currency, financial year and
+                        the default payment method.
+                    </p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div>
+                    <label for="currency_code">
+                        Currency
+                    </label>
+
+                    <select
+                        id="currency_code"
+                        name="currency_code"
+                    >
+                        {% for item in currency_options %}
+                            <option
+                                value="{{ item.code }}"
+                                {% if settings.currency_code == item.code %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ item.code }}
+                                — {{ item.symbol }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="default_payment_method_id">
+                        Default payment method
+                    </label>
+
+                    <select
+                        id="default_payment_method_id"
+                        name="default_payment_method_id"
+                    >
+                        <option value="">
+                            No default method
+                        </option>
+
+                        {% for method in payment_methods %}
+                            <option
+                                value="{{ method.id }}"
+                                {% if settings.default_payment_method_id == method.id %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ method.icon }}
+                                {{ method.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="financial_year_start_month">
+                        Financial year starts
+                    </label>
+
+                    <select
+                        id="financial_year_start_month"
+                        name="financial_year_start_month"
+                    >
+                        {% for month in month_options %}
+                            <option
+                                value="{{ month.number }}"
+                                {% if settings.financial_year_start_month == month.number %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ month.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="date_format">
+                        Date format
+                    </label>
+
+                    <select
+                        id="date_format"
+                        name="date_format"
+                    >
+                        {% for format in date_formats %}
+                            <option
+                                value="{{ format }}"
+                                {% if settings.date_format == format %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ format }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-heading">
+                <span class="section-icon">🌐</span>
+
+                <div>
+                    <h2>Regional Settings</h2>
+
+                    <p>
+                        Configure the timezone used by farm
+                        records and scheduled alerts.
+                    </p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="full">
+                    <label for="timezone_name">
+                        Timezone
+                    </label>
+
+                    <select
+                        id="timezone_name"
+                        name="timezone_name"
+                    >
+                        {% for timezone in timezone_options %}
+                            <option
+                                value="{{ timezone }}"
+                                {% if settings.timezone_name == timezone %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ timezone }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-heading">
+                <span class="section-icon">📄</span>
+
+                <div>
+                    <h2>Report Information</h2>
+
+                    <p>
+                        Optional heading and footer displayed
+                        in generated reports.
+                    </p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="full">
+                    <label for="report_header">
+                        Report header
+                    </label>
+
+                    <input
+                        id="report_header"
+                        name="report_header"
+                        type="text"
+                        maxlength="500"
+                        value="{{ settings.report_header }}"
+                    >
+                </div>
+
+                <div class="full">
+                    <label for="report_footer">
+                        Report footer
+                    </label>
+
+                    <textarea
+                        id="report_footer"
+                        name="report_footer"
+                        maxlength="1000"
+                    >{{ settings.report_footer }}</textarea>
+                </div>
+
+                <div class="full">
+                    <div class="preview">
+                        <h3 id="preview-business-name">
+                            {{ settings.business_name }}
+                        </h3>
+
+                        <p id="preview-report-header">
+                            {{ settings.report_header
+                               or "Messis AI farm business report" }}
+                        </p>
+
+                        <p id="preview-report-footer">
+                            {{ settings.report_footer
+                               or "Generated by Messis AI" }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="actions">
+            <a
+                class="button button-secondary"
+                href="/dashboard"
+            >
+                Cancel
+            </a>
+
+            <button
+                class="button button-primary"
+                type="submit"
+            >
+                Save Business Settings
+            </button>
+        </div>
+    </form>
+</main>
+
+<script>
+    (() => {
+        const businessName =
+            document.getElementById(
+                "business_name"
+            );
+
+        const reportHeader =
+            document.getElementById(
+                "report_header"
+            );
+
+        const reportFooter =
+            document.getElementById(
+                "report_footer"
+            );
+
+        const previewBusinessName =
+            document.getElementById(
+                "preview-business-name"
+            );
+
+        const previewReportHeader =
+            document.getElementById(
+                "preview-report-header"
+            );
+
+        const previewReportFooter =
+            document.getElementById(
+                "preview-report-footer"
+            );
+
+        function updatePreview() {
+            previewBusinessName.textContent =
+                businessName.value.trim()
+                || "Messis AI Farm";
+
+            previewReportHeader.textContent =
+                reportHeader.value.trim()
+                || "Messis AI farm business report";
+
+            previewReportFooter.textContent =
+                reportFooter.value.trim()
+                || "Generated by Messis AI";
+        }
+
+        businessName.addEventListener(
+            "input",
+            updatePreview
+        );
+
+        reportHeader.addEventListener(
+            "input",
+            updatePreview
+        );
+
+        reportFooter.addEventListener(
+            "input",
+            updatePreview
+        );
+
+        updatePreview();
+    })();
+</script>
+
+<script
+    src="/static/pwa/mobile-shell.js?v=001b"
+    defer
+></script>
+</body>
+</html>

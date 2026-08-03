@@ -38,6 +38,20 @@
         }
         input:focus { border-color: #2f9345; box-shadow: 0 0 0 4px rgba(47,147,69,.13); }
         .passcode { letter-spacing: 8px; font-weight: 800; text-align: center; }
+
+        /* PATCH-AUTH-003B.1-OPTIONAL-REGISTRATION-CODE */
+        .field-help {
+            margin: 7px 2px 0;
+            color: #667b6b;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .optional-label {
+            color: #52705a;
+            font-size: 11px;
+            font-weight: 700;
+        }
         button {
             width: 100%; height: 54px; margin-top: 4px; border: 0; border-radius: 15px;
             cursor: pointer; color: #fff; background: linear-gradient(135deg, #176c32, #35a34b);
@@ -46,6 +60,43 @@
         .back { display: block; margin-top: 17px; color: #176c32; font-size: 14px; font-weight: 700; text-align: center; text-decoration: none; }
         @media (max-width: 520px) { body { align-items: flex-start; padding: 28px 16px; } .card { padding: 24px 20px; } }
     </style>
+
+    <!-- PATCH-PWA-001A-METADATA -->
+    <link
+        rel="manifest"
+        href="/static/pwa/manifest.webmanifest"
+    >
+
+    <meta
+        name="theme-color"
+        content="#064e3b"
+    >
+
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="default"
+    >
+
+    <meta
+        name="apple-mobile-web-app-title"
+        content="Messis AI"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="/static/pwa/icon-192.png"
+    >
+
 </head>
 <body>
     <main class="page">
@@ -67,8 +118,26 @@
                     <input id="mobile_number" name="mobile_number" type="tel" inputmode="numeric" pattern="[0-9]{10,15}" maxlength="15" value="{{ form_values.get('mobile_number', '') }}" autocomplete="tel" required>
                 </div>
                 <div class="field">
-                    <label for="registration_code">Registration code</label>
-                    <input id="registration_code" name="registration_code" type="password" maxlength="128" autocomplete="one-time-code" required>
+                    <label for="registration_code">
+                        Registration Code
+                        <span class="optional-label">
+                            (Optional)
+                        </span>
+                    </label>
+
+                    <input
+                        id="registration_code"
+                        name="registration_code"
+                        type="password"
+                        maxlength="128"
+                        autocomplete="one-time-code"
+                        placeholder="Enter registration code (optional)"
+                    >
+
+                    <p class="field-help">
+                        Leave this blank unless a registration
+                        code has been provided to you.
+                    </p>
                 </div>
                 <div class="field">
                     <label for="new_passcode">New 6-digit passcode</label>
@@ -104,5 +173,68 @@
             }
         });
     </script>
+
+<!-- PATCH-PWA-001A-REGISTRATION -->
+<script>
+    (() => {
+        if (!("serviceWorker" in navigator)) {
+            return;
+        }
+
+        window.addEventListener(
+            "load",
+            async () => {
+                try {
+                    const registration =
+                        await navigator
+                            .serviceWorker
+                            .register(
+                                "/service-worker.js",
+                                {
+                                    scope: "/"
+                                }
+                            );
+
+                    registration.addEventListener(
+                        "updatefound",
+                        () => {
+                            const worker =
+                                registration.installing;
+
+                            if (!worker) {
+                                return;
+                            }
+
+                            worker.addEventListener(
+                                "statechange",
+                                () => {
+                                    if (
+                                        worker.state
+                                            === "installed"
+                                        && navigator
+                                            .serviceWorker
+                                            .controller
+                                    ) {
+                                        window.dispatchEvent(
+                                            new CustomEvent(
+                                                "messis:pwa-update"
+                                            )
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    );
+                } catch (error) {
+                    console.warn(
+                        "Messis PWA registration:",
+                        error
+                    );
+                }
+            }
+        );
+    })();
+</script>
+
 </body>
 </html>

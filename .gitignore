@@ -342,3 +342,5 @@ notes/private/
 !.env.example
 !README.md
 !CHANGELOG.md
+.env.test
+.env.test.local

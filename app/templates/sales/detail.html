@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>Sale Detail · Messis AI</title>
+
+    <style>
+        :root {
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            color: #17351f;
+            background: #f4fbf5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        main {
+            width: min(940px, 100%);
+            margin: 20px auto;
+        }
+
+        a {
+            color: #166534;
+            font-weight: 900;
+            text-decoration: none;
+        }
+
+        .panel {
+            margin-top: 18px;
+            padding: clamp(22px, 5vw, 42px);
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(20, 83, 45, 0.09);
+        }
+
+        .heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+        }
+
+        h1,
+        h2 {
+            margin-top: 0;
+        }
+
+        .subtitle {
+            color: #64748b;
+        }
+
+        .amount {
+            color: #15803d;
+            font-size: 30px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .status {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: #dcfce7;
+            color: #166534;
+            font-weight: 900;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 24px;
+        }
+
+        .item {
+            padding: 16px;
+            border-radius: 15px;
+            background: #f8fafc;
+        }
+
+        .item small {
+            display: block;
+            margin-bottom: 6px;
+            color: #64748b;
+        }
+
+        .payment-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 14px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 22px;
+        }
+
+        .button {
+            border: 0;
+            border-radius: 12px;
+            padding: 11px 16px;
+            text-decoration: none;
+            font: inherit;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .button-primary {
+            color: white;
+            background: #15803d;
+        }
+
+        .button-danger {
+            color: white;
+            background: #dc2626;
+        }
+
+        .notes {
+            margin-top: 20px;
+            padding: 18px;
+            border-radius: 15px;
+            background: #f0fdf4;
+            white-space: pre-wrap;
+        }
+
+        @media (max-width: 720px) {
+            .heading {
+                flex-direction: column;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button,
+            .actions form {
+                width: 100%;
+            }
+        }
+    </style>
+
+    <!-- PATCH-UI-SUBPAGES-001A -->
+    <link
+        rel="stylesheet"
+        href="/static/css/messis-subpages.css?v=001a"
+    >
+
+
+    <!-- PATCH-PWA-001A-METADATA -->
+    <link
+        rel="manifest"
+        href="/static/pwa/manifest.webmanifest"
+    >
+
+    <meta
+        name="theme-color"
+        content="#064e3b"
+    >
+
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="default"
+    >
+
+    <meta
+        name="apple-mobile-web-app-title"
+        content="Messis AI"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="/static/pwa/icon-192.png"
+    >
+
+
+    <!-- PATCH-PWA-001B-MOBILE-SHELL -->
+    <link
+        rel="stylesheet"
+        href="/static/pwa/mobile-shell.css?v=001b"
+    >
+
+</head>
+
+<body class="messis-modern-subpage">
+
+<!-- PATCH-UI-SUBPAGES-001A-TOOLBAR -->
+<header class="messis-page-toolbar">
+    <div class="messis-page-toolbar-left">
+        <a
+            class="messis-page-brand"
+            href="/dashboard"
+            aria-label="Messis AI Dashboard"
+        >
+            <span class="messis-page-brand-icon">🌴</span>
+
+            <span class="messis-page-brand-copy">
+                <strong>Messis AI</strong>
+                <span>Smart Agriculture Management System</span>
+            </span>
+        </a>
+    </div>
+
+    <div class="messis-page-toolbar-right">
+        <button
+            class="messis-nav-button"
+            type="button"
+            onclick="messisGoBack()"
+        >
+            <span aria-hidden="true">←</span>
+            <span>Back</span>
+        </button>
+
+        <a
+            class="messis-nav-button messis-nav-button-primary"
+            href="/dashboard"
+        >
+            <span aria-hidden="true">⌂</span>
+            <span>Back to Dashboard</span>
+        </a>
+    </div>
+</header>
+
+
+<main>
+    <a href="/sales/manage">← Sales</a>
+
+    <section class="panel">
+        <div class="heading">
+            <div>
+                <h1>{{ sale.product_type }}</h1>
+
+                <p class="subtitle">
+                    {{ farm.name }}
+                    · {{ sale.sale_date.strftime('%d %b %Y') }}
+                </p>
+
+                <span class="status">
+                    {{ sale.payment_status }}
+                </span>
+            </div>
+
+            <div class="amount">
+                ₹{{ '%.2f'|format(sale.net_amount) }}
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="item">
+                <small>Buyer</small>
+                <strong>
+                    {{ buyer.name if buyer else 'Direct sale' }}
+                </strong>
+            </div>
+
+            <div class="item">
+                <small>Quantity</small>
+                <strong>
+                    {{ sale.quantity }} {{ sale.unit }}
+                </strong>
+            </div>
+
+            <div class="item">
+                <small>Rate</small>
+                <strong>₹{{ '%.2f'|format(sale.rate) }}</strong>
+            </div>
+
+            <div class="item">
+                <small>Gross amount</small>
+                <strong>
+                    ₹{{ '%.2f'|format(sale.gross_amount) }}
+                </strong>
+            </div>
+
+            <div class="item">
+                <small>Paid amount</small>
+                <strong>
+                    ₹{{ '%.2f'|format(sale.paid_amount) }}
+                </strong>
+            </div>
+
+            <div class="item">
+                <small>Balance amount</small>
+                <strong>
+                    ₹{{ '%.2f'|format(sale.balance_amount) }}
+                </strong>
+            </div>
+        </div>
+
+        {% if sale.notes %}
+            <div class="notes">{{ sale.notes }}</div>
+        {% endif %}
+
+        <div class="actions">
+            {% if sale.balance_amount > 0 %}
+                <a
+                    class="button button-primary"
+                    href="/sales/{{ sale.id }}/payments/new"
+                >
+                    Record payment
+                </a>
+            {% endif %}
+
+            <form
+                method="post"
+                action="/sales/{{ sale.id }}/delete-ui"
+                onsubmit="return confirm('Delete this sale permanently?');"
+            >
+                <button class="button button-danger" type="submit">
+                    Delete sale
+                </button>
+            </form>
+        </div>
+
+        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #e2e8f0;">
+
+        <h2>Payment history</h2>
+
+        {% if payments %}
+            {% for payment in payments %}
+                <div class="payment-row">
+                    <span>
+                        {{ payment.payment_date.strftime('%d %b %Y') }}
+                        · {{ payment.payment_mode }}
+                    </span>
+
+                    <strong>
+                        ₹{{ '%.2f'|format(payment.amount) }}
+                    </strong>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No payment records available.</p>
+        {% endif %}
+    </section>
+</main>
+
+<script>
+    function messisGoBack() {
+        const sameSiteReferrer =
+            document.referrer
+            && new URL(document.referrer).origin
+                === window.location.origin;
+
+        if (sameSiteReferrer && window.history.length > 1) {
+            window.history.back();
+            return;
+        }
+
+        window.location.href = "/dashboard";
+    }
+</script>
+
+
+<!-- PATCH-PWA-001A-REGISTRATION -->
+<script>
+    (() => {
+        if (!("serviceWorker" in navigator)) {
+            return;
+        }
+
+        window.addEventListener(
+            "load",
+            async () => {
+                try {
+                    const registration =
+                        await navigator
+                            .serviceWorker
+                            .register(
+                                "/service-worker.js",
+                                {
+                                    scope: "/"
+                                }
+                            );
+
+                    registration.addEventListener(
+                        "updatefound",
+                        () => {
+                            const worker =
+                                registration.installing;
+
+                            if (!worker) {
+                                return;
+                            }
+
+                            worker.addEventListener(
+                                "statechange",
+                                () => {
+                                    if (
+                                        worker.state
+                                            === "installed"
+                                        && navigator
+                                            .serviceWorker
+                                            .controller
+                                    ) {
+                                        window.dispatchEvent(
+                                            new CustomEvent(
+                                                "messis:pwa-update"
+                                            )
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    );
+                } catch (error) {
+                    console.warn(
+                        "Messis PWA registration:",
+                        error
+                    );
+                }
+            }
+        );
+    })();
+</script>
+
+
+<!-- PATCH-PWA-001B-MOBILE-NAVIGATION -->
+<div
+    class="messis-mobile-sheet-backdrop"
+    id="messis-mobile-sheet-backdrop"
+></div>
+
+<section
+    class="messis-mobile-more-sheet"
+    id="messis-mobile-more-sheet"
+    aria-hidden="true"
+>
+    <div class="messis-mobile-sheet-handle"></div>
+
+    <header class="messis-mobile-sheet-header">
+        <div>
+            <strong>Messis AI</strong>
+            <span>More tools and insights</span>
+        </div>
+
+        <button
+            class="messis-mobile-sheet-close"
+            id="messis-mobile-sheet-close"
+            type="button"
+            aria-label="Close more menu"
+        >
+            ×
+        </button>
+    </header>
+
+    <div class="messis-mobile-more-grid">
+        <a
+            class="messis-mobile-more-link"
+            href="/mobile/quick-entry"
+            data-route-prefix="/mobile/quick-entry"
+        >
+            <span class="messis-mobile-more-icon">⚡</span>
+            <span>Quick Entry</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/analytics/manage"
+            data-route-prefix="/analytics"
+        >
+            <span class="messis-mobile-more-icon">📈</span>
+            <span>Analytics</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/ai/manage"
+            data-route-prefix="/ai"
+        >
+            <span class="messis-mobile-more-icon">🤖</span>
+            <span>AI Advice</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/weather/manage"
+            data-route-prefix="/weather"
+        >
+            <span class="messis-mobile-more-icon">☁</span>
+            <span>Weather</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/profitability/manage"
+            data-route-prefix="/profitability"
+        >
+            <span class="messis-mobile-more-icon">💹</span>
+            <span>Profitability</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/reports"
+            data-route-prefix="/reports"
+        >
+            <span class="messis-mobile-more-icon">📄</span>
+            <span>Reports</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/notifications/manage"
+            data-route-prefix="/notifications"
+        >
+            <span class="messis-mobile-more-icon">🔔</span>
+            <span>Notifications</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/harvest-records/manage"
+            data-route-prefix="/harvest-records"
+        >
+            <span class="messis-mobile-more-icon">🧺</span>
+            <span>Harvest Records</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/expenses/new"
+            data-route-prefix="/expenses/new"
+        >
+            <span class="messis-mobile-more-icon">➕</span>
+            <span>New Expense</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/sales/new"
+            data-route-prefix="/sales/new"
+        >
+            <span class="messis-mobile-more-icon">₹</span>
+            <span>New Sale</span>
+        </a>
+    </div>
+</section>
+
+<nav
+    class="messis-mobile-navigation"
+    id="messis-mobile-navigation"
+    aria-label="Messis mobile navigation"
+>
+    <a
+        class="messis-mobile-nav-item"
+        href="/dashboard"
+        data-mobile-route="dashboard"
+    >
+        <span class="messis-mobile-nav-icon">⌂</span>
+        <span class="messis-mobile-nav-label">Home</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/farms"
+        data-mobile-route="farms"
+    >
+        <span class="messis-mobile-nav-icon">🌴</span>
+        <span class="messis-mobile-nav-label">Farms</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/harvests/manage"
+        data-mobile-route="harvest"
+    >
+        <span class="messis-mobile-nav-icon">🥥</span>
+        <span class="messis-mobile-nav-label">Harvest</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/expenses/manage"
+        data-mobile-route="expenses"
+    >
+        <span class="messis-mobile-nav-icon">↙</span>
+        <span class="messis-mobile-nav-label">Expense</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/sales/manage"
+        data-mobile-route="sales"
+    >
+        <span class="messis-mobile-nav-icon">₹</span>
+        <span class="messis-mobile-nav-label">Sales</span>
+    </a>
+
+    <button
+        class="messis-mobile-nav-item"
+        id="messis-mobile-more-button"
+        type="button"
+        aria-expanded="false"
+        aria-controls="messis-mobile-more-sheet"
+    >
+        <span class="messis-mobile-nav-icon">•••</span>
+        <span class="messis-mobile-nav-label">More</span>
+
+        <span
+            class="messis-mobile-nav-badge"
+            id="messis-mobile-notification-badge"
+        >
+            0
+        </span>
+    </button>
+</nav>
+
+<script
+    src="/static/pwa/mobile-shell.js?v=001b"
+    defer
+></script>
+
+</body>
+</html>

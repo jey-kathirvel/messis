@@ -1,3 +1,8 @@
+
+# PATCH-UAT-FIX-003: refuse unsafe database configuration before execution.
+from scripts.test_database_safety import load_safe_test_database
+_MESSIS_SAFE_TEST_DATABASE = load_safe_test_database()
+
 from sqlalchemy import inspect
 from sqlalchemy.orm import configure_mappers
 

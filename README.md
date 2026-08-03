@@ -10,18 +10,23 @@
 
 # Version
 
-**Current Version**
+**Current Application Version**
 
-```
-v0.5.0-tree-activities
-```
-
-Current Status
-
-```
-Production Ready
+```text
+0.5.1
 ```
 
+**Current Release Name**
+
+```text
+v0.5.1-uat-hardened
+```
+
+**Current Status**
+
+```text
+Production Active — Phase 2 UAT Hardening
+```
 ---
 
 # Project Overview
@@ -532,7 +537,7 @@ Tag Release
 Example
 
 ```
-v0.5.0-tree-activities
+v0.5.1-uat-hardened
 
 v0.6.0-harvest
 

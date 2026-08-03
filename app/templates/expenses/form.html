@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>Add Expense · Messis AI</title>
+
+    <style>
+        :root {
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            color: #17351f;
+            background: #f4fbf5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px;
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(34, 197, 94, 0.14),
+                    transparent 35%
+                ),
+                #f4fbf5;
+        }
+
+        main {
+            width: min(860px, 100%);
+            margin: 20px auto;
+        }
+
+        .back {
+            color: #166534;
+            font-weight: 900;
+            text-decoration: none;
+        }
+
+        .panel {
+            margin-top: 18px;
+            padding: clamp(22px, 5vw, 42px);
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(20, 83, 45, 0.1);
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        .subtitle {
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        label {
+            display: block;
+            margin: 16px 0 7px;
+            font-weight: 800;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 13px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            font: inherit;
+            background: white;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .checkbox-row input {
+            width: auto;
+        }
+
+        .error {
+            margin: 18px 0;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .amount-preview {
+            margin-top: 18px;
+            padding: 16px;
+            border-radius: 15px;
+            background: #f0fdf4;
+        }
+
+        .amount-preview small {
+            display: block;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+
+        .amount-preview strong {
+            color: #166534;
+            font-size: 24px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 24px;
+            border: 0;
+            border-radius: 14px;
+            padding: 14px 18px;
+            background: #15803d;
+            color: white;
+            font: inherit;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        @media (max-width: 660px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <!-- PATCH-UI-SUBPAGES-001A -->
+    <link
+        rel="stylesheet"
+        href="/static/css/messis-subpages.css?v=001a"
+    >
+
+
+    <!-- PATCH-PWA-001A-METADATA -->
+    <link
+        rel="manifest"
+        href="/static/pwa/manifest.webmanifest"
+    >
+
+    <meta
+        name="theme-color"
+        content="#064e3b"
+    >
+
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="default"
+    >
+
+    <meta
+        name="apple-mobile-web-app-title"
+        content="Messis AI"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="/static/pwa/icon-192.png"
+    >
+
+
+    <!-- PATCH-PWA-001B-MOBILE-SHELL -->
+    <link
+        rel="stylesheet"
+        href="/static/pwa/mobile-shell.css?v=001b"
+    >
+
+</head>
+
+<body class="messis-modern-subpage">
+
+<!-- PATCH-UI-SUBPAGES-001A-TOOLBAR -->
+<header class="messis-page-toolbar">
+    <div class="messis-page-toolbar-left">
+        <a
+            class="messis-page-brand"
+            href="/dashboard"
+            aria-label="Messis AI Dashboard"
+        >
+            <span class="messis-page-brand-icon">🌴</span>
+
+            <span class="messis-page-brand-copy">
+                <strong>Messis AI</strong>
+                <span>Smart Agriculture Management System</span>
+            </span>
+        </a>
+    </div>
+
+    <div class="messis-page-toolbar-right">
+        <button
+            class="messis-nav-button"
+            type="button"
+            onclick="messisGoBack()"
+        >
+            <span aria-hidden="true">←</span>
+            <span>Back</span>
+        </button>
+
+        <a
+            class="messis-nav-button messis-nav-button-primary"
+            href="/dashboard"
+        >
+            <span aria-hidden="true">⌂</span>
+            <span>Back to Dashboard</span>
+        </a>
+    </div>
+</header>
+
+
+<main>
+    <a class="back" href="/expenses/manage">← Expenses</a>
+
+    <section class="panel">
+        <h1>Add expense</h1>
+        <p class="subtitle">
+            Record daily farm or general business spending.
+        </p>
+
+        {% if error_message %}
+            <div class="error">{{ error_message }}</div>
+        {% endif %}
+
+        <form method="post" action="/expenses/new">
+            <div class="grid">
+                <div>
+                    <label for="expense_date">Expense date</label>
+                    <input
+                        id="expense_date"
+                        name="expense_date"
+                        type="date"
+                        value="{{ form_data.expense_date }}"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label for="farm_id">Farm</label>
+                    <select id="farm_id" name="farm_id">
+                        <option value="">General business expense</option>
+
+                        {% for farm in farms %}
+                            <option
+                                value="{{ farm.id }}"
+                                {% if form_data.farm_id|string == farm.id|string %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ farm.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="category_id">Category</label>
+
+                    <select
+                        id="category_id"
+                        name="category_id"
+                        required
+                    >
+                        <option value="">Select category</option>
+
+                        {% for category in categories %}
+                            <option
+                                value="{{ category.id }}"
+                                {% if
+                                    form_data.category_id|string
+                                    == category.id|string
+                                %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+
+                        <option
+                            value="__other__"
+                            {% if
+                                form_data.category_id
+                                == "__other__"
+                            %}
+                                selected
+                            {% endif %}
+                        >
+                            Others — Add new category
+                        </option>
+                    </select>
+
+                    <div
+                        id="custom-category-wrap"
+                        style="
+                            display:none;
+                            margin-top:10px;
+                        "
+                    >
+                        <label for="custom_category_name">
+                            New category name
+                        </label>
+
+                        <input
+                            id="custom_category_name"
+                            name="custom_category_name"
+                            type="text"
+                            maxlength="100"
+                            placeholder="Example: Tree cleaning"
+                            value="{{ form_data.custom_category_name or '' }}"
+                        >
+
+                        <small
+                            style="
+                                display:block;
+                                margin-top:6px;
+                                color:#64748b;
+                            "
+                        >
+                            This category will be saved for future use.
+                        </small>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="vendor_name">Vendor</label>
+
+                    <input
+                        id="vendor_name"
+                        name="vendor_name"
+                        type="text"
+                        maxlength="160"
+                        list="vendor-suggestions"
+                        autocomplete="off"
+                        placeholder="Search or type a new vendor"
+                        value="{{ form_data.vendor_name or '' }}"
+                    >
+
+                    <datalist id="vendor-suggestions">
+                        {% for vendor in vendors %}
+                            <option value="{{ vendor.name }}"></option>
+                        {% endfor %}
+                    </datalist>
+
+                    <small
+                        style="
+                            display:block;
+                            margin-top:6px;
+                            color:#64748b;
+                        "
+                    >
+                        Select an existing vendor or type a new name.
+                    </small>
+                </div>
+
+                <div>
+                    <label for="description">Description</label>
+                    <input
+                        id="description"
+                        name="description"
+                        type="text"
+                        maxlength="255"
+                        value="{{ form_data.description }}"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label for="amount">Amount</label>
+                    <input
+                        id="amount"
+                        name="amount"
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value="{{ form_data.amount }}"
+                        required
+                    >
+                </div>
+
+                <div>
+                    <label for="payment_mode">Payment mode</label>
+                    <select
+                        id="payment_mode"
+                        name="payment_mode"
+                        required
+                    >
+                        {% for mode in payment_modes %}
+                            <option
+                                value="{{ mode }}"
+                                {% if form_data.payment_mode == mode %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ mode }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="reference_number">
+                        Reference number
+                    </label>
+                    <input
+                        id="reference_number"
+                        name="reference_number"
+                        type="text"
+                        maxlength="120"
+                        value="{{ form_data.reference_number }}"
+                    >
+                </div>
+            </div>
+
+            <div class="amount-preview">
+                <small>Expense amount</small>
+                <strong id="amount_preview">₹0.00</strong>
+            </div>
+
+            <label class="checkbox-row" for="is_recurring">
+                <input
+                    id="is_recurring"
+                    name="is_recurring"
+                    type="checkbox"
+                    value="true"
+                    {% if form_data.is_recurring %}
+                        checked
+                    {% endif %}
+                >
+                Recurring expense
+            </label>
+
+            <label for="notes">Notes</label>
+            <textarea
+                id="notes"
+                name="notes"
+                maxlength="5000"
+            >{{ form_data.notes }}</textarea>
+
+            <button type="submit">Save expense</button>
+        </form>
+    </section>
+</main>
+
+<script>
+    const amountInput =
+        document.getElementById("amount");
+
+    const amountPreview =
+        document.getElementById("amount_preview");
+
+    const categorySelect =
+        document.getElementById("category_id");
+
+    const customCategoryWrap =
+        document.getElementById(
+            "custom-category-wrap"
+        );
+
+    const customCategoryInput =
+        document.getElementById(
+            "custom_category_name"
+        );
+
+    function refreshAmount() {
+        const amount = Number(
+            amountInput.value || 0
+        );
+
+        amountPreview.textContent =
+            "₹" + amount.toFixed(2);
+    }
+
+    function refreshCustomCategory() {
+        const isOther =
+            categorySelect.value === "__other__";
+
+        customCategoryWrap.style.display =
+            isOther ? "block" : "none";
+
+        customCategoryInput.required = isOther;
+
+        if (!isOther) {
+            customCategoryInput.value = "";
+        }
+    }
+
+    amountInput.addEventListener(
+        "input",
+        refreshAmount
+    );
+
+    categorySelect.addEventListener(
+        "change",
+        refreshCustomCategory
+    );
+
+    refreshAmount();
+    refreshCustomCategory();
+</script>
+
+<script>
+    function messisGoBack() {
+        const sameSiteReferrer =
+            document.referrer
+            && new URL(document.referrer).origin
+                === window.location.origin;
+
+        if (sameSiteReferrer && window.history.length > 1) {
+            window.history.back();
+            return;
+        }
+
+        window.location.href = "/dashboard";
+    }
+</script>
+
+
+<!-- PATCH-PWA-001A-REGISTRATION -->
+<script>
+    (() => {
+        if (!("serviceWorker" in navigator)) {
+            return;
+        }
+
+        window.addEventListener(
+            "load",
+            async () => {
+                try {
+                    const registration =
+                        await navigator
+                            .serviceWorker
+                            .register(
+                                "/service-worker.js",
+                                {
+                                    scope: "/"
+                                }
+                            );
+
+                    registration.addEventListener(
+                        "updatefound",
+                        () => {
+                            const worker =
+                                registration.installing;
+
+                            if (!worker) {
+                                return;
+                            }
+
+                            worker.addEventListener(
+                                "statechange",
+                                () => {
+                                    if (
+                                        worker.state
+                                            === "installed"
+                                        && navigator
+                                            .serviceWorker
+                                            .controller
+                                    ) {
+                                        window.dispatchEvent(
+                                            new CustomEvent(
+                                                "messis:pwa-update"
+                                            )
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    );
+                } catch (error) {
+                    console.warn(
+                        "Messis PWA registration:",
+                        error
+                    );
+                }
+            }
+        );
+    })();
+</script>
+
+
+<!-- PATCH-PWA-001B-MOBILE-NAVIGATION -->
+<div
+    class="messis-mobile-sheet-backdrop"
+    id="messis-mobile-sheet-backdrop"
+></div>
+
+<section
+    class="messis-mobile-more-sheet"
+    id="messis-mobile-more-sheet"
+    aria-hidden="true"
+>
+    <div class="messis-mobile-sheet-handle"></div>
+
+    <header class="messis-mobile-sheet-header">
+        <div>
+            <strong>Messis AI</strong>
+            <span>More tools and insights</span>
+        </div>
+
+        <button
+            class="messis-mobile-sheet-close"
+            id="messis-mobile-sheet-close"
+            type="button"
+            aria-label="Close more menu"
+        >
+            ×
+        </button>
+    </header>
+
+    <div class="messis-mobile-more-grid">
+        <a
+            class="messis-mobile-more-link"
+            href="/mobile/quick-entry"
+            data-route-prefix="/mobile/quick-entry"
+        >
+            <span class="messis-mobile-more-icon">⚡</span>
+            <span>Quick Entry</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/analytics/manage"
+            data-route-prefix="/analytics"
+        >
+            <span class="messis-mobile-more-icon">📈</span>
+            <span>Analytics</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/ai/manage"
+            data-route-prefix="/ai"
+        >
+            <span class="messis-mobile-more-icon">🤖</span>
+            <span>AI Advice</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/weather/manage"
+            data-route-prefix="/weather"
+        >
+            <span class="messis-mobile-more-icon">☁</span>
+            <span>Weather</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/profitability/manage"
+            data-route-prefix="/profitability"
+        >
+            <span class="messis-mobile-more-icon">💹</span>
+            <span>Profitability</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/reports"
+            data-route-prefix="/reports"
+        >
+            <span class="messis-mobile-more-icon">📄</span>
+            <span>Reports</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/notifications/manage"
+            data-route-prefix="/notifications"
+        >
+            <span class="messis-mobile-more-icon">🔔</span>
+            <span>Notifications</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/harvest-records/manage"
+            data-route-prefix="/harvest-records"
+        >
+            <span class="messis-mobile-more-icon">🧺</span>
+            <span>Harvest Records</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/expenses/new"
+            data-route-prefix="/expenses/new"
+        >
+            <span class="messis-mobile-more-icon">➕</span>
+            <span>New Expense</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/sales/new"
+            data-route-prefix="/sales/new"
+        >
+            <span class="messis-mobile-more-icon">₹</span>
+            <span>New Sale</span>
+        </a>
+    </div>
+</section>
+
+<nav
+    class="messis-mobile-navigation"
+    id="messis-mobile-navigation"
+    aria-label="Messis mobile navigation"
+>
+    <a
+        class="messis-mobile-nav-item"
+        href="/dashboard"
+        data-mobile-route="dashboard"
+    >
+        <span class="messis-mobile-nav-icon">⌂</span>
+        <span class="messis-mobile-nav-label">Home</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/farms"
+        data-mobile-route="farms"
+    >
+        <span class="messis-mobile-nav-icon">🌴</span>
+        <span class="messis-mobile-nav-label">Farms</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/harvests/manage"
+        data-mobile-route="harvest"
+    >
+        <span class="messis-mobile-nav-icon">🥥</span>
+        <span class="messis-mobile-nav-label">Harvest</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/expenses/manage"
+        data-mobile-route="expenses"
+    >
+        <span class="messis-mobile-nav-icon">↙</span>
+        <span class="messis-mobile-nav-label">Expense</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/sales/manage"
+        data-mobile-route="sales"
+    >
+        <span class="messis-mobile-nav-icon">₹</span>
+        <span class="messis-mobile-nav-label">Sales</span>
+    </a>
+
+    <button
+        class="messis-mobile-nav-item"
+        id="messis-mobile-more-button"
+        type="button"
+        aria-expanded="false"
+        aria-controls="messis-mobile-more-sheet"
+    >
+        <span class="messis-mobile-nav-icon">•••</span>
+        <span class="messis-mobile-nav-label">More</span>
+
+        <span
+            class="messis-mobile-nav-badge"
+            id="messis-mobile-notification-badge"
+        >
+            0
+        </span>
+    </button>
+</nav>
+
+<script
+    src="/static/pwa/mobile-shell.js?v=001b"
+    defer
+></script>
+
+</body>
+</html>

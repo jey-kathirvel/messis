@@ -1,0 +1,541 @@
+:root {
+    --messis-green-950: #052e16;
+    --messis-green-900: #064e3b;
+    --messis-green-800: #065f46;
+    --messis-green-700: #047857;
+    --messis-green-600: #059669;
+    --messis-green-500: #10b981;
+    --messis-green-200: #a7f3d0;
+    --messis-green-100: #d1fae5;
+    --messis-green-50: #ecfdf5;
+
+    --messis-slate-950: #0f172a;
+    --messis-slate-800: #1e293b;
+    --messis-slate-700: #334155;
+    --messis-slate-600: #475569;
+    --messis-slate-500: #64748b;
+    --messis-slate-300: #cbd5e1;
+    --messis-slate-200: #e2e8f0;
+    --messis-slate-100: #f1f5f9;
+
+    --messis-white: #ffffff;
+    --messis-danger: #dc2626;
+    --messis-warning: #d97706;
+
+    --messis-radius-xl: 22px;
+    --messis-radius-lg: 17px;
+    --messis-radius-md: 12px;
+
+    --messis-shadow:
+        0 16px 45px rgba(15, 23, 42, 0.075);
+
+    --messis-shadow-soft:
+        0 10px 28px rgba(15, 23, 42, 0.055);
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body.messis-modern-subpage {
+    min-height: 100vh !important;
+
+    color: var(--messis-slate-950) !important;
+
+    background:
+        radial-gradient(
+            circle at 92% 5%,
+            rgba(16, 185, 129, 0.13),
+            transparent 28%
+        ),
+        radial-gradient(
+            circle at 8% 88%,
+            rgba(250, 204, 21, 0.07),
+            transparent 24%
+        ),
+        #f6faf7 !important;
+
+    font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif !important;
+}
+
+body.messis-modern-subpage * {
+    box-sizing: border-box;
+}
+
+/* GLOBAL PAGE TOOLBAR */
+
+.messis-page-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 950;
+
+    display: flex;
+    min-height: 70px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    padding: 11px clamp(16px, 4vw, 46px);
+
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid rgba(203, 213, 225, 0.82);
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.055);
+    backdrop-filter: blur(14px);
+}
+
+.messis-page-toolbar-left,
+.messis-page-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.messis-page-brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-right: 6px;
+    text-decoration: none;
+}
+
+.messis-page-brand-icon {
+    display: grid;
+    width: 41px;
+    height: 41px;
+    place-items: center;
+
+    color: white;
+    background:
+        linear-gradient(
+            135deg,
+            var(--messis-green-800),
+            var(--messis-green-600)
+        );
+
+    border-radius: 13px;
+    box-shadow: 0 8px 18px rgba(5, 150, 105, 0.20);
+    font-size: 21px;
+}
+
+.messis-page-brand-copy strong,
+.messis-page-brand-copy span {
+    display: block;
+}
+
+.messis-page-brand-copy strong {
+    color: var(--messis-green-900);
+    font-size: 16px;
+    line-height: 1.1;
+}
+
+.messis-page-brand-copy span {
+    margin-top: 3px;
+    color: var(--messis-slate-500);
+    font-size: 10px;
+}
+
+.messis-nav-button {
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    padding: 9px 14px;
+
+    color: var(--messis-slate-700);
+    background: var(--messis-white);
+    border: 1px solid var(--messis-slate-200);
+    border-radius: 11px;
+
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 850;
+    cursor: pointer;
+
+    transition:
+        transform 140ms ease,
+        border-color 140ms ease,
+        background 140ms ease,
+        box-shadow 140ms ease;
+}
+
+.messis-nav-button:hover {
+    color: var(--messis-green-800);
+    background: var(--messis-green-50);
+    border-color: var(--messis-green-200);
+    box-shadow: 0 7px 17px rgba(5, 150, 105, 0.10);
+    transform: translateY(-1px);
+}
+
+.messis-nav-button-primary {
+    color: white;
+    background:
+        linear-gradient(
+            135deg,
+            var(--messis-green-800),
+            var(--messis-green-600)
+        );
+    border-color: transparent;
+}
+
+.messis-nav-button-primary:hover {
+    color: white;
+    background:
+        linear-gradient(
+            135deg,
+            var(--messis-green-900),
+            var(--messis-green-700)
+        );
+}
+
+/* MODERNIZE EXISTING PAGE HEADERS */
+
+body.messis-modern-subpage > header:not(.messis-page-toolbar) {
+    position: relative;
+    overflow: hidden;
+
+    padding:
+        30px
+        clamp(20px, 5vw, 70px) !important;
+
+    color: white !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(5, 78, 59, 0.99),
+            rgba(4, 120, 87, 0.96)
+        ) !important;
+
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+body.messis-modern-subpage > header:not(.messis-page-toolbar)::after {
+    content: "";
+    position: absolute;
+    top: -90px;
+    right: -45px;
+
+    width: 250px;
+    height: 250px;
+
+    background: rgba(255, 255, 255, 0.065);
+    border-radius: 50%;
+}
+
+body.messis-modern-subpage > header h1 {
+    position: relative;
+    z-index: 1;
+    letter-spacing: -0.025em;
+}
+
+body.messis-modern-subpage > header p {
+    position: relative;
+    z-index: 1;
+    color: #d1fae5 !important;
+}
+
+/* MAIN CONTENT */
+
+body.messis-modern-subpage > main {
+    width:
+        min(
+            1240px,
+            calc(100% - 32px)
+        ) !important;
+
+    margin:
+        26px
+        auto
+        60px !important;
+}
+
+body.messis-modern-subpage main > section,
+body.messis-modern-subpage main > article {
+    animation: messisPageEnter 220ms ease both;
+}
+
+@keyframes messisPageEnter {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* FILTERS AND FORMS */
+
+body.messis-modern-subpage form.filters,
+body.messis-modern-subpage .filters {
+    padding: 18px !important;
+
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid var(--messis-slate-200) !important;
+    border-radius: var(--messis-radius-lg) !important;
+    box-shadow: var(--messis-shadow-soft) !important;
+}
+
+body.messis-modern-subpage label {
+    color: var(--messis-slate-700);
+    font-size: 12px;
+    font-weight: 850;
+}
+
+body.messis-modern-subpage input,
+body.messis-modern-subpage select,
+body.messis-modern-subpage textarea {
+    min-height: 43px;
+
+    color: var(--messis-slate-800) !important;
+    background: white !important;
+    border: 1px solid var(--messis-slate-300) !important;
+    border-radius: 11px !important;
+    outline: none;
+
+    transition:
+        border-color 130ms ease,
+        box-shadow 130ms ease;
+}
+
+body.messis-modern-subpage textarea {
+    min-height: 105px;
+}
+
+body.messis-modern-subpage input:focus,
+body.messis-modern-subpage select:focus,
+body.messis-modern-subpage textarea:focus {
+    border-color: var(--messis-green-500) !important;
+    box-shadow:
+        0
+        0
+        0
+        3px
+        rgba(16, 185, 129, 0.12) !important;
+}
+
+/* CARDS */
+
+body.messis-modern-subpage .card,
+body.messis-modern-subpage .panel,
+body.messis-modern-subpage .summary-card,
+body.messis-modern-subpage .farm-card,
+body.messis-modern-subpage .cycle-card,
+body.messis-modern-subpage .record,
+body.messis-modern-subpage .record-card,
+body.messis-modern-subpage .expense-card,
+body.messis-modern-subpage .sale-card,
+body.messis-modern-subpage .item,
+body.messis-modern-subpage .metric {
+    border: 1px solid var(--messis-slate-200) !important;
+    border-radius: var(--messis-radius-lg) !important;
+    box-shadow: var(--messis-shadow-soft) !important;
+}
+
+body.messis-modern-subpage .card,
+body.messis-modern-subpage .panel,
+body.messis-modern-subpage .summary-card,
+body.messis-modern-subpage .farm-card,
+body.messis-modern-subpage .cycle-card,
+body.messis-modern-subpage .record,
+body.messis-modern-subpage .record-card,
+body.messis-modern-subpage .expense-card,
+body.messis-modern-subpage .sale-card {
+    background: rgba(255, 255, 255, 0.97) !important;
+
+    transition:
+        transform 140ms ease,
+        box-shadow 140ms ease,
+        border-color 140ms ease;
+}
+
+body.messis-modern-subpage .card:hover,
+body.messis-modern-subpage .farm-card:hover,
+body.messis-modern-subpage .cycle-card:hover,
+body.messis-modern-subpage .record:hover,
+body.messis-modern-subpage .record-card:hover,
+body.messis-modern-subpage .expense-card:hover,
+body.messis-modern-subpage .sale-card:hover {
+    border-color: var(--messis-green-200) !important;
+    box-shadow: var(--messis-shadow) !important;
+    transform: translateY(-2px);
+}
+
+/* BUTTONS AND LINKS */
+
+body.messis-modern-subpage button,
+body.messis-modern-subpage .button,
+body.messis-modern-subpage .download,
+body.messis-modern-subpage .detail-link {
+    min-height: 41px;
+
+    border-radius: 11px !important;
+
+    font-weight: 850 !important;
+
+    transition:
+        transform 140ms ease,
+        box-shadow 140ms ease,
+        filter 140ms ease;
+}
+
+body.messis-modern-subpage button:hover,
+body.messis-modern-subpage .button:hover,
+body.messis-modern-subpage .download:hover,
+body.messis-modern-subpage .detail-link:hover {
+    box-shadow: 0 8px 20px rgba(5, 150, 105, 0.16);
+    transform: translateY(-1px);
+}
+
+body.messis-modern-subpage .download {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 7px;
+
+    color: white !important;
+    background:
+        linear-gradient(
+            135deg,
+            var(--messis-green-700),
+            var(--messis-green-500)
+        ) !important;
+
+    text-decoration: none !important;
+}
+
+/* REPORT CENTER */
+
+body.messis-modern-subpage .grid {
+    align-items: stretch;
+}
+
+body.messis-modern-subpage .grid > .card {
+    position: relative;
+    overflow: hidden;
+    min-height: 205px;
+    padding: 24px !important;
+}
+
+body.messis-modern-subpage .grid > .card::after {
+    content: "";
+    position: absolute;
+    top: -35px;
+    right: -35px;
+
+    width: 100px;
+    height: 100px;
+
+    background: var(--messis-green-50);
+    border-radius: 50%;
+}
+
+body.messis-modern-subpage .grid > .card h3,
+body.messis-modern-subpage .grid > .card p,
+body.messis-modern-subpage .grid > .card a {
+    position: relative;
+    z-index: 1;
+}
+
+body.messis-modern-subpage .grid > .card h3 {
+    color: var(--messis-green-900);
+    font-size: 19px;
+}
+
+body.messis-modern-subpage .grid > .card p {
+    color: var(--messis-slate-600);
+    line-height: 1.55;
+}
+
+/* TABLES */
+
+body.messis-modern-subpage table {
+    width: 100%;
+    overflow: hidden;
+
+    background: white;
+    border: 1px solid var(--messis-slate-200);
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: var(--messis-radius-lg);
+    box-shadow: var(--messis-shadow-soft);
+}
+
+body.messis-modern-subpage th {
+    padding: 13px 14px;
+    color: var(--messis-green-900);
+    background: var(--messis-green-50);
+    border-bottom: 1px solid var(--messis-green-100);
+    text-align: left;
+    font-size: 12px;
+}
+
+body.messis-modern-subpage td {
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--messis-slate-200);
+}
+
+body.messis-modern-subpage tr:last-child td {
+    border-bottom: 0;
+}
+
+body.messis-modern-subpage tbody tr:hover {
+    background: #fbfefc;
+}
+
+/* MOBILE */
+
+@media (max-width: 760px) {
+    .messis-page-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 10px 12px;
+    }
+
+    .messis-page-toolbar-left,
+    .messis-page-toolbar-right {
+        width: 100%;
+    }
+
+    .messis-page-toolbar-right {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .messis-nav-button {
+        width: 100%;
+    }
+
+    .messis-page-brand {
+        flex: 1;
+    }
+
+    body.messis-modern-subpage > main {
+        width: calc(100% - 20px) !important;
+        margin-top: 16px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .messis-page-brand-copy span {
+        display: none;
+    }
+
+    .messis-page-toolbar-right {
+        grid-template-columns: 1fr;
+    }
+
+    body.messis-modern-subpage .grid > .card {
+        min-height: auto;
+    }
+}

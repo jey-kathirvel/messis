@@ -1,4 +1,10 @@
+
 from __future__ import annotations
+
+# PATCH-UAT-FIX-003: refuse unsafe database configuration before execution.
+from scripts.test_database_safety import load_safe_test_database
+_MESSIS_SAFE_TEST_DATABASE = load_safe_test_database()
+
 
 import csv
 import io

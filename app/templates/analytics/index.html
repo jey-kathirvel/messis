@@ -1,0 +1,1568 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Analytics · Messis AI</title>
+
+    <style>
+        :root {
+            --green-950: #052e16;
+            --green-900: #064e3b;
+            --green-800: #065f46;
+            --green-700: #047857;
+            --green-600: #059669;
+            --green-500: #10b981;
+            --green-200: #a7f3d0;
+            --green-100: #d1fae5;
+            --green-50: #ecfdf5;
+
+            --blue-600: #2563eb;
+            --amber-500: #f59e0b;
+            --red-500: #ef4444;
+            --purple-500: #8b5cf6;
+
+            --slate-950: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-300: #cbd5e1;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            color: var(--slate-950);
+            background: #f4faf6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+
+            background:
+                radial-gradient(
+                    circle at 92% 5%,
+                    rgba(16, 185, 129, 0.13),
+                    transparent 28%
+                ),
+                radial-gradient(
+                    circle at 4% 85%,
+                    rgba(250, 204, 21, 0.07),
+                    transparent 25%
+                ),
+                #f4faf6;
+        }
+
+        button,
+        select,
+        input {
+            font: inherit;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+
+            display: flex;
+            min-height: 72px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+
+            padding: 12px clamp(16px, 4vw, 48px);
+
+            background: rgba(255, 255, 255, 0.94);
+            border-bottom: 1px solid var(--slate-200);
+            box-shadow: 0 8px 28px rgba(15, 23, 42, 0.05);
+            backdrop-filter: blur(14px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .brand-icon {
+            display: grid;
+            width: 44px;
+            height: 44px;
+            place-items: center;
+
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-500)
+                );
+
+            border-radius: 14px;
+            box-shadow: 0 9px 22px rgba(5, 150, 105, 0.2);
+            font-size: 22px;
+        }
+
+        .brand-copy strong,
+        .brand-copy span {
+            display: block;
+        }
+
+        .brand-copy strong {
+            color: var(--green-900);
+            font-size: 17px;
+        }
+
+        .brand-copy span {
+            margin-top: 3px;
+            color: var(--slate-500);
+            font-size: 10px;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-button {
+            display: inline-flex;
+            min-height: 42px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+
+            padding: 9px 14px;
+
+            color: var(--slate-700);
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 11px;
+
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 850;
+            cursor: pointer;
+        }
+
+        .nav-button-primary {
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-600)
+                );
+            border-color: transparent;
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+
+            padding:
+                38px
+                clamp(20px, 5vw, 70px)
+                72px;
+
+            color: white;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-950),
+                    var(--green-700)
+                );
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            top: -120px;
+            right: -70px;
+
+            width: 330px;
+            height: 330px;
+
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 50%;
+        }
+
+        .hero h1 {
+            position: relative;
+            z-index: 1;
+
+            margin: 0;
+            font-size: clamp(29px, 4vw, 45px);
+            letter-spacing: -0.03em;
+        }
+
+        .hero p {
+            position: relative;
+            z-index: 1;
+
+            max-width: 720px;
+            margin: 10px 0 0;
+
+            color: #d1fae5;
+            line-height: 1.6;
+        }
+
+        main {
+            width: min(1380px, calc(100% - 32px));
+            margin: -38px auto 60px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns:
+                minmax(190px, 1.3fr)
+                minmax(150px, 1fr)
+                minmax(150px, 1fr)
+                auto
+                auto;
+            gap: 12px;
+
+            padding: 18px;
+            margin-bottom: 18px;
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 20px;
+            box-shadow: 0 15px 42px rgba(15, 23, 42, 0.09);
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 7px;
+
+            color: var(--slate-600);
+            font-size: 12px;
+            font-weight: 850;
+        }
+
+        .field input,
+        .field select {
+            width: 100%;
+            min-height: 44px;
+
+            padding: 10px 12px;
+
+            color: var(--slate-800);
+            background: white;
+            border: 1px solid var(--slate-300);
+            border-radius: 11px;
+            outline: none;
+        }
+
+        .field input:focus,
+        .field select:focus {
+            border-color: var(--green-500);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+        }
+
+        .filter-action {
+            display: flex;
+            align-items: end;
+        }
+
+        .button {
+            display: inline-flex;
+            min-height: 44px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+
+            padding: 10px 16px;
+
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-700),
+                    var(--green-500)
+                );
+
+            border: 0;
+            border-radius: 11px;
+
+            text-decoration: none;
+            font-weight: 850;
+            cursor: pointer;
+        }
+
+        .button-secondary {
+            color: var(--green-800);
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 13px;
+            margin-bottom: 18px;
+        }
+
+        .kpi {
+            min-height: 126px;
+            padding: 17px;
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+        }
+
+        .kpi-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .kpi small {
+            color: var(--slate-500);
+            font-weight: 750;
+        }
+
+        .kpi-icon {
+            display: grid;
+            width: 36px;
+            height: 36px;
+            place-items: center;
+
+            color: var(--green-700);
+            background: var(--green-50);
+            border-radius: 11px;
+        }
+
+        .kpi strong {
+            display: block;
+            margin-top: 11px;
+
+            color: var(--green-700);
+            font-size: clamp(21px, 2vw, 27px);
+            letter-spacing: -0.02em;
+        }
+
+        .kpi.loss strong {
+            color: var(--red-500);
+        }
+
+        .kpi span {
+            display: block;
+            margin-top: 5px;
+
+            color: var(--slate-500);
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .panel {
+            padding: 20px;
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 20px;
+            box-shadow: 0 11px 32px rgba(15, 23, 42, 0.055);
+        }
+
+        .panel-wide {
+            grid-column: 1 / -1;
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+
+            margin-bottom: 18px;
+        }
+
+        .panel-title h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .panel-title p {
+            margin: 5px 0 0;
+
+            color: var(--slate-500);
+            font-size: 12px;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+
+            color: var(--slate-600);
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .legend-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+
+        .chart-scroll {
+            overflow-x: auto;
+            padding-bottom: 6px;
+        }
+
+        .bar-chart {
+            display: grid;
+            min-width: 660px;
+            height: 285px;
+            align-items: end;
+            gap: 10px;
+
+            padding: 18px 8px 0;
+
+            border-bottom: 1px solid var(--slate-200);
+            background:
+                repeating-linear-gradient(
+                    to top,
+                    transparent,
+                    transparent 56px,
+                    rgba(226, 232, 240, 0.65) 57px
+                );
+        }
+
+        .chart-month {
+            display: flex;
+            height: 100%;
+            min-width: 44px;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: 4px;
+        }
+
+        .bars {
+            display: flex;
+            height: 230px;
+            align-items: end;
+            justify-content: center;
+            gap: 3px;
+        }
+
+        .bar {
+            width: 9px;
+            min-height: 2px;
+
+            border-radius: 6px 6px 2px 2px;
+
+            transition:
+                opacity 140ms ease,
+                transform 140ms ease;
+        }
+
+        .bar:hover {
+            opacity: 0.82;
+            transform: scaleX(1.15);
+        }
+
+        .bar-revenue {
+            background: var(--green-500);
+        }
+
+        .bar-cost {
+            background: var(--amber-500);
+        }
+
+        .bar-profit-positive {
+            background: var(--blue-600);
+        }
+
+        .bar-profit-negative {
+            background: var(--red-500);
+        }
+
+        .bar-mature {
+            background: var(--green-600);
+        }
+
+        .bar-tender {
+            background: var(--blue-600);
+        }
+
+        .bar-damaged {
+            background: var(--red-500);
+        }
+
+        .bar-paid {
+            background: var(--purple-500);
+        }
+
+        .bar-outstanding {
+            background: var(--amber-500);
+        }
+
+        .month-label {
+            min-height: 32px;
+            color: var(--slate-500);
+            font-size: 9px;
+            text-align: center;
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+        }
+
+        .farm-list {
+            display: grid;
+            gap: 11px;
+        }
+
+        .farm-row {
+            display: grid;
+            grid-template-columns:
+                minmax(150px, 1.2fr)
+                repeat(4, minmax(90px, 0.75fr));
+            gap: 12px;
+            align-items: center;
+
+            padding: 14px;
+
+            background: #fbfefc;
+            border: 1px solid var(--slate-200);
+            border-radius: 14px;
+        }
+
+        .farm-name {
+            font-weight: 900;
+        }
+
+        .farm-name small,
+        .farm-value small {
+            display: block;
+            margin-bottom: 4px;
+
+            color: var(--slate-500);
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .farm-value strong {
+            font-size: 13px;
+        }
+
+        .positive {
+            color: var(--green-700);
+        }
+
+        .negative {
+            color: var(--red-500);
+        }
+
+        .empty {
+            padding: 38px 20px;
+
+            color: var(--slate-500);
+            text-align: center;
+
+            background: #fbfefc;
+            border: 2px dashed var(--green-100);
+            border-radius: 16px;
+        }
+
+        .insight-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .insight {
+            padding: 15px;
+
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+            border-radius: 14px;
+        }
+
+        .insight small {
+            display: block;
+            margin-bottom: 6px;
+
+            color: var(--slate-500);
+        }
+
+        .insight strong {
+            color: var(--green-800);
+            font-size: 18px;
+        }
+
+        @media (max-width: 1180px) {
+            .kpi-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 900px) {
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .panel-wide {
+                grid-column: auto;
+            }
+
+            .filters {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .farm-row {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .farm-name {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 680px) {
+            .topbar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .top-actions {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                width: 100%;
+            }
+
+            .nav-button {
+                width: 100%;
+            }
+
+            .filters,
+            .kpi-grid,
+            .insight-grid {
+                grid-template-columns: 1fr;
+            }
+
+            main {
+                width: calc(100% - 20px);
+            }
+        }
+    </style>
+
+    <!-- PATCH-PWA-001A-METADATA -->
+    <link
+        rel="manifest"
+        href="/static/pwa/manifest.webmanifest"
+    >
+
+    <meta
+        name="theme-color"
+        content="#064e3b"
+    >
+
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="default"
+    >
+
+    <meta
+        name="apple-mobile-web-app-title"
+        content="Messis AI"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="/static/pwa/icon-192.png"
+    >
+
+
+    <!-- PATCH-PWA-001B-MOBILE-SHELL -->
+    <link
+        rel="stylesheet"
+        href="/static/pwa/mobile-shell.css?v=001b"
+    >
+
+</head>
+
+<body>
+<header class="topbar">
+    <a class="brand" href="/dashboard">
+        <span class="brand-icon">🌴</span>
+
+        <span class="brand-copy">
+            <strong>Messis AI</strong>
+            <span>Smart Agriculture Management System</span>
+        </span>
+    </a>
+
+    <div class="top-actions">
+        <button
+            class="nav-button"
+            type="button"
+            onclick="analyticsGoBack()"
+        >
+            ← Back
+        </button>
+
+        <a
+            class="nav-button nav-button-primary"
+            href="/dashboard"
+        >
+            ⌂ Back to Dashboard
+        </a>
+    </div>
+</header>
+
+<section class="hero">
+    <h1>Yield & Financial Analytics</h1>
+
+    <p>
+        Explore coconut production, revenue, expenses, profit,
+        payment collection, and farm performance across time.
+    </p>
+</section>
+
+<main>
+    <form
+        class="filters"
+        method="get"
+        action="/analytics/manage"
+    >
+        <div class="field">
+            <label for="farm_id">Farm</label>
+
+            <select id="farm_id" name="farm_id">
+                <option value="">All farms</option>
+
+                {% for farm in farms %}
+                    <option
+                        value="{{ farm.id }}"
+                        {% if
+                            filters.farm_id|string
+                            == farm.id|string
+                        %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ farm.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="date_from">From date</label>
+
+            <input
+                id="date_from"
+                name="date_from"
+                type="date"
+                value="{{ filters.date_from }}"
+            >
+        </div>
+
+        <div class="field">
+            <label for="date_to">To date</label>
+
+            <input
+                id="date_to"
+                name="date_to"
+                type="date"
+                value="{{ filters.date_to }}"
+            >
+        </div>
+
+        <div class="filter-action">
+            <button class="button" type="submit">
+                📊 Apply
+            </button>
+        </div>
+
+        <div class="filter-action">
+            <a
+                class="button button-secondary"
+                href="/analytics/manage"
+            >
+                ↻ Reset
+            </a>
+        </div>
+    </form>
+
+    <section class="kpi-grid">
+        <article class="kpi">
+            <div class="kpi-head">
+                <small>Total yield</small>
+                <span class="kpi-icon">🥥</span>
+            </div>
+
+            <strong>{{ summary.total_coconuts }}</strong>
+
+            <span>
+                {{ summary.harvest_count }} harvest records
+            </span>
+        </article>
+
+        <article class="kpi">
+            <div class="kpi-head">
+                <small>Yield per tree</small>
+                <span class="kpi-icon">🌴</span>
+            </div>
+
+            <strong>{{ summary.yield_per_tree }}</strong>
+
+            <span>Coconuts per harvested tree</span>
+        </article>
+
+        <article class="kpi">
+            <div class="kpi-head">
+                <small>Sales revenue</small>
+                <span class="kpi-icon">₹</span>
+            </div>
+
+            <strong>
+                ₹{{ '%.2f'|format(summary.total_revenue|float) }}
+            </strong>
+
+            <span>{{ summary.sale_count }} sales</span>
+        </article>
+
+        <article class="kpi">
+            <div class="kpi-head">
+                <small>Total cost</small>
+                <span class="kpi-icon">↙</span>
+            </div>
+
+            <strong>
+                ₹{{ '%.2f'|format(summary.total_cost|float) }}
+            </strong>
+
+            <span>
+                Operating and harvest expenses
+            </span>
+        </article>
+
+        <article
+            class="kpi {% if summary.net_profit|float < 0 %}loss{% endif %}"
+        >
+            <div class="kpi-head">
+                <small>Net profit</small>
+                <span class="kpi-icon">📈</span>
+            </div>
+
+            <strong>
+                ₹{{ '%.2f'|format(summary.net_profit|float) }}
+            </strong>
+
+            <span>
+                {{ summary.profitability_percentage }}%
+                return on cost
+            </span>
+        </article>
+
+        <article class="kpi">
+            <div class="kpi-head">
+                <small>Outstanding</small>
+                <span class="kpi-icon">◫</span>
+            </div>
+
+            <strong>
+                ₹{{ '%.2f'|format(summary.total_outstanding|float) }}
+            </strong>
+
+            <span>Pending sale collection</span>
+        </article>
+    </section>
+
+    <section class="analytics-grid">
+        <article class="panel panel-wide">
+            <div class="panel-title">
+                <div>
+                    <h2>Financial trend</h2>
+                    <p>
+                        Monthly revenue, total cost, and net profit
+                    </p>
+                </div>
+
+                <div class="legend">
+                    <span class="legend-item">
+                        <span
+                            class="legend-dot"
+                            style="background:#10b981"
+                        ></span>
+                        Revenue
+                    </span>
+
+                    <span class="legend-item">
+                        <span
+                            class="legend-dot"
+                            style="background:#f59e0b"
+                        ></span>
+                        Cost
+                    </span>
+
+                    <span class="legend-item">
+                        <span
+                            class="legend-dot"
+                            style="background:#2563eb"
+                        ></span>
+                        Profit
+                    </span>
+                </div>
+            </div>
+
+            {% if monthly %}
+                <div class="chart-scroll">
+                    <div
+                        class="bar-chart"
+                        style="
+                            grid-template-columns:
+                            repeat({{ monthly|length }}, minmax(46px, 1fr));
+                        "
+                    >
+                        {% for item in monthly %}
+                            <div class="chart-month">
+                                <div class="bars">
+                                    <div
+                                        class="bar bar-revenue"
+                                        title="Revenue ₹{{ item.financial.sales_revenue }}"
+                                        style="
+                                            height:
+                                            {{ item.chart.revenue_height }}%;
+                                        "
+                                    ></div>
+
+                                    <div
+                                        class="bar bar-cost"
+                                        title="Cost ₹{{ item.financial.total_cost }}"
+                                        style="
+                                            height:
+                                            {{ item.chart.cost_height }}%;
+                                        "
+                                    ></div>
+
+                                    <div
+                                        class="bar
+                                        {% if item.financial.net_profit|float < 0 %}
+                                            bar-profit-negative
+                                        {% else %}
+                                            bar-profit-positive
+                                        {% endif %}"
+                                        title="Profit ₹{{ item.financial.net_profit }}"
+                                        style="
+                                            height:
+                                            {{ item.chart.profit_height }}%;
+                                        "
+                                    ></div>
+                                </div>
+
+                                <div class="month-label">
+                                    {{ item.label }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="empty">
+                    No financial trend data available.
+                </div>
+            {% endif %}
+        </article>
+
+        <article class="panel">
+            <div class="panel-title">
+                <div>
+                    <h2>Coconut yield trend</h2>
+                    <p>
+                        Mature, tender, and damaged coconuts
+                    </p>
+                </div>
+
+                <div class="legend">
+                    <span class="legend-item">
+                        <span
+                            class="legend-dot"
+                            style="background:#059669"
+                        ></span>
+                        Mature
+                    </span>
+
+                    <span class="legend-item">
+                        <span
+                            class="legend-dot"
+                            style="background:#2563eb"
+                        ></span>
+                        Tender
+                    </span>
+
+                    <span class="legend-item">
+                        <span
+                            class="legend-dot"
+                            style="background:#ef4444"
+                        ></span>
+                        Damaged
+                    </span>
+                </div>
+            </div>
+
+            {% if monthly %}
+                <div class="chart-scroll">
+                    <div
+                        class="bar-chart"
+                        style="
+                            grid-template-columns:
+                            repeat({{ monthly|length }}, minmax(46px, 1fr));
+                        "
+                    >
+                        {% for item in monthly %}
+                            <div class="chart-month">
+                                <div class="bars">
+                                    <div
+                                        class="bar bar-mature"
+                                        title="Mature {{ item.yield.mature_coconuts }}"
+                                        style="
+                                            height:
+                                            {{ item.chart.mature_height }}%;
+                                        "
+                                    ></div>
+
+                                    <div
+                                        class="bar bar-tender"
+                                        title="Tender {{ item.yield.tender_coconuts }}"
+                                        style="
+                                            height:
+                                            {{ item.chart.tender_height }}%;
+                                        "
+                                    ></div>
+
+                                    <div
+                                        class="bar bar-damaged"
+                                        title="Damaged {{ item.yield.damaged_coconuts }}"
+                                        style="
+                                            height:
+                                            {{ item.chart.damaged_height }}%;
+                                        "
+                                    ></div>
+                                </div>
+
+                                <div class="month-label">
+                                    {{ item.label }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="empty">
+                    No yield data available.
+                </div>
+            {% endif %}
+        </article>
+
+        <article class="panel">
+            <div class="panel-title">
+                <div>
+                    <h2>Payment collection trend</h2>
+                    <p>
+                        Paid amounts compared with outstanding balances
+                    </p>
+                </div>
+
+                <div class="legend">
+                    <span class="legend-item">
+                        <span
+                            class="legend-dot"
+                            style="background:#8b5cf6"
+                        ></span>
+                        Paid
+                    </span>
+
+                    <span class="legend-item">
+                        <span
+                            class="legend-dot"
+                            style="background:#f59e0b"
+                        ></span>
+                        Outstanding
+                    </span>
+                </div>
+            </div>
+
+            {% if monthly %}
+                <div class="chart-scroll">
+                    <div
+                        class="bar-chart"
+                        style="
+                            grid-template-columns:
+                            repeat({{ monthly|length }}, minmax(46px, 1fr));
+                        "
+                    >
+                        {% for item in monthly %}
+                            <div class="chart-month">
+                                <div class="bars">
+                                    <div
+                                        class="bar bar-paid"
+                                        title="Paid ₹{{ item.financial.paid_amount }}"
+                                        style="
+                                            height:
+                                            {{ item.chart.paid_height }}%;
+                                        "
+                                    ></div>
+
+                                    <div
+                                        class="bar bar-outstanding"
+                                        title="Outstanding ₹{{ item.financial.outstanding_amount }}"
+                                        style="
+                                            height:
+                                            {{ item.chart.outstanding_height }}%;
+                                        "
+                                    ></div>
+                                </div>
+
+                                <div class="month-label">
+                                    {{ item.label }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="empty">
+                    No payment data available.
+                </div>
+            {% endif %}
+        </article>
+
+        <article class="panel panel-wide">
+            <div class="panel-title">
+                <div>
+                    <h2>Farm performance comparison</h2>
+                    <p>
+                        Revenue, cost, profit, yield, and profit per tree
+                    </p>
+                </div>
+            </div>
+
+            {% if farm_comparison %}
+                <div class="farm-list">
+                    {% for farm in farm_comparison %}
+                        <div class="farm-row">
+                            <div class="farm-name">
+                                {{ farm.farm_name }}
+
+                                <small>
+                                    {{ farm.total_farm_trees }}
+                                    registered trees
+                                </small>
+                            </div>
+
+                            <div class="farm-value">
+                                <small>Revenue</small>
+                                <strong>
+                                    ₹{{ '%.2f'|format(farm.revenue|float) }}
+                                </strong>
+                            </div>
+
+                            <div class="farm-value">
+                                <small>Total cost</small>
+                                <strong>
+                                    ₹{{ '%.2f'|format(farm.total_cost|float) }}
+                                </strong>
+                            </div>
+
+                            <div class="farm-value">
+                                <small>Net profit</small>
+
+                                <strong
+                                    class="
+                                    {% if farm.net_profit|float < 0 %}
+                                        negative
+                                    {% else %}
+                                        positive
+                                    {% endif %}
+                                    "
+                                >
+                                    ₹{{ '%.2f'|format(farm.net_profit|float) }}
+                                </strong>
+                            </div>
+
+                            <div class="farm-value">
+                                <small>Yield per tree</small>
+                                <strong>
+                                    {{ farm.yield_per_harvested_tree }}
+                                </strong>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty">
+                    No farm comparison data available.
+                </div>
+            {% endif %}
+        </article>
+
+        <article class="panel panel-wide">
+            <div class="panel-title">
+                <div>
+                    <h2>Performance insights</h2>
+                    <p>
+                        Key indicators for the selected analytics period
+                    </p>
+                </div>
+            </div>
+
+            <div class="insight-grid">
+                <div class="insight">
+                    <small>Damage percentage</small>
+                    <strong>
+                        {{ summary.damage_percentage }}%
+                    </strong>
+                </div>
+
+                <div class="insight">
+                    <small>Profit per coconut</small>
+                    <strong>
+                        ₹{{ '%.2f'|format(summary.profit_per_coconut|float) }}
+                    </strong>
+                </div>
+
+                <div class="insight">
+                    <small>Best performing month</small>
+
+                    <strong>
+                        {% if summary.best_month %}
+                            {{ summary.best_month.label }}
+                        {% else %}
+                            No data
+                        {% endif %}
+                    </strong>
+                </div>
+            </div>
+        </article>
+    </section>
+</main>
+
+<script>
+    function analyticsGoBack() {
+        const sameSiteReferrer =
+            document.referrer
+            && new URL(document.referrer).origin
+                === window.location.origin;
+
+        if (
+            sameSiteReferrer
+            && window.history.length > 1
+        ) {
+            window.history.back();
+            return;
+        }
+
+        window.location.href = "/dashboard";
+    }
+</script>
+
+<!-- PATCH-PWA-001A-REGISTRATION -->
+<script>
+    (() => {
+        if (!("serviceWorker" in navigator)) {
+            return;
+        }
+
+        window.addEventListener(
+            "load",
+            async () => {
+                try {
+                    const registration =
+                        await navigator
+                            .serviceWorker
+                            .register(
+                                "/service-worker.js",
+                                {
+                                    scope: "/"
+                                }
+                            );
+
+                    registration.addEventListener(
+                        "updatefound",
+                        () => {
+                            const worker =
+                                registration.installing;
+
+                            if (!worker) {
+                                return;
+                            }
+
+                            worker.addEventListener(
+                                "statechange",
+                                () => {
+                                    if (
+                                        worker.state
+                                            === "installed"
+                                        && navigator
+                                            .serviceWorker
+                                            .controller
+                                    ) {
+                                        window.dispatchEvent(
+                                            new CustomEvent(
+                                                "messis:pwa-update"
+                                            )
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    );
+                } catch (error) {
+                    console.warn(
+                        "Messis PWA registration:",
+                        error
+                    );
+                }
+            }
+        );
+    })();
+</script>
+
+
+<!-- PATCH-PWA-001B-MOBILE-NAVIGATION -->
+<div
+    class="messis-mobile-sheet-backdrop"
+    id="messis-mobile-sheet-backdrop"
+></div>
+
+<section
+    class="messis-mobile-more-sheet"
+    id="messis-mobile-more-sheet"
+    aria-hidden="true"
+>
+    <div class="messis-mobile-sheet-handle"></div>
+
+    <header class="messis-mobile-sheet-header">
+        <div>
+            <strong>Messis AI</strong>
+            <span>More tools and insights</span>
+        </div>
+
+        <button
+            class="messis-mobile-sheet-close"
+            id="messis-mobile-sheet-close"
+            type="button"
+            aria-label="Close more menu"
+        >
+            ×
+        </button>
+    </header>
+
+    <div class="messis-mobile-more-grid">
+        <a
+            class="messis-mobile-more-link"
+            href="/mobile/quick-entry"
+            data-route-prefix="/mobile/quick-entry"
+        >
+            <span class="messis-mobile-more-icon">⚡</span>
+            <span>Quick Entry</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/analytics/manage"
+            data-route-prefix="/analytics"
+        >
+            <span class="messis-mobile-more-icon">📈</span>
+            <span>Analytics</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/ai/manage"
+            data-route-prefix="/ai"
+        >
+            <span class="messis-mobile-more-icon">🤖</span>
+            <span>AI Advice</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/weather/manage"
+            data-route-prefix="/weather"
+        >
+            <span class="messis-mobile-more-icon">☁</span>
+            <span>Weather</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/profitability/manage"
+            data-route-prefix="/profitability"
+        >
+            <span class="messis-mobile-more-icon">💹</span>
+            <span>Profitability</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/reports"
+            data-route-prefix="/reports"
+        >
+            <span class="messis-mobile-more-icon">📄</span>
+            <span>Reports</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/notifications/manage"
+            data-route-prefix="/notifications"
+        >
+            <span class="messis-mobile-more-icon">🔔</span>
+            <span>Notifications</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/harvest-records/manage"
+            data-route-prefix="/harvest-records"
+        >
+            <span class="messis-mobile-more-icon">🧺</span>
+            <span>Harvest Records</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/expenses/new"
+            data-route-prefix="/expenses/new"
+        >
+            <span class="messis-mobile-more-icon">➕</span>
+            <span>New Expense</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/sales/new"
+            data-route-prefix="/sales/new"
+        >
+            <span class="messis-mobile-more-icon">₹</span>
+            <span>New Sale</span>
+        </a>
+    </div>
+</section>
+
+<nav
+    class="messis-mobile-navigation"
+    id="messis-mobile-navigation"
+    aria-label="Messis mobile navigation"
+>
+    <a
+        class="messis-mobile-nav-item"
+        href="/dashboard"
+        data-mobile-route="dashboard"
+    >
+        <span class="messis-mobile-nav-icon">⌂</span>
+        <span class="messis-mobile-nav-label">Home</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/farms"
+        data-mobile-route="farms"
+    >
+        <span class="messis-mobile-nav-icon">🌴</span>
+        <span class="messis-mobile-nav-label">Farms</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/harvests/manage"
+        data-mobile-route="harvest"
+    >
+        <span class="messis-mobile-nav-icon">🥥</span>
+        <span class="messis-mobile-nav-label">Harvest</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/expenses/manage"
+        data-mobile-route="expenses"
+    >
+        <span class="messis-mobile-nav-icon">↙</span>
+        <span class="messis-mobile-nav-label">Expense</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/sales/manage"
+        data-mobile-route="sales"
+    >
+        <span class="messis-mobile-nav-icon">₹</span>
+        <span class="messis-mobile-nav-label">Sales</span>
+    </a>
+
+    <button
+        class="messis-mobile-nav-item"
+        id="messis-mobile-more-button"
+        type="button"
+        aria-expanded="false"
+        aria-controls="messis-mobile-more-sheet"
+    >
+        <span class="messis-mobile-nav-icon">•••</span>
+        <span class="messis-mobile-nav-label">More</span>
+
+        <span
+            class="messis-mobile-nav-badge"
+            id="messis-mobile-notification-badge"
+        >
+            0
+        </span>
+    </button>
+</nav>
+
+<script
+    src="/static/pwa/mobile-shell.js?v=001b"
+    defer
+></script>
+
+</body>
+</html>

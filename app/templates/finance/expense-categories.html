@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Expense Categories · Messis AI</title>
+
+    <link
+        rel="manifest"
+        href="/static/pwa/manifest.webmanifest"
+    >
+
+    <link
+        rel="stylesheet"
+        href="/static/pwa/mobile-shell.css?v=001b"
+    >
+
+    <style>
+        :root {
+            --green-950: #052e16;
+            --green-900: #064e3b;
+            --green-800: #065f46;
+            --green-700: #047857;
+            --green-600: #059669;
+            --green-500: #10b981;
+            --green-100: #d1fae5;
+            --green-50: #ecfdf5;
+
+            --slate-950: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-500: #64748b;
+            --slate-300: #cbd5e1;
+            --slate-200: #e2e8f0;
+
+            --danger: #b91c1c;
+            --blue: #0369a1;
+
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--slate-950);
+
+            background:
+                radial-gradient(
+                    circle at 92% 4%,
+                    rgba(16, 185, 129, 0.14),
+                    transparent 28%
+                ),
+                #f4faf6;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+
+            display: flex;
+            min-height: 72px;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+
+            padding: 12px clamp(16px, 4vw, 48px);
+
+            background: rgba(255, 255, 255, 0.95);
+            border-bottom: 1px solid var(--slate-200);
+            box-shadow: 0 8px 28px rgba(15, 23, 42, 0.05);
+            backdrop-filter: blur(14px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .brand-icon {
+            display: grid;
+            width: 44px;
+            height: 44px;
+            place-items: center;
+
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-500)
+                );
+
+            border-radius: 14px;
+            font-size: 22px;
+        }
+
+        .brand strong,
+        .brand small {
+            display: block;
+        }
+
+        .brand strong {
+            color: var(--green-900);
+            font-size: 17px;
+        }
+
+        .brand small {
+            margin-top: 3px;
+            color: var(--slate-500);
+            font-size: 10px;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .button {
+            display: inline-flex;
+            min-height: 42px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+
+            padding: 9px 14px;
+            border-radius: 11px;
+
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .button-primary {
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-800),
+                    var(--green-500)
+                );
+            border: 0;
+        }
+
+        .button-secondary {
+            color: var(--slate-700);
+            background: white;
+            border: 1px solid var(--slate-200);
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+
+            padding:
+                40px
+                clamp(20px, 5vw, 70px)
+                76px;
+
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-950),
+                    var(--green-700)
+                );
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            top: -115px;
+            right: -65px;
+
+            width: 320px;
+            height: 320px;
+
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+        }
+
+        .hero h1 {
+            position: relative;
+            z-index: 1;
+
+            margin: 0;
+            font-size: clamp(29px, 4vw, 44px);
+            letter-spacing: -0.03em;
+        }
+
+        .hero p {
+            position: relative;
+            z-index: 1;
+
+            max-width: 760px;
+            margin: 9px 0 0;
+
+            color: #d1fae5;
+            line-height: 1.6;
+        }
+
+        main {
+            position: relative;
+            z-index: 2;
+
+            width: min(1380px, calc(100% - 32px));
+            margin: -40px auto 70px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 13px 15px;
+            border-radius: 13px;
+            font-size: 12px;
+            font-weight: 750;
+        }
+
+        .message-success {
+            color: var(--green-800);
+            background: var(--green-50);
+            border: 1px solid var(--green-100);
+        }
+
+        .message-error {
+            color: var(--danger);
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+
+        .toolbar {
+            display: grid;
+            grid-template-columns:
+                minmax(230px, 1fr)
+                minmax(160px, 0.35fr)
+                minmax(150px, 0.3fr)
+                auto
+                auto;
+            gap: 12px;
+
+            padding: 18px;
+            margin-bottom: 18px;
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 20px;
+            box-shadow: 0 15px 42px rgba(15, 23, 42, 0.09);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+
+            color: var(--slate-600);
+            font-size: 11px;
+            font-weight: 850;
+        }
+
+        input,
+        select {
+            width: 100%;
+            min-height: 44px;
+            padding: 10px 12px;
+
+            color: var(--slate-800);
+            background: white;
+            border: 1px solid var(--slate-300);
+            border-radius: 11px;
+            outline: none;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: var(--green-500);
+            box-shadow:
+                0 0 0 3px rgba(16, 185, 129, 0.12);
+        }
+
+        .toolbar-action {
+            display: flex;
+            align-items: end;
+        }
+
+        .toolbar-action .button {
+            width: 100%;
+            min-height: 44px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(4, minmax(0, 1fr));
+            gap: 13px;
+            margin-bottom: 18px;
+        }
+
+        .summary-card {
+            min-height: 116px;
+            padding: 17px;
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 17px;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+        }
+
+        .summary-card small {
+            display: block;
+            color: var(--slate-500);
+            font-weight: 750;
+        }
+
+        .summary-card strong {
+            display: block;
+            margin-top: 10px;
+
+            color: var(--green-700);
+            font-size: 25px;
+        }
+
+        .summary-card span {
+            display: block;
+            margin-top: 5px;
+
+            color: var(--slate-500);
+            font-size: 10px;
+        }
+
+        .panel {
+            overflow: hidden;
+
+            background: white;
+            border: 1px solid var(--slate-200);
+            border-radius: 20px;
+            box-shadow: 0 11px 32px rgba(15, 23, 42, 0.055);
+        }
+
+        .panel-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .panel-header p {
+            margin: 5px 0 0;
+            color: var(--slate-500);
+            font-size: 11px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 1050px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 14px 16px;
+            text-align: left;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        th {
+            color: var(--slate-500);
+            background: #fbfefc;
+
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        td {
+            color: var(--slate-700);
+            font-size: 12px;
+        }
+
+        tbody tr:hover {
+            background: var(--green-50);
+        }
+
+        .category-cell {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+
+        .category-icon {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+
+            color: white;
+            border-radius: 13px;
+            font-size: 20px;
+        }
+
+        .category-cell strong,
+        .category-cell span {
+            display: block;
+        }
+
+        .category-cell strong {
+            color: var(--slate-950);
+            font-size: 13px;
+        }
+
+        .category-cell span {
+            margin-top: 3px;
+            color: var(--slate-500);
+            font-size: 9px;
+        }
+
+        .badge {
+            display: inline-flex;
+            min-height: 27px;
+            align-items: center;
+            justify-content: center;
+
+            padding: 5px 9px;
+            border-radius: 999px;
+
+            font-size: 9px;
+            font-weight: 900;
+        }
+
+        .badge-system {
+            color: var(--blue);
+            background: #e0f2fe;
+        }
+
+        .badge-custom {
+            color: var(--green-800);
+            background: var(--green-100);
+        }
+
+        .status-active {
+            color: var(--green-800);
+            background: var(--green-100);
+        }
+
+        .status-inactive {
+            color: var(--danger);
+            background: #fee2e2;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
+
+        .small-button {
+            display: inline-flex;
+            min-height: 33px;
+            align-items: center;
+            justify-content: center;
+
+            padding: 7px 10px;
+
+            color: var(--green-800);
+            background: white;
+            border: 1px solid var(--green-100);
+            border-radius: 9px;
+
+            text-decoration: none;
+            font-size: 9px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        .small-danger {
+            color: var(--danger);
+            border-color: #fecaca;
+        }
+
+        .small-success {
+            background: var(--green-50);
+        }
+
+        .empty {
+            padding: 54px 20px;
+            color: var(--slate-500);
+            text-align: center;
+        }
+
+        .empty-icon {
+            display: grid;
+            width: 68px;
+            height: 68px;
+            margin: 0 auto 14px;
+            place-items: center;
+
+            color: var(--green-800);
+            background: var(--green-50);
+            border-radius: 20px;
+            font-size: 31px;
+        }
+
+        @media (max-width: 1050px) {
+            .toolbar {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            .summary-grid {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 620px) {
+            .topbar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .top-actions {
+                display: grid;
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            .toolbar,
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            main {
+                width: calc(100% - 20px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+<header class="topbar">
+    <a class="brand" href="/dashboard">
+        <span class="brand-icon">🌴</span>
+
+        <span>
+            <strong>Messis AI</strong>
+            <small>Smart Agriculture Management System</small>
+        </span>
+    </a>
+
+    <div class="top-actions">
+        <a class="button button-secondary" href="/dashboard">
+            ← Back to Dashboard
+        </a>
+
+        <a
+            class="button button-primary"
+            href="/expense-categories/new"
+        >
+            ＋ Add Category
+        </a>
+    </div>
+</header>
+
+<section class="hero">
+    <h1>Expense Categories</h1>
+
+    <p>
+        Organise farm expenses using system and custom categories,
+        icons, colours and display order.
+    </p>
+</section>
+
+<main>
+    {% if success_message %}
+        <div class="message message-success">
+            {{ success_message }}
+        </div>
+    {% endif %}
+
+    {% if error_message %}
+        <div class="message message-error">
+            {{ error_message }}
+        </div>
+    {% endif %}
+
+    <form
+        class="toolbar"
+        method="get"
+        action="/expense-categories/manage"
+    >
+        <div>
+            <label for="search">Search categories</label>
+
+            <input
+                id="search"
+                name="search"
+                type="search"
+                placeholder="Category name"
+                value="{{ filters.search }}"
+            >
+        </div>
+
+        <div>
+            <label for="category_type">Category type</label>
+
+            <select id="category_type" name="category_type">
+                <option value="">All types</option>
+
+                <option
+                    value="system"
+                    {% if filters.category_type == "system" %}
+                        selected
+                    {% endif %}
+                >
+                    System
+                </option>
+
+                <option
+                    value="custom"
+                    {% if filters.category_type == "custom" %}
+                        selected
+                    {% endif %}
+                >
+                    Custom
+                </option>
+            </select>
+        </div>
+
+        <div>
+            <label for="status">Status</label>
+
+            <select id="status" name="status">
+                <option
+                    value="active"
+                    {% if filters.status == "active" %}
+                        selected
+                    {% endif %}
+                >
+                    Active
+                </option>
+
+                <option
+                    value="all"
+                    {% if filters.status == "all" %}
+                        selected
+                    {% endif %}
+                >
+                    All
+                </option>
+
+                <option
+                    value="inactive"
+                    {% if filters.status == "inactive" %}
+                        selected
+                    {% endif %}
+                >
+                    Inactive
+                </option>
+            </select>
+        </div>
+
+        <div class="toolbar-action">
+            <button
+                class="button button-primary"
+                type="submit"
+            >
+                Search
+            </button>
+        </div>
+
+        <div class="toolbar-action">
+            <a
+                class="button button-secondary"
+                href="/expense-categories/manage"
+            >
+                Reset
+            </a>
+        </div>
+    </form>
+
+    <section class="summary-grid">
+        <article class="summary-card">
+            <small>Total categories</small>
+            <strong>{{ summary.total_categories }}</strong>
+            <span>System and custom</span>
+        </article>
+
+        <article class="summary-card">
+            <small>Active categories</small>
+            <strong>{{ summary.active_categories }}</strong>
+            <span>Available in expense entry</span>
+        </article>
+
+        <article class="summary-card">
+            <small>Expense entries</small>
+            <strong>{{ summary.expense_count }}</strong>
+            <span>Categorised transactions</span>
+        </article>
+
+        <article class="summary-card">
+            <small>Total expense value</small>
+            <strong>₹{{ summary.total_expense }}</strong>
+            <span>Category-linked expenses</span>
+        </article>
+    </section>
+
+    <section class="panel">
+        <header class="panel-header">
+            <h2>Categories</h2>
+
+            <p>
+                {{ categories|length }} category record(s) match
+                the current filter.
+            </p>
+        </header>
+
+        {% if categories %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Type</th>
+                        <th>Order</th>
+                        <th>Expenses</th>
+                        <th>Total Value</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    {% for item in categories %}
+                        <tr>
+                            <td>
+                                <div class="category-cell">
+                                    <span
+                                        class="category-icon"
+                                        style="background: {{ item.color }}"
+                                    >
+                                        {{ item.icon }}
+                                    </span>
+
+                                    <span>
+                                        <strong>{{ item.name }}</strong>
+
+                                        <span>
+                                            Updated {{ item.updated_at }}
+                                        </span>
+                                    </span>
+                                </div>
+                            </td>
+
+                            <td>
+                                {% if item.is_system %}
+                                    <span
+                                        class="badge badge-system"
+                                    >
+                                        System
+                                    </span>
+                                {% else %}
+                                    <span
+                                        class="badge badge-custom"
+                                    >
+                                        Custom
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td>{{ item.display_order }}</td>
+
+                            <td>{{ item.expense_count }}</td>
+
+                            <td>₹{{ item.total_expense }}</td>
+
+                            <td>
+                                {% if item.is_active %}
+                                    <span
+                                        class="
+                                            badge
+                                            status-active
+                                        "
+                                    >
+                                        Active
+                                    </span>
+                                {% else %}
+                                    <span
+                                        class="
+                                            badge
+                                            status-inactive
+                                        "
+                                    >
+                                        Inactive
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <div class="actions">
+                                    <a
+                                        class="small-button"
+                                        href="/expense-categories/{{ item.id }}/edit"
+                                    >
+                                        Edit
+                                    </a>
+
+                                    <form
+                                        method="post"
+                                        action="/expense-categories/{{ item.id }}/toggle"
+                                    >
+                                        {% if item.is_active %}
+                                            <button
+                                                class="
+                                                    small-button
+                                                    small-danger
+                                                "
+                                                type="submit"
+                                            >
+                                                Disable
+                                            </button>
+                                        {% else %}
+                                            <button
+                                                class="
+                                                    small-button
+                                                    small-success
+                                                "
+                                                type="submit"
+                                            >
+                                                Enable
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty">
+                <div class="empty-icon">📂</div>
+
+                <strong>No categories found</strong>
+
+                <p>
+                    Add a custom category or change the
+                    current search filters.
+                </p>
+
+                <a
+                    class="button button-primary"
+                    href="/expense-categories/new"
+                >
+                    ＋ Add Category
+                </a>
+            </div>
+        {% endif %}
+    </section>
+</main>
+
+<script
+    src="/static/pwa/mobile-shell.js?v=001b"
+    defer
+></script>
+</body>
+</html>

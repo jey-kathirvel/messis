@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+    <title>Sales · Messis AI</title>
+
+    <style>
+        :root {
+            font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+            color: #17351f;
+            background: #f4fbf5;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(34, 197, 94, 0.14),
+                    transparent 34%
+                ),
+                #f4fbf5;
+        }
+
+        header {
+            padding: 20px clamp(18px, 5vw, 72px);
+            background: linear-gradient(135deg, #14532d, #15803d);
+            color: white;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: clamp(26px, 4vw, 40px);
+        }
+
+        header p {
+            margin: 7px 0 0;
+            color: #dcfce7;
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 9px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            font-weight: 800;
+        }
+
+        main {
+            width: min(1180px, calc(100% - 32px));
+            margin: 28px auto 60px;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: 12px;
+            padding: 11px 16px;
+            font: inherit;
+            font-weight: 900;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .button-primary {
+            color: white;
+            background: #15803d;
+        }
+
+        .button-muted {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .summary-card {
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 12px 34px rgba(20, 83, 45, 0.07);
+        }
+
+        .summary-card strong {
+            display: block;
+            font-size: 27px;
+            color: #15803d;
+        }
+
+        .summary-card span {
+            color: #64748b;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
+            padding: 18px;
+            margin-bottom: 20px;
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 18px;
+        }
+
+        .filters label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .filters select,
+        .filters input {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 11px;
+            font: inherit;
+            background: white;
+        }
+
+        .filter-action {
+            display: flex;
+            align-items: end;
+        }
+
+        .sales-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .sale-card {
+            background: white;
+            border: 1px solid #dcfce7;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 14px 38px rgba(20, 83, 45, 0.07);
+        }
+
+        .sale-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .sale-head h3 {
+            margin: 0;
+        }
+
+        .sale-head p {
+            margin: 6px 0 0;
+            color: #64748b;
+        }
+
+        .net {
+            color: #15803d;
+            font-size: 22px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .status {
+            display: inline-block;
+            margin-top: 8px;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+        .status-paid {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .status-unpaid {
+            color: #991b1b;
+            background: #fee2e2;
+        }
+
+        .status-partially-paid {
+            color: #92400e;
+            background: #fef3c7;
+        }
+
+        .status-overdue {
+            color: #991b1b;
+            background: #fecaca;
+        }
+
+        .meta {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .meta-item {
+            padding: 13px;
+            border-radius: 14px;
+            background: #f8fafc;
+        }
+
+        .meta-item small {
+            display: block;
+            margin-bottom: 5px;
+            color: #64748b;
+        }
+
+        .sale-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 17px;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 52px 20px;
+            border: 2px dashed #bbf7d0;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        @media (max-width: 950px) {
+            .filters {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .summary,
+            .meta {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 560px) {
+            .filters,
+            .summary,
+            .meta {
+                grid-template-columns: 1fr;
+            }
+
+            .sale-head {
+                flex-direction: column;
+            }
+
+            .button {
+                width: 100%;
+            }
+        }
+    </style>
+
+    <!-- PATCH-UI-SUBPAGES-001A -->
+    <link
+        rel="stylesheet"
+        href="/static/css/messis-subpages.css?v=001a"
+    >
+
+
+    <!-- PATCH-PWA-001A-METADATA -->
+    <link
+        rel="manifest"
+        href="/static/pwa/manifest.webmanifest"
+    >
+
+    <meta
+        name="theme-color"
+        content="#064e3b"
+    >
+
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="default"
+    >
+
+    <meta
+        name="apple-mobile-web-app-title"
+        content="Messis AI"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="/static/pwa/icon-192.png"
+    >
+
+
+    <!-- PATCH-PWA-001B-MOBILE-SHELL -->
+    <link
+        rel="stylesheet"
+        href="/static/pwa/mobile-shell.css?v=001b"
+    >
+
+</head>
+
+<body class="messis-modern-subpage">
+
+<!-- PATCH-UI-SUBPAGES-001A-TOOLBAR -->
+<header class="messis-page-toolbar">
+    <div class="messis-page-toolbar-left">
+        <a
+            class="messis-page-brand"
+            href="/dashboard"
+            aria-label="Messis AI Dashboard"
+        >
+            <span class="messis-page-brand-icon">🌴</span>
+
+            <span class="messis-page-brand-copy">
+                <strong>Messis AI</strong>
+                <span>Smart Agriculture Management System</span>
+            </span>
+        </a>
+    </div>
+
+    <div class="messis-page-toolbar-right">
+        <button
+            class="messis-nav-button"
+            type="button"
+            onclick="messisGoBack()"
+        >
+            <span aria-hidden="true">←</span>
+            <span>Back</span>
+        </button>
+
+        <a
+            class="messis-nav-button messis-nav-button-primary"
+            href="/dashboard"
+        >
+            <span aria-hidden="true">⌂</span>
+            <span>Back to Dashboard</span>
+        </a>
+    </div>
+</header>
+
+
+<header>
+    <h1>Coconut Sales</h1>
+    <p>Track quantity, rates, buyers, payments and outstanding balances.</p>
+
+    <nav>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/farms">Farms</a>
+        <a href="/harvest-records/manage">Harvest Records</a>
+        <a href="/expenses/manage">Expenses</a>
+        <a href="/sales/manage">Sales</a>
+    </nav>
+</header>
+
+<main>
+    <section class="toolbar">
+        <div>
+            <h2>Sales register</h2>
+            <p>Farm-wise revenue and payment collection.</p>
+        </div>
+
+        <a class="button button-primary" href="/sales/new">
+            Record sale
+        </a>
+    </section>
+
+    <section class="summary">
+        <article class="summary-card">
+            <strong>{{ totals.count }}</strong>
+            <span>Total sales</span>
+        </article>
+
+        <article class="summary-card">
+            <strong>₹{{ '%.2f'|format(totals.net) }}</strong>
+            <span>Net sales value</span>
+        </article>
+
+        <article class="summary-card">
+            <strong>₹{{ '%.2f'|format(totals.paid) }}</strong>
+            <span>Amount collected</span>
+        </article>
+
+        <article class="summary-card">
+            <strong>₹{{ '%.2f'|format(totals.balance) }}</strong>
+            <span>Outstanding</span>
+        </article>
+    </section>
+
+    <form class="filters" method="get" action="/sales/manage">
+        <div>
+            <label for="farm_id">Farm</label>
+            <select id="farm_id" name="farm_id">
+                <option value="">All farms</option>
+
+                {% for farm in farms %}
+                    <option
+                        value="{{ farm.id }}"
+                        {% if filters.farm_id|string == farm.id|string %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ farm.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="buyer_id">Buyer</label>
+            <select id="buyer_id" name="buyer_id">
+                <option value="">All buyers</option>
+
+                {% for buyer in buyers %}
+                    <option
+                        value="{{ buyer.id }}"
+                        {% if filters.buyer_id|string == buyer.id|string %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ buyer.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="payment_status">Payment status</label>
+            <select id="payment_status" name="payment_status">
+                <option value="">All statuses</option>
+
+                {% for status in payment_statuses %}
+                    <option
+                        value="{{ status }}"
+                        {% if filters.payment_status == status %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ status }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="date_from">From</label>
+            <input
+                id="date_from"
+                name="date_from"
+                type="date"
+                value="{{ filters.date_from }}"
+            >
+        </div>
+
+        <div class="filter-action">
+            <button class="button button-muted" type="submit">
+                Apply filter
+            </button>
+        </div>
+    </form>
+
+    {% if sales %}
+        <section class="sales-grid">
+            {% for item in sales %}
+                <article class="sale-card">
+                    <div class="sale-head">
+                        <div>
+                            <h3>{{ item.sale.product_type }}</h3>
+                            <p>
+                                {{ item.sale.sale_date.strftime('%d %b %Y') }}
+                                · {{ item.farm_name }}
+                            </p>
+
+                            <span
+                                class="status status-{{ item.sale.payment_status|lower|replace(' ', '-') }}"
+                            >
+                                {{ item.sale.payment_status }}
+                            </span>
+                        </div>
+
+                        <div class="net">
+                            ₹{{ '%.2f'|format(item.sale.net_amount) }}
+                        </div>
+                    </div>
+
+                    <div class="meta">
+                        <div class="meta-item">
+                            <small>Buyer</small>
+                            <strong>
+                                {{ item.buyer_name or 'Direct sale' }}
+                            </strong>
+                        </div>
+
+                        <div class="meta-item">
+                            <small>Quantity</small>
+                            <strong>
+                                {{ item.sale.quantity }}
+                                {{ item.sale.unit }}
+                            </strong>
+                        </div>
+
+                        <div class="meta-item">
+                            <small>Paid</small>
+                            <strong>
+                                ₹{{ '%.2f'|format(item.sale.paid_amount) }}
+                            </strong>
+                        </div>
+
+                        <div class="meta-item">
+                            <small>Balance</small>
+                            <strong>
+                                ₹{{ '%.2f'|format(item.sale.balance_amount) }}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="sale-footer">
+                        <span>
+                            Rate:
+                            <strong>
+                                ₹{{ '%.2f'|format(item.sale.rate) }}
+                            </strong>
+                            per {{ item.sale.unit }}
+                        </span>
+
+                        <a
+                            class="button button-muted"
+                            href="/sales/{{ item.sale.id }}/view"
+                        >
+                            View sale
+                        </a>
+                    </div>
+                </article>
+            {% endfor %}
+        </section>
+    {% else %}
+        <section class="empty">
+            <h2>No sales found</h2>
+            <p>Record your first coconut sale.</p>
+        </section>
+    {% endif %}
+</main>
+
+<script>
+    function messisGoBack() {
+        const sameSiteReferrer =
+            document.referrer
+            && new URL(document.referrer).origin
+                === window.location.origin;
+
+        if (sameSiteReferrer && window.history.length > 1) {
+            window.history.back();
+            return;
+        }
+
+        window.location.href = "/dashboard";
+    }
+</script>
+
+
+<!-- PATCH-PWA-001A-REGISTRATION -->
+<script>
+    (() => {
+        if (!("serviceWorker" in navigator)) {
+            return;
+        }
+
+        window.addEventListener(
+            "load",
+            async () => {
+                try {
+                    const registration =
+                        await navigator
+                            .serviceWorker
+                            .register(
+                                "/service-worker.js",
+                                {
+                                    scope: "/"
+                                }
+                            );
+
+                    registration.addEventListener(
+                        "updatefound",
+                        () => {
+                            const worker =
+                                registration.installing;
+
+                            if (!worker) {
+                                return;
+                            }
+
+                            worker.addEventListener(
+                                "statechange",
+                                () => {
+                                    if (
+                                        worker.state
+                                            === "installed"
+                                        && navigator
+                                            .serviceWorker
+                                            .controller
+                                    ) {
+                                        window.dispatchEvent(
+                                            new CustomEvent(
+                                                "messis:pwa-update"
+                                            )
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    );
+                } catch (error) {
+                    console.warn(
+                        "Messis PWA registration:",
+                        error
+                    );
+                }
+            }
+        );
+    })();
+</script>
+
+
+<!-- PATCH-PWA-001B-MOBILE-NAVIGATION -->
+<div
+    class="messis-mobile-sheet-backdrop"
+    id="messis-mobile-sheet-backdrop"
+></div>
+
+<section
+    class="messis-mobile-more-sheet"
+    id="messis-mobile-more-sheet"
+    aria-hidden="true"
+>
+    <div class="messis-mobile-sheet-handle"></div>
+
+    <header class="messis-mobile-sheet-header">
+        <div>
+            <strong>Messis AI</strong>
+            <span>More tools and insights</span>
+        </div>
+
+        <button
+            class="messis-mobile-sheet-close"
+            id="messis-mobile-sheet-close"
+            type="button"
+            aria-label="Close more menu"
+        >
+            ×
+        </button>
+    </header>
+
+    <div class="messis-mobile-more-grid">
+        <a
+            class="messis-mobile-more-link"
+            href="/mobile/quick-entry"
+            data-route-prefix="/mobile/quick-entry"
+        >
+            <span class="messis-mobile-more-icon">⚡</span>
+            <span>Quick Entry</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/analytics/manage"
+            data-route-prefix="/analytics"
+        >
+            <span class="messis-mobile-more-icon">📈</span>
+            <span>Analytics</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/ai/manage"
+            data-route-prefix="/ai"
+        >
+            <span class="messis-mobile-more-icon">🤖</span>
+            <span>AI Advice</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/weather/manage"
+            data-route-prefix="/weather"
+        >
+            <span class="messis-mobile-more-icon">☁</span>
+            <span>Weather</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/profitability/manage"
+            data-route-prefix="/profitability"
+        >
+            <span class="messis-mobile-more-icon">💹</span>
+            <span>Profitability</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/reports"
+            data-route-prefix="/reports"
+        >
+            <span class="messis-mobile-more-icon">📄</span>
+            <span>Reports</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/notifications/manage"
+            data-route-prefix="/notifications"
+        >
+            <span class="messis-mobile-more-icon">🔔</span>
+            <span>Notifications</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/harvest-records/manage"
+            data-route-prefix="/harvest-records"
+        >
+            <span class="messis-mobile-more-icon">🧺</span>
+            <span>Harvest Records</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/expenses/new"
+            data-route-prefix="/expenses/new"
+        >
+            <span class="messis-mobile-more-icon">➕</span>
+            <span>New Expense</span>
+        </a>
+
+        <a
+            class="messis-mobile-more-link"
+            href="/sales/new"
+            data-route-prefix="/sales/new"
+        >
+            <span class="messis-mobile-more-icon">₹</span>
+            <span>New Sale</span>
+        </a>
+    </div>
+</section>
+
+<nav
+    class="messis-mobile-navigation"
+    id="messis-mobile-navigation"
+    aria-label="Messis mobile navigation"
+>
+    <a
+        class="messis-mobile-nav-item"
+        href="/dashboard"
+        data-mobile-route="dashboard"
+    >
+        <span class="messis-mobile-nav-icon">⌂</span>
+        <span class="messis-mobile-nav-label">Home</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/farms"
+        data-mobile-route="farms"
+    >
+        <span class="messis-mobile-nav-icon">🌴</span>
+        <span class="messis-mobile-nav-label">Farms</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/harvests/manage"
+        data-mobile-route="harvest"
+    >
+        <span class="messis-mobile-nav-icon">🥥</span>
+        <span class="messis-mobile-nav-label">Harvest</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/expenses/manage"
+        data-mobile-route="expenses"
+    >
+        <span class="messis-mobile-nav-icon">↙</span>
+        <span class="messis-mobile-nav-label">Expense</span>
+    </a>
+
+    <a
+        class="messis-mobile-nav-item"
+        href="/sales/manage"
+        data-mobile-route="sales"
+    >
+        <span class="messis-mobile-nav-icon">₹</span>
+        <span class="messis-mobile-nav-label">Sales</span>
+    </a>
+
+    <button
+        class="messis-mobile-nav-item"
+        id="messis-mobile-more-button"
+        type="button"
+        aria-expanded="false"
+        aria-controls="messis-mobile-more-sheet"
+    >
+        <span class="messis-mobile-nav-icon">•••</span>
+        <span class="messis-mobile-nav-label">More</span>
+
+        <span
+            class="messis-mobile-nav-badge"
+            id="messis-mobile-notification-badge"
+        >
+            0
+        </span>
+    </button>
+</nav>
+
+<script
+    src="/static/pwa/mobile-shell.js?v=001b"
+    defer
+></script>
+
+</body>
+</html>
