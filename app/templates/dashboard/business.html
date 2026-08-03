@@ -2355,6 +2355,182 @@
             }
         }
 
+
+        /* PATCH-UAT-DASHBOARD-001-FILTER-VALIDATION */
+
+        .dashboard-filter-message {
+            display: none;
+            grid-column: 1 / -1;
+
+            padding: 11px 13px;
+
+            color: #991b1b;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 11px;
+
+            font-size: 12px;
+            font-weight: 750;
+        }
+
+        .dashboard-filter-message.visible {
+            display: block;
+        }
+
+        .field-invalid {
+            border-color: #dc2626 !important;
+            box-shadow:
+                0 0 0 3px
+                rgba(220, 38, 38, 0.10) !important;
+        }
+
+
+        /* PATCH-UAT-REPORTS-002B-PDF-VIEW-PLACEHOLDER */
+
+        .business-summary-pdf-card {
+            display: grid;
+            grid-template-columns:
+                auto
+                minmax(0, 1fr)
+                auto;
+            gap: 15px;
+            align-items: center;
+
+            width: 100%;
+            min-height: 104px;
+            padding: 18px;
+
+            color: #0f172a;
+            background:
+                linear-gradient(
+                    135deg,
+                    #ffffff,
+                    #f0fdf4
+                );
+
+            border: 1px solid #bbf7d0;
+            border-radius: 17px;
+
+            text-decoration: none;
+
+            box-shadow:
+                0 10px 28px
+                rgba(5, 150, 105, 0.08);
+
+            transition:
+                transform 150ms ease,
+                border-color 150ms ease,
+                box-shadow 150ms ease;
+        }
+
+        .business-summary-pdf-card:hover {
+            transform: translateY(-2px);
+            border-color: #22c55e;
+
+            box-shadow:
+                0 14px 34px
+                rgba(5, 150, 105, 0.14);
+        }
+
+        .business-summary-pdf-card:focus-visible {
+            outline: 3px solid
+                rgba(34, 197, 94, 0.24);
+
+            outline-offset: 3px;
+        }
+
+        .business-summary-pdf-icon {
+            display: grid;
+            width: 58px;
+            height: 66px;
+            place-items: center;
+
+            color: white;
+            background:
+                linear-gradient(
+                    145deg,
+                    #166534,
+                    #16a34a
+                );
+
+            border-radius: 13px;
+
+            font-size: 13px;
+            font-weight: 950;
+            letter-spacing: 0.06em;
+
+            box-shadow:
+                0 8px 18px
+                rgba(22, 101, 52, 0.20);
+        }
+
+        .business-summary-pdf-copy {
+            min-width: 0;
+        }
+
+        .business-summary-pdf-copy strong,
+        .business-summary-pdf-copy span,
+        .business-summary-pdf-copy small {
+            display: block;
+        }
+
+        .business-summary-pdf-copy strong {
+            color: #14532d;
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .business-summary-pdf-copy span {
+            margin-top: 5px;
+            color: #475569;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .business-summary-pdf-copy small {
+            margin-top: 6px;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .business-summary-pdf-action {
+            display: inline-flex;
+            min-height: 42px;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+
+            padding: 9px 14px;
+
+            color: white;
+            background:
+                linear-gradient(
+                    135deg,
+                    #15803d,
+                    #16a34a
+                );
+
+            border-radius: 11px;
+
+            font-size: 12px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 640px) {
+            .business-summary-pdf-card {
+                grid-template-columns:
+                    auto
+                    minmax(0, 1fr);
+            }
+
+            .business-summary-pdf-action {
+                grid-column: 1 / -1;
+                width: 100%;
+            }
+        }
+
 </style>
 
     <!-- PATCH-PWA-001A-METADATA -->
@@ -2616,15 +2792,39 @@
                     <span class="menu-text">Reports Center</span>
                 </a>
 
-                <a
-                    class="menu-link"
-                    href="/reports/summary"
-                    target="_blank"
-                >
-                    <span class="menu-icon">⌘</span>
-                    <span class="menu-text">Summary API</span>
-                    <span class="menu-badge">API</span>
-                </a>
+                
+<a
+    href="/reports/summary.pdf"
+    class="business-summary-pdf-card"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="View Business Summary PDF"
+>
+    <span class="business-summary-pdf-icon">
+        PDF
+    </span>
+
+    <span class="business-summary-pdf-copy">
+        <strong>
+            Business Summary PDF
+        </strong>
+
+        <span>
+            Financial, harvest and farm
+            performance overview
+        </span>
+
+        <small>
+            Opens securely in a new tab
+        </small>
+    </span>
+
+    <span class="business-summary-pdf-action">
+        View PDF
+        <span aria-hidden="true">↗</span>
+    </span>
+</a>
+
             </section>
 
             <section class="menu-section">
@@ -2848,11 +3048,31 @@
                 class="filters"
                 method="get"
                 action="/dashboard"
+
+        id="dashboard-filter-form"
+        novalidate
+    >
+
+        {% if request.query_params.get("error") %}
+            <div
+                class="dashboard-filter-message visible"
+                role="alert"
             >
+                {{ request.query_params.get("error") }}
+            </div>
+        {% endif %}
+
+        <div
+            class="dashboard-filter-message"
+            id="dashboard-filter-message"
+            role="alert"
+        ></div>
+
                 <div class="field">
                     <label for="farm_id">Farm</label>
 
-                    <select id="farm_id" name="farm_id">
+                    <select id="farm_id" name="farm_id"
+                        required>
                         <option value="">All farms</option>
 
                         {% for farm in farms %}
@@ -2879,7 +3099,8 @@
                         name="date_from"
                         type="date"
                         value="{{ filters.date_from }}"
-                    >
+
+                        required>
                 </div>
 
                 <div class="field">
@@ -2890,7 +3111,8 @@
                         name="date_to"
                         type="date"
                         value="{{ filters.date_to }}"
-                    >
+
+                        required>
                 </div>
 
                 <div class="filter-action">
@@ -5906,5 +6128,120 @@
     })();
 </script>
 
+
+<script>
+    (() => {
+        const form = document.getElementById(
+            "dashboard-filter-form"
+        );
+
+        const message = document.getElementById(
+            "dashboard-filter-message"
+        );
+
+        if (!form || !message) {
+            return;
+        }
+
+        const fields = [
+            {
+                name: "farm_id",
+                label: "Farm"
+            },
+            {
+                name: "date_from",
+                label: "From date"
+            },
+            {
+                name: "date_to",
+                label: "To date"
+            }
+        ];
+
+        function clearValidation() {
+            message.textContent = "";
+            message.classList.remove("visible");
+
+            fields.forEach(item => {
+                const field =
+                    form.elements[item.name];
+
+                field?.classList.remove(
+                    "field-invalid"
+                );
+            });
+        }
+
+        fields.forEach(item => {
+            const field =
+                form.elements[item.name];
+
+            field?.addEventListener(
+                "change",
+                clearValidation
+            );
+
+            field?.addEventListener(
+                "input",
+                clearValidation
+            );
+        });
+
+        form.addEventListener(
+            "submit",
+            event => {
+                clearValidation();
+
+                const missing = fields.filter(
+                    item => {
+                        const field =
+                            form.elements[item.name];
+
+                        return (
+                            !field
+                            || !String(
+                                field.value || ""
+                            ).trim()
+                        );
+                    }
+                );
+
+                if (!missing.length) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                missing.forEach(item => {
+                    form.elements[item.name]
+                        ?.classList.add(
+                            "field-invalid"
+                        );
+                });
+
+                const names = missing.map(
+                    item => item.label
+                );
+
+                message.textContent =
+                    names.join(", ")
+                    + (
+                        names.length === 1
+                            ? " is mandatory."
+                            : " are mandatory."
+                    );
+
+                message.classList.add("visible");
+
+                form.elements[
+                    missing[0].name
+                ]?.focus();
+            }
+        );
+    })();
+</script>
+
+<!-- PATCH-REPORTS-002A.4: BUSINESS SUMMARY PDF UI -->
+<!-- PATCH-UAT-REPORTS-002B-PDF-VIEW-PLACEHOLDER -->
 </body>
 </html>

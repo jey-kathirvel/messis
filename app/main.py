@@ -1,5 +1,24 @@
 import shutil
 import secrets
+import csv
+import io
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import (
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
+
+import json
+import math
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -707,12 +726,73 @@ def logout(
     )
 
 
-@app.get("/dashboard", response_class=HTMLResponse)
+# PATCH-UAT-DASHBOARD-001-RECOVERY2: ALL DASHBOARD ROUTES OPTIONAL
+
+
+# PATCH-UAT-DASHBOARD-001: EMPTY FILTER VALIDATION
+
+
+@app.middleware("http")
+async def validate_dashboard_filter_query(
+    request: Request,
+    call_next,
+):
+    if (
+        request.method == "GET"
+        and request.url.path == "/dashboard"
+    ):
+        params = request.query_params
+
+        filter_keys = (
+            "farm_id",
+            "date_from",
+            "date_to",
+        )
+
+        submitted = any(
+            key in params
+            for key in filter_keys
+        )
+
+        missing = [
+            key
+            for key in filter_keys
+            if submitted
+            and not params.get(key, "").strip()
+        ]
+
+        if missing:
+            labels = {
+                "farm_id": "Farm",
+                "date_from": "From date",
+                "date_to": "To date",
+            }
+
+            field_names = ", ".join(
+                labels[key]
+                for key in missing
+            )
+
+            return RedirectResponse(
+                url=(
+                    "/dashboard?error="
+                    + quote(
+                        f"{field_names} "
+                        "must be selected before applying filters."
+                    )
+                ),
+                status_code=303,
+            )
+
+    return await call_next(request)
+
+
 @app.get(
     "/dashboard",
     response_class=HTMLResponse,
 )
 def dashboard(
+    # PATCH-UAT-DASHBOARD-001-RECOVERY: OPTIONAL DASHBOARD PARAMETERS
     request: Request,
     farm_id: int | None = None,
     date_from: date | None = None,
@@ -7269,6 +7349,237 @@ def business_dashboard_page(
 
 
 
+
+# PATCH-REPORTS-002A.1A: PDF FOUNDATION
+
+
+MESSIS_PDF_GREEN = colors.HexColor("#14532D")
+MESSIS_PDF_GREEN_LIGHT = colors.HexColor("#DCFCE7")
+MESSIS_PDF_GREEN_PALE = colors.HexColor("#F0FDF4")
+MESSIS_PDF_TEXT = colors.HexColor("#0F172A")
+MESSIS_PDF_MUTED = colors.HexColor("#64748B")
+MESSIS_PDF_BORDER = colors.HexColor("#CBD5E1")
+MESSIS_PDF_DANGER = colors.HexColor("#B91C1C")
+
+
+# PATCH-UAT-REPORTS-002A-RECOVERY3: DIRECT TAMIL FONT REGISTRATION
+
+
+def register_messis_pdf_fonts() -> dict[str, str]:
+    regular_name = "MessisTamilRegular"
+    bold_name = "MessisTamilBold"
+
+    registered = set(
+        pdfmetrics.getRegisteredFontNames()
+    )
+
+    if regular_name not in registered:
+        pdfmetrics.registerFont(
+            TTFont(
+                regular_name,
+                '/usr/share/fonts/truetype/noto/NotoSerifTamil-Regular.ttf',
+            )
+        )
+
+    if bold_name not in registered:
+        pdfmetrics.registerFont(
+            TTFont(
+                bold_name,
+                '/usr/share/fonts/truetype/noto/NotoSansTamil-Bold.ttf',
+            )
+        )
+
+    try:
+        pdfmetrics.registerFontFamily(
+            "MessisTamilFamily",
+            normal=regular_name,
+            bold=bold_name,
+            italic=regular_name,
+            boldItalic=bold_name,
+        )
+    except Exception:
+        pass
+
+    return {
+        "regular": regular_name,
+        "bold": bold_name,
+    }
+
+
+def messis_pdf_styles() -> dict[str, ParagraphStyle]:
+    fonts = register_messis_pdf_fonts()
+    sample = getSampleStyleSheet()
+
+    return {
+        "title": ParagraphStyle(
+            "MessisPDFTitle",
+            parent=sample["Title"],
+            fontName=fonts["bold"],
+            fontSize=20,
+            leading=24,
+            textColor=MESSIS_PDF_GREEN,
+            alignment=TA_CENTER,
+            spaceAfter=5 * mm,
+        ),
+        "subtitle": ParagraphStyle(
+            "MessisPDFSubtitle",
+            parent=sample["Normal"],
+            fontName=fonts["regular"],
+            fontSize=9,
+            leading=13,
+            textColor=MESSIS_PDF_MUTED,
+            alignment=TA_CENTER,
+            spaceAfter=4 * mm,
+        ),
+        "section": ParagraphStyle(
+            "MessisPDFSection",
+            parent=sample["Heading2"],
+            fontName=fonts["bold"],
+            fontSize=11,
+            leading=14,
+            textColor=colors.white,
+            backColor=MESSIS_PDF_GREEN,
+            borderPadding=7,
+            spaceBefore=4 * mm,
+            spaceAfter=3 * mm,
+        ),
+        "body": ParagraphStyle(
+            "MessisPDFBody",
+            parent=sample["BodyText"],
+            fontName=fonts["regular"],
+            fontSize=9,
+            leading=13,
+            textColor=MESSIS_PDF_TEXT,
+            alignment=TA_LEFT,
+        ),
+        "small": ParagraphStyle(
+            "MessisPDFSmall",
+            parent=sample["BodyText"],
+            fontName=fonts["regular"],
+            fontSize=7.5,
+            leading=10,
+            textColor=MESSIS_PDF_MUTED,
+            alignment=TA_LEFT,
+        ),
+        "right": ParagraphStyle(
+            "MessisPDFRight",
+            parent=sample["BodyText"],
+            fontName=fonts["regular"],
+            fontSize=9,
+            leading=12,
+            textColor=MESSIS_PDF_TEXT,
+            alignment=TA_RIGHT,
+        ),
+    }
+
+
+def create_messis_pdf_document(
+    buffer: io.BytesIO,
+    *,
+    title: str,
+    author: str = "Messis AI",
+) -> SimpleDocTemplate:
+    return SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=16 * mm,
+        leftMargin=16 * mm,
+        topMargin=16 * mm,
+        bottomMargin=16 * mm,
+        title=title,
+        author=author,
+        subject="Messis AI Business Report",
+        creator="Messis AI",
+    )
+
+
+def messis_pdf_table_style(
+    *,
+    header: bool = True,
+) -> TableStyle:
+    fonts = register_messis_pdf_fonts()
+    commands = [
+        (
+            "FONTNAME",
+            (0, 0),
+            (-1, -1),
+            fonts["regular"],
+        ),
+        (
+            "GRID",
+            (0, 0),
+            (-1, -1),
+            0.45,
+            MESSIS_PDF_BORDER,
+        ),
+        (
+            "VALIGN",
+            (0, 0),
+            (-1, -1),
+            "MIDDLE",
+        ),
+        (
+            "LEFTPADDING",
+            (0, 0),
+            (-1, -1),
+            6,
+        ),
+        (
+            "RIGHTPADDING",
+            (0, 0),
+            (-1, -1),
+            6,
+        ),
+        (
+            "TOPPADDING",
+            (0, 0),
+            (-1, -1),
+            6,
+        ),
+        (
+            "BOTTOMPADDING",
+            (0, 0),
+            (-1, -1),
+            6,
+        ),
+        (
+            "ROWBACKGROUNDS",
+            (0, 1 if header else 0),
+            (-1, -1),
+            [
+                colors.white,
+                MESSIS_PDF_GREEN_PALE,
+            ],
+        ),
+    ]
+
+    if header:
+        commands.extend(
+            [
+                (
+                    "BACKGROUND",
+                    (0, 0),
+                    (-1, 0),
+                    MESSIS_PDF_GREEN,
+                ),
+                (
+                    "TEXTCOLOR",
+                    (0, 0),
+                    (-1, 0),
+                    colors.white,
+                ),
+                (
+                    "FONTNAME",
+                    (0, 0),
+                    (-1, 0),
+                    fonts["bold"],
+                ),
+            ]
+        )
+
+    return TableStyle(commands)
+
+
 # PATCH-REPORTS-001A: BUSINESS REPORTS BACKEND
 
 
@@ -7465,6 +7776,11 @@ def business_report_summary(
         for record in harvests
     )
 
+    # PATCH-UAT-REPORTS-001B-RECOVERY2: BUSINESS SUMMARY DECIMAL NORMALIZATION
+    total_revenue = Decimal(total_revenue)
+    operating_expense = Decimal(operating_expense)
+    harvest_cost = Decimal(harvest_cost)
+
     total_cost = operating_expense + harvest_cost
     net_profit = total_revenue - total_cost
 
@@ -7482,6 +7798,9 @@ def business_report_summary(
         Decimal(sale.balance_amount or 0)
         for sale in sales
     )
+
+    total_paid = Decimal(total_paid)
+    outstanding = Decimal(outstanding)
 
     return {
         "period": report_period_label(
@@ -7571,6 +7890,804 @@ def business_report_summary(
             for result in farm_results
         ],
     }
+
+
+
+# PATCH-REPORTS-002A.1B: BUSINESS SUMMARY PDF ENDPOINT
+
+
+# PATCH-REPORTS-002A.2: BUSINESS SUMMARY PDF CONTENT
+
+
+def messis_pdf_money(
+    value: object,
+) -> str:
+    try:
+        amount = Decimal(
+            str(value or "0")
+        )
+    except Exception:
+        amount = Decimal("0.00")
+
+    sign = "-" if amount < 0 else ""
+    absolute = abs(amount)
+
+    return (
+        f"{sign}₹"
+        f"{absolute:,.2f}"
+    )
+
+
+def messis_pdf_value(
+    value: object,
+    *,
+    suffix: str = "",
+) -> str:
+    if value is None:
+        return "-"
+
+    return f"{value}{suffix}"
+
+
+
+# PATCH-REPORTS-002A.3: PDF BRANDING AND PAGE FOOTER
+
+
+def draw_messis_pdf_page(
+    canvas,
+    document,
+) -> None:
+    canvas.saveState()
+
+    page_width, page_height = A4
+    fonts = register_messis_pdf_fonts()
+
+    canvas.setFillColor(
+        MESSIS_PDF_GREEN
+    )
+
+    canvas.rect(
+        0,
+        page_height - 13 * mm,
+        page_width,
+        13 * mm,
+        fill=1,
+        stroke=0,
+    )
+
+    canvas.setFillColor(
+        colors.white
+    )
+
+    canvas.setFont(
+        fonts["bold"],
+        11,
+    )
+
+    canvas.drawString(
+        16 * mm,
+        page_height - 8.5 * mm,
+        "MESSIS AI",
+    )
+
+    canvas.setFont(
+        fonts["regular"],
+        7.5,
+    )
+
+    canvas.drawRightString(
+        page_width - 16 * mm,
+        page_height - 8.5 * mm,
+        "Smart Agriculture Management System",
+    )
+
+    canvas.setStrokeColor(
+        MESSIS_PDF_BORDER
+    )
+
+    canvas.setLineWidth(0.4)
+
+    canvas.line(
+        16 * mm,
+        13 * mm,
+        page_width - 16 * mm,
+        13 * mm,
+    )
+
+    canvas.setFillColor(
+        MESSIS_PDF_MUTED
+    )
+
+    canvas.setFont(
+        fonts["regular"],
+        7,
+    )
+
+    canvas.drawString(
+        16 * mm,
+        8 * mm,
+        "Generated by Messis AI",
+    )
+
+    canvas.drawCentredString(
+        page_width / 2,
+        8 * mm,
+        "https://messis.ads-ai.in",
+    )
+
+    canvas.drawRightString(
+        page_width - 16 * mm,
+        8 * mm,
+        f"Page {document.page}",
+    )
+
+    canvas.restoreState()
+
+
+def build_business_summary_pdf(
+    summary_data: dict[str, object],
+    *,
+    generated_by: str,
+) -> bytes:
+    buffer = io.BytesIO()
+
+    document = create_messis_pdf_document(
+        buffer,
+        title="Messis AI Business Summary",
+    )
+
+    document.topMargin = 21 * mm
+    document.bottomMargin = 19 * mm
+
+    styles = messis_pdf_styles()
+
+    summary = dict(
+        summary_data.get("summary")
+        or {}
+    )
+
+    filters = dict(
+        summary_data.get("filters")
+        or {}
+    )
+
+    farms = list(
+        summary_data.get("farms")
+        or []
+    )
+
+    period = str(
+        summary_data.get("period")
+        or "All available records"
+    )
+
+    selected_farm_name = "All Farms"
+
+    if len(farms) == 1:
+        selected_farm_name = str(
+            farms[0].get("farm_name")
+            or "Selected Farm"
+        )
+
+    story = [
+        Spacer(
+            1,
+            2 * mm,
+        ),
+        Paragraph(
+            "BUSINESS SUMMARY REPORT",
+            styles["title"],
+        ),
+        Paragraph(
+            (
+                "Financial, harvest and farm "
+                "performance overview"
+            ),
+            styles["subtitle"],
+        ),
+        Spacer(
+            1,
+            2 * mm,
+        ),
+    ]
+
+    report_information = [
+        [
+            Paragraph(
+                "<b>Farm</b>",
+                styles["body"],
+            ),
+            Paragraph(
+                selected_farm_name,
+                styles["body"],
+            ),
+        ],
+        [
+            Paragraph(
+                "<b>Report Period</b>",
+                styles["body"],
+            ),
+            Paragraph(
+                period,
+                styles["body"],
+            ),
+        ],
+        [
+            Paragraph(
+                "<b>Generated Date</b>",
+                styles["body"],
+            ),
+            Paragraph(
+                datetime.now().strftime(
+                    "%d %b %Y, %I:%M %p"
+                ),
+                styles["body"],
+            ),
+        ],
+        [
+            Paragraph(
+                "<b>Generated By</b>",
+                styles["body"],
+            ),
+            Paragraph(
+                generated_by,
+                styles["body"],
+            ),
+        ],
+    ]
+
+    information_table = Table(
+        report_information,
+        colWidths=[
+            45 * mm,
+            117 * mm,
+        ],
+    )
+
+    information_table.setStyle(
+        TableStyle(
+            [
+                (
+                    "BACKGROUND",
+                    (0, 0),
+                    (0, -1),
+                    MESSIS_PDF_GREEN_LIGHT,
+                ),
+                (
+                    "GRID",
+                    (0, 0),
+                    (-1, -1),
+                    0.45,
+                    MESSIS_PDF_BORDER,
+                ),
+                (
+                    "VALIGN",
+                    (0, 0),
+                    (-1, -1),
+                    "MIDDLE",
+                ),
+                (
+                    "LEFTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    7,
+                ),
+                (
+                    "RIGHTPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    7,
+                ),
+                (
+                    "TOPPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    7,
+                ),
+                (
+                    "BOTTOMPADDING",
+                    (0, 0),
+                    (-1, -1),
+                    7,
+                ),
+            ]
+        )
+    )
+
+    story.extend(
+        [
+            information_table,
+            Spacer(
+                1,
+                5 * mm,
+            ),
+            Paragraph(
+                "EXECUTIVE SUMMARY",
+                styles["section"],
+            ),
+        ]
+    )
+
+    executive_rows = [
+        [
+            "Revenue",
+            messis_pdf_money(
+                summary.get("total_revenue")
+            ),
+        ],
+        [
+            "Operating Expense",
+            messis_pdf_money(
+                summary.get(
+                    "operating_expense"
+                )
+            ),
+        ],
+        [
+            "Harvest Cost",
+            messis_pdf_money(
+                summary.get("harvest_cost")
+            ),
+        ],
+        [
+            "Total Cost",
+            messis_pdf_money(
+                summary.get("total_cost")
+            ),
+        ],
+        [
+            "Net Profit",
+            messis_pdf_money(
+                summary.get("net_profit")
+            ),
+        ],
+        [
+            "Profitability",
+            messis_pdf_value(
+                summary.get(
+                    "profitability_percentage"
+                ),
+                suffix="%",
+            ),
+        ],
+    ]
+
+    executive_table = Table(
+        [
+            ["Metric", "Value"],
+            *executive_rows,
+        ],
+        colWidths=[
+            105 * mm,
+            57 * mm,
+        ],
+    )
+
+    executive_style = (
+        messis_pdf_table_style()
+    )
+
+    executive_style.add(
+        "ALIGN",
+        (1, 1),
+        (1, -1),
+        "RIGHT",
+    )
+
+    executive_table.setStyle(
+        executive_style
+    )
+
+    story.extend(
+        [
+            executive_table,
+            Spacer(
+                1,
+                5 * mm,
+            ),
+            Paragraph(
+                "HARVEST SUMMARY",
+                styles["section"],
+            ),
+        ]
+    )
+
+    harvested_trees = sum(
+        int(
+            farm.get(
+                "harvested_trees"
+            )
+            or 0
+        )
+        for farm in farms
+    )
+
+    yield_values = [
+        Decimal(
+            str(
+                farm.get(
+                    "yield_per_harvested_tree"
+                )
+                or "0"
+            )
+        )
+        for farm in farms
+    ]
+
+    average_yield = (
+        sum(
+            yield_values,
+            Decimal("0.00"),
+        )
+        / Decimal(len(yield_values))
+        if yield_values
+        else Decimal("0.00")
+    )
+
+    harvest_rows = [
+        [
+            "Harvest Records",
+            str(
+                summary.get(
+                    "harvest_count"
+                )
+                or 0
+            ),
+        ],
+        [
+            "Trees Harvested",
+            f"{harvested_trees:,}",
+        ],
+        [
+            "Total Coconuts",
+            f"{int(summary.get('total_coconuts') or 0):,}",
+        ],
+        [
+            "Average Yield / Tree",
+            f"{average_yield:.2f}",
+        ],
+    ]
+
+    harvest_table = Table(
+        [
+            ["Metric", "Value"],
+            *harvest_rows,
+        ],
+        colWidths=[
+            105 * mm,
+            57 * mm,
+        ],
+    )
+
+    harvest_style = (
+        messis_pdf_table_style()
+    )
+
+    harvest_style.add(
+        "ALIGN",
+        (1, 1),
+        (1, -1),
+        "RIGHT",
+    )
+
+    harvest_table.setStyle(
+        harvest_style
+    )
+
+    story.extend(
+        [
+            harvest_table,
+            Spacer(
+                1,
+                5 * mm,
+            ),
+            Paragraph(
+                "FINANCIAL SUMMARY",
+                styles["section"],
+            ),
+        ]
+    )
+
+    cost_per_coconut = Decimal("0.00")
+    revenue_per_coconut = Decimal("0.00")
+
+    total_coconuts = int(
+        summary.get("total_coconuts")
+        or 0
+    )
+
+    if total_coconuts > 0:
+        cost_per_coconut = (
+            Decimal(
+                str(
+                    summary.get("total_cost")
+                    or "0"
+                )
+            )
+            / Decimal(total_coconuts)
+        )
+
+        revenue_per_coconut = (
+            Decimal(
+                str(
+                    summary.get(
+                        "total_revenue"
+                    )
+                    or "0"
+                )
+            )
+            / Decimal(total_coconuts)
+        )
+
+    financial_rows = [
+        [
+            "Paid Amount",
+            messis_pdf_money(
+                summary.get("total_paid")
+            ),
+        ],
+        [
+            "Outstanding",
+            messis_pdf_money(
+                summary.get("outstanding")
+            ),
+        ],
+        [
+            "Revenue / Coconut",
+            messis_pdf_money(
+                revenue_per_coconut
+            ),
+        ],
+        [
+            "Cost / Coconut",
+            messis_pdf_money(
+                cost_per_coconut
+            ),
+        ],
+        [
+            "Profit / Coconut",
+            messis_pdf_money(
+                summary.get(
+                    "profit_per_coconut"
+                )
+            ),
+        ],
+    ]
+
+    financial_table = Table(
+        [
+            ["Metric", "Value"],
+            *financial_rows,
+        ],
+        colWidths=[
+            105 * mm,
+            57 * mm,
+        ],
+    )
+
+    financial_style = (
+        messis_pdf_table_style()
+    )
+
+    financial_style.add(
+        "ALIGN",
+        (1, 1),
+        (1, -1),
+        "RIGHT",
+    )
+
+    financial_table.setStyle(
+        financial_style
+    )
+
+    story.extend(
+        [
+            financial_table,
+            Spacer(
+                1,
+                5 * mm,
+            ),
+            Paragraph(
+                "FARM-WISE SUMMARY",
+                styles["section"],
+            ),
+        ]
+    )
+
+    farm_table_rows = [
+        [
+            "Farm",
+            "Trees",
+            "Coconuts",
+            "Revenue",
+            "Cost",
+            "Profit",
+        ]
+    ]
+
+    for farm in farms:
+        farm_table_rows.append(
+            [
+                Paragraph(
+                    str(
+                        farm.get("farm_name")
+                        or "-"
+                    ),
+                    styles["small"],
+                ),
+                f"{int(farm.get('total_farm_trees') or 0):,}",
+                f"{int(farm.get('total_coconuts') or 0):,}",
+                messis_pdf_money(
+                    farm.get("revenue")
+                ),
+                messis_pdf_money(
+                    farm.get("total_cost")
+                ),
+                messis_pdf_money(
+                    farm.get("net_profit")
+                ),
+            ]
+        )
+
+    if len(farm_table_rows) == 1:
+        farm_table_rows.append(
+            [
+                "No farm data",
+                "-",
+                "-",
+                "-",
+                "-",
+                "-",
+            ]
+        )
+
+    farm_table = Table(
+        farm_table_rows,
+        repeatRows=1,
+        colWidths=[
+            42 * mm,
+            20 * mm,
+            25 * mm,
+            25 * mm,
+            25 * mm,
+            25 * mm,
+        ],
+    )
+
+    farm_style = (
+        messis_pdf_table_style()
+    )
+
+    farm_style.add(
+        "ALIGN",
+        (1, 1),
+        (-1, -1),
+        "RIGHT",
+    )
+
+    for row_number, farm in enumerate(
+        farms,
+        start=1,
+    ):
+        try:
+            farm_profit = Decimal(
+                str(
+                    farm.get("net_profit")
+                    or "0"
+                )
+            )
+        except Exception:
+            farm_profit = Decimal("0")
+
+        if farm_profit < 0:
+            farm_style.add(
+                "TEXTCOLOR",
+                (5, row_number),
+                (5, row_number),
+                MESSIS_PDF_DANGER,
+            )
+
+    farm_table.setStyle(
+        farm_style
+    )
+
+    story.extend(
+        [
+            farm_table,
+            Spacer(
+                1,
+                7 * mm,
+            ),
+            Paragraph(
+                (
+                    "Generated by Messis AI · "
+                    "Smart Agriculture Management System"
+                ),
+                styles["subtitle"],
+            ),
+            Paragraph(
+                "https://messis.ads-ai.in",
+                styles["subtitle"],
+            ),
+        ]
+    )
+
+    document.build(
+        story,
+        onFirstPage=draw_messis_pdf_page,
+        onLaterPages=draw_messis_pdf_page,
+    )
+
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+
+    if not pdf_bytes.startswith(b"%PDF"):
+        raise RuntimeError(
+            "Generated Business Summary output "
+            "is not a valid PDF."
+        )
+
+    return pdf_bytes
+
+
+@app.get(
+    "/reports/summary.pdf",
+    include_in_schema=False,
+)
+def business_summary_pdf(
+    farm_id: int | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    summary_data = business_report_summary(
+        farm_id=farm_id,
+        date_from=date_from,
+        date_to=date_to,
+        user=user,
+        db=db,
+    )
+
+    generated_by = str(
+        getattr(
+            user,
+            "username",
+            None,
+        )
+        or getattr(
+            user,
+            "name",
+            None,
+        )
+        or "Farm Owner"
+    )
+
+    pdf_bytes = build_business_summary_pdf(
+        summary_data,
+        generated_by=generated_by,
+    )
+
+    filename = (
+        "Business-Summary-"
+        + date.today().strftime("%Y%m%d")
+        + ".pdf"
+    )
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'inline; filename="{filename}"'
+            ),
+            "Cache-Control": (
+                "private, no-store, max-age=0"
+            ),
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
 
 
 @app.get(
