@@ -1227,3 +1227,374 @@ class FarmTask(Base):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+# PATCH-IRR-001: SMART IRRIGATION & FERTIGATION DATABASE FOUNDATION
+# Additive tables only. Existing farm, harvest, finance, and tree data remain
+# untouched. All operational records are owner-scoped for tenant isolation.
+class IrrigationZone(Base):
+    __tablename__ = "irrigation_zones"
+    __table_args__ = (
+        UniqueConstraint("farm_id", "name", name="uq_irrigation_zone_farm_name"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(140), nullable=False)
+    crop_name: Mapped[str | None] = mapped_column(String(120))
+    crop_variety: Mapped[str | None] = mapped_column(String(120))
+    growth_stage: Mapped[str | None] = mapped_column(String(80))
+    plant_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    area_value: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
+    area_unit: Mapped[str] = mapped_column(String(20), nullable=False, default="acre")
+    soil_type: Mapped[str | None] = mapped_column(String(80))
+    irrigation_method: Mapped[str] = mapped_column(String(40), nullable=False, default="drip", index=True)
+    recommended_litres_per_plant: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    recommended_interval_days: Mapped[int | None] = mapped_column(Integer)
+    last_irrigation_date: Mapped[date | None] = mapped_column(Date)
+    next_irrigation_date: Mapped[date | None] = mapped_column(Date, index=True)
+    notes: Mapped[str | None] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class WaterSource(Base):
+    __tablename__ = "water_sources"
+    __table_args__ = (
+        UniqueConstraint("farm_id", "name", name="uq_water_source_farm_name"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(140), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    capacity_litres: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    current_level_litres: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    flow_rate_lpm: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    water_quality_status: Mapped[str | None] = mapped_column(String(40))
+    last_quality_test_date: Mapped[date | None] = mapped_column(Date)
+    availability_status: Mapped[str] = mapped_column(String(30), nullable=False, default="available", index=True)
+    notes: Mapped[str | None] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class IrrigationPump(Base):
+    __tablename__ = "irrigation_pumps"
+    __table_args__ = (
+        UniqueConstraint("farm_id", "name", name="uq_irrigation_pump_farm_name"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    water_source_id: Mapped[int | None] = mapped_column(ForeignKey("water_sources.id", ondelete="SET NULL"), index=True)
+    name: Mapped[str] = mapped_column(String(140), nullable=False)
+    pump_type: Mapped[str | None] = mapped_column(String(60))
+    horsepower: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    flow_rate_lpm: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    power_source: Mapped[str | None] = mapped_column(String(30))
+    operating_cost_per_hour: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    installation_date: Mapped[date | None] = mapped_column(Date)
+    last_service_date: Mapped[date | None] = mapped_column(Date)
+    next_service_date: Mapped[date | None] = mapped_column(Date, index=True)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="available", index=True)
+    fault_details: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class IrrigationPlan(Base):
+    __tablename__ = "irrigation_plans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    zone_id: Mapped[int] = mapped_column(ForeignKey("irrigation_zones.id", ondelete="CASCADE"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(180), nullable=False)
+    schedule_type: Mapped[str] = mapped_column(String(40), nullable=False, default="custom_interval")
+    interval_days: Mapped[int | None] = mapped_column(Integer)
+    planned_litres: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    litres_per_plant: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    estimated_duration_minutes: Mapped[int | None] = mapped_column(Integer)
+    weather_adjustment_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    fertigation_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    start_date: Mapped[date | None] = mapped_column(Date)
+    end_date: Mapped[date | None] = mapped_column(Date)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="active", index=True)
+    instructions: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class IrrigationSchedule(Base):
+    __tablename__ = "irrigation_schedules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    zone_id: Mapped[int] = mapped_column(ForeignKey("irrigation_zones.id", ondelete="CASCADE"), nullable=False, index=True)
+    plan_id: Mapped[int | None] = mapped_column(ForeignKey("irrigation_plans.id", ondelete="SET NULL"), index=True)
+    water_source_id: Mapped[int | None] = mapped_column(ForeignKey("water_sources.id", ondelete="SET NULL"), index=True)
+    pump_id: Mapped[int | None] = mapped_column(ForeignKey("irrigation_pumps.id", ondelete="SET NULL"), index=True)
+    scheduled_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    scheduled_start_time: Mapped[str | None] = mapped_column(String(10))
+    planned_litres: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    estimated_duration_minutes: Mapped[int | None] = mapped_column(Integer)
+    assigned_worker: Mapped[str | None] = mapped_column(String(140))
+    fertigation_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    weather_recommendation: Mapped[str | None] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="planned", index=True)
+    instructions: Mapped[str | None] = mapped_column(Text)
+    postponed_from_date: Mapped[date | None] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class IrrigationExecution(Base):
+    __tablename__ = "irrigation_executions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    schedule_id: Mapped[int] = mapped_column(ForeignKey("irrigation_schedules.id", ondelete="CASCADE"), nullable=False, index=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    actual_duration_minutes: Mapped[int | None] = mapped_column(Integer)
+    actual_water_litres: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    opening_meter_reading: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    closing_meter_reading: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    opening_tank_level_litres: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    closing_tank_level_litres: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    completion_percentage: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    leakage_reported: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    pump_issue_reported: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    worker_remarks: Mapped[str | None] = mapped_column(Text)
+    supervisor_approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class FertilizerProduct(Base):
+    __tablename__ = "fertilizer_products"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "name", name="uq_fertilizer_product_owner_name"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(180), nullable=False)
+    category: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    manufacturer: Mapped[str | None] = mapped_column(String(140))
+    unit: Mapped[str] = mapped_column(String(20), nullable=False, default="kg")
+    stock_quantity: Mapped[Decimal] = mapped_column(Numeric(14, 3), nullable=False, default=Decimal("0"))
+    safe_concentration_per_1000l: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
+    expiry_date: Mapped[date | None] = mapped_column(Date, index=True)
+    compatibility_notes: Mapped[str | None] = mapped_column(Text)
+    safety_instructions: Mapped[str | None] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class FertigationPlan(Base):
+    __tablename__ = "fertigation_plans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    zone_id: Mapped[int] = mapped_column(ForeignKey("irrigation_zones.id", ondelete="CASCADE"), nullable=False, index=True)
+    schedule_id: Mapped[int | None] = mapped_column(ForeignKey("irrigation_schedules.id", ondelete="SET NULL"), index=True)
+    name: Mapped[str] = mapped_column(String(180), nullable=False)
+    planned_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    growth_stage: Mapped[str | None] = mapped_column(String(80))
+    total_water_litres: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    tank_capacity_litres: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    number_of_batches: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    initial_flush_minutes: Mapped[int | None] = mapped_column(Integer)
+    injection_minutes: Mapped[int | None] = mapped_column(Integer)
+    final_flush_minutes: Mapped[int | None] = mapped_column(Integer)
+    agronomist_reference: Mapped[str | None] = mapped_column(String(255))
+    assigned_worker: Mapped[str | None] = mapped_column(String(140))
+    approval_status: Mapped[str] = mapped_column(String(30), nullable=False, default="draft", index=True)
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    safety_instructions: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class FertigationPlanItem(Base):
+    __tablename__ = "fertigation_plan_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    fertigation_plan_id: Mapped[int] = mapped_column(ForeignKey("fertigation_plans.id", ondelete="CASCADE"), nullable=False, index=True)
+    fertilizer_product_id: Mapped[int] = mapped_column(ForeignKey("fertilizer_products.id", ondelete="RESTRICT"), nullable=False, index=True)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(14, 3), nullable=False)
+    unit: Mapped[str] = mapped_column(String(20), nullable=False, default="kg")
+    mixing_order: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    quantity_per_batch: Mapped[Decimal | None] = mapped_column(Numeric(14, 3))
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class WeatherIrrigationRecommendation(Base):
+    __tablename__ = "weather_irrigation_recommendations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    zone_id: Mapped[int] = mapped_column(ForeignKey("irrigation_zones.id", ondelete="CASCADE"), nullable=False, index=True)
+    schedule_id: Mapped[int | None] = mapped_column(ForeignKey("irrigation_schedules.id", ondelete="CASCADE"), index=True)
+    forecast_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    temperature_c: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    humidity_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    rain_probability_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    forecast_rain_mm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    wind_speed_kph: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    recommendation: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    adjustment_percent: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    recommended_litres: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    reason: Mapped[str | None] = mapped_column(Text)
+    user_decision: Mapped[str] = mapped_column(String(30), nullable=False, default="pending", index=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    source_name: Mapped[str | None] = mapped_column(String(100))
+    raw_weather_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class SoilMoistureReading(Base):
+    __tablename__ = "soil_moisture_readings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    zone_id: Mapped[int] = mapped_column(ForeignKey("irrigation_zones.id", ondelete="CASCADE"), nullable=False, index=True)
+    reading_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    moisture_percent: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    depth_cm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    source_type: Mapped[str] = mapped_column(String(30), nullable=False, default="manual")
+    sensor_reference: Mapped[str | None] = mapped_column(String(120))
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class WaterMeterReading(Base):
+    __tablename__ = "water_meter_readings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    water_source_id: Mapped[int | None] = mapped_column(ForeignKey("water_sources.id", ondelete="SET NULL"), index=True)
+    pump_id: Mapped[int | None] = mapped_column(ForeignKey("irrigation_pumps.id", ondelete="SET NULL"), index=True)
+    execution_id: Mapped[int | None] = mapped_column(ForeignKey("irrigation_executions.id", ondelete="SET NULL"), index=True)
+    reading_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    meter_value_litres: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    reading_type: Mapped[str] = mapped_column(String(30), nullable=False, default="manual")
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class IrrigationAlert(Base):
+    __tablename__ = "irrigation_alerts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    zone_id: Mapped[int | None] = mapped_column(ForeignKey("irrigation_zones.id", ondelete="CASCADE"), index=True)
+    schedule_id: Mapped[int | None] = mapped_column(ForeignKey("irrigation_schedules.id", ondelete="CASCADE"), index=True)
+    alert_type: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    severity: Mapped[str] = mapped_column(String(20), nullable=False, default="info", index=True)
+    title: Mapped[str] = mapped_column(String(180), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="open", index=True)
+    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class IrrigationAttachment(Base):
+    __tablename__ = "irrigation_attachments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    schedule_id: Mapped[int | None] = mapped_column(ForeignKey("irrigation_schedules.id", ondelete="CASCADE"), index=True)
+    execution_id: Mapped[int | None] = mapped_column(ForeignKey("irrigation_executions.id", ondelete="CASCADE"), index=True)
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    stored_path: Mapped[str] = mapped_column(String(500), nullable=False)
+    content_type: Mapped[str | None] = mapped_column(String(120))
+    file_size_bytes: Mapped[int | None] = mapped_column(Integer)
+    attachment_type: Mapped[str] = mapped_column(String(30), nullable=False, default="other")
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+# PATCH-IRR-003: PUMPS AND IRRIGATION EQUIPMENT MANAGEMENT
+class IrrigationEquipment(Base):
+    __tablename__ = "irrigation_equipment"
+    __table_args__ = (UniqueConstraint("farm_id", "name", name="uq_irrigation_equipment_farm_name"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    zone_id: Mapped[int | None] = mapped_column(ForeignKey("irrigation_zones.id", ondelete="SET NULL"), index=True)
+    pump_id: Mapped[int | None] = mapped_column(ForeignKey("irrigation_pumps.id", ondelete="SET NULL"), index=True)
+    name: Mapped[str] = mapped_column(String(140), nullable=False)
+    equipment_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    manufacturer: Mapped[str | None] = mapped_column(String(140))
+    model_number: Mapped[str | None] = mapped_column(String(100))
+    serial_number: Mapped[str | None] = mapped_column(String(120))
+    installation_date: Mapped[date | None] = mapped_column(Date)
+    purchase_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="available", index=True)
+    last_service_date: Mapped[date | None] = mapped_column(Date)
+    next_service_date: Mapped[date | None] = mapped_column(Date, index=True)
+    notes: Mapped[str | None] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PumpMaintenanceRecord(Base):
+    __tablename__ = "pump_maintenance_records"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    pump_id: Mapped[int] = mapped_column(ForeignKey("irrigation_pumps.id", ondelete="CASCADE"), nullable=False, index=True)
+    service_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    service_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    technician: Mapped[str | None] = mapped_column(String(140))
+    cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    next_service_date: Mapped[date | None] = mapped_column(Date, index=True)
+    work_performed: Mapped[str | None] = mapped_column(Text)
+    parts_replaced: Mapped[str | None] = mapped_column(Text)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+class PumpRuntimeLog(Base):
+    __tablename__ = "pump_runtime_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    pump_id: Mapped[int] = mapped_column(ForeignKey("irrigation_pumps.id", ondelete="CASCADE"), nullable=False, index=True)
+    run_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    runtime_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    energy_kwh: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
+    fuel_litres: Mapped[Decimal | None] = mapped_column(Numeric(12, 3))
+    water_pumped_litres: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    operating_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)

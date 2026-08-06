@@ -47,6 +47,7 @@ from app.agro_framework import farm_template_context, router as agro_router, see
 from app.task_management import router as task_router
 from app.reminders import router as reminder_router
 from app.harvest_phases import lifecycle_context, router as harvest_phase_router
+from app.irrigation_management import router as irrigation_router
 from app.security import hash_passcode, valid_passcode, verify_passcode
 from app.version import APP_VERSION, RELEASE_NAME
 
@@ -58,6 +59,7 @@ app.include_router(agro_router)
 app.include_router(task_router)
 app.include_router(reminder_router)
 app.include_router(harvest_phase_router)
+app.include_router(irrigation_router)
 
 app.add_middleware(
     SessionMiddleware,

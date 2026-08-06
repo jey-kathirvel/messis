@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="/static/css/irrigation.css?v=002">
+<main class="irr-shell">
+<header class="irr-hero"><div><span class="eyebrow">MESSIS AI · WATER INTELLIGENCE</span><h1>{{ page_title }}</h1><p>Plan water distribution with farm-level ownership and field-ready records.</p></div><nav><a href="/irrigation">Overview</a><a href="/irrigation/zones">Zones</a><a href="/irrigation/water-sources">Water Sources</a><a href="/irrigation/pumps">Pumps</a><a href="/irrigation/equipment">Equipment</a></nav></header>
+{% if success_message %}<div class="alert success">{{ success_message }}</div>{% endif %}{% if error_message %}<div class="alert error">{{ error_message }}</div>{% endif %}
+{% block irrigation_content %}{% endblock %}
+</main>
+{% endblock %}
