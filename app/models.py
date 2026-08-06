@@ -1598,3 +1598,35 @@ class PumpRuntimeLog(Base):
     operating_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+
+# PATCH-IRR-004: SMART WATER REQUIREMENT CALCULATOR
+class WaterRequirementCalculation(Base):
+    __tablename__ = "water_requirement_calculations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id", ondelete="CASCADE"), nullable=False, index=True)
+    zone_id: Mapped[int] = mapped_column(ForeignKey("irrigation_zones.id", ondelete="CASCADE"), nullable=False, index=True)
+    pump_id: Mapped[int | None] = mapped_column(ForeignKey("irrigation_pumps.id", ondelete="SET NULL"), index=True)
+    calculation_date: Mapped[date] = mapped_column(Date, nullable=False, default=date.today, index=True)
+    plant_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    base_litres_per_plant: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    base_water_litres: Mapped[Decimal] = mapped_column(Numeric(16, 2), nullable=False)
+    soil_factor: Mapped[Decimal] = mapped_column(Numeric(8, 4), nullable=False, default=Decimal("1"))
+    irrigation_efficiency: Mapped[Decimal] = mapped_column(Numeric(8, 4), nullable=False, default=Decimal("0.90"))
+    temperature_c: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
+    humidity_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    rain_probability_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    expected_rain_mm: Mapped[Decimal | None] = mapped_column(Numeric(8, 2))
+    weather_adjustment_percent: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False, default=Decimal("0"))
+    effective_rain_litres: Mapped[Decimal] = mapped_column(Numeric(16, 2), nullable=False, default=Decimal("0"))
+    final_water_litres: Mapped[Decimal] = mapped_column(Numeric(16, 2), nullable=False)
+    water_saved_litres: Mapped[Decimal] = mapped_column(Numeric(16, 2), nullable=False, default=Decimal("0"))
+    estimated_runtime_minutes: Mapped[int | None] = mapped_column(Integer)
+    estimated_operating_cost: Mapped[Decimal | None] = mapped_column(Numeric(14, 2))
+    recommendation: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    recommendation_reason: Mapped[str | None] = mapped_column(Text)
+    user_override_litres: Mapped[Decimal | None] = mapped_column(Numeric(16, 2))
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)

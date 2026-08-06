@@ -13,7 +13,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import (Farm, IrrigationEquipment, IrrigationPump, IrrigationZone, PumpMaintenanceRecord, PumpRuntimeLog, User, WaterSource)
+from app.services.water_calculator import calculate_water
+from app.models import (Farm, IrrigationEquipment, IrrigationPump, IrrigationZone, PumpMaintenanceRecord, PumpRuntimeLog, User, WaterSource, WaterRequirementCalculation)
 
 router = APIRouter(tags=["Irrigation Management"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
@@ -398,3 +399,47 @@ def runtime_create(pump_id:int,run_date:str=Form(...),runtime_minutes:str=Form(.
     except ValueError as exc:
         db.rollback(); return RedirectResponse(f"/irrigation/pumps/{pump_id}/runtime?error={quote(str(exc))}",status_code=303)
     return RedirectResponse(f"/irrigation/pumps/{pump_id}/runtime?success="+quote("Runtime log added."),status_code=303)
+
+
+# PATCH-IRR-004: SMART WATER REQUIREMENT CALCULATOR
+@router.get("/irrigation/calculator", response_class=HTMLResponse)
+def water_calculator_page(request:Request, zone_id:int|None=None, user:User=Depends(current_irrigation_user), db:Session=Depends(get_db)):
+    zones=list(db.scalars(select(IrrigationZone).where(IrrigationZone.owner_id==user.id,IrrigationZone.is_active.is_(True)).order_by(IrrigationZone.name)))
+    pumps=list(db.scalars(select(IrrigationPump).where(IrrigationPump.owner_id==user.id).order_by(IrrigationPump.name)))
+    selected=_zone(db,user.id,zone_id) if zone_id else None
+    return templates.TemplateResponse(request=request,name="irrigation/calculator.html",context=_ctx(request,user,page_title="Smart Water Calculator",zones=zones,pumps=pumps,selected_zone=selected,result=None))
+
+@router.post("/irrigation/calculator", response_class=HTMLResponse)
+def water_calculator_run(request:Request,zone_id:int=Form(...),pump_id:str=Form(""),plant_count:str=Form(...),litres_per_plant:str=Form(...),temperature_c:str=Form(""),humidity_percent:str=Form(""),rain_probability_percent:str=Form(""),expected_rain_mm:str=Form(""),notes:str=Form(""),user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    zones=list(db.scalars(select(IrrigationZone).where(IrrigationZone.owner_id==user.id,IrrigationZone.is_active.is_(True)).order_by(IrrigationZone.name)))
+    pumps=list(db.scalars(select(IrrigationPump).where(IrrigationPump.owner_id==user.id).order_by(IrrigationPump.name)))
+    try:
+        zone=_zone(db,user.id,zone_id); pid=_integer(pump_id,"Pump"); pump=_pump(db,user.id,pid) if pid else None
+        if pump and pump.farm_id!=zone.farm_id: raise ValueError("Pump must belong to the selected zone's farm.")
+        count=_integer(plant_count,"Plant count",allow_zero=False); lpp=_decimal(litres_per_plant,"Litres per plant",allow_zero=False)
+        result=calculate_water(plant_count=count or 0,litres_per_plant=lpp or Decimal("0"),soil_type=zone.soil_type,irrigation_method=zone.irrigation_method,pump_flow_lpm=pump.flow_rate_lpm if pump else None,pump_cost_per_hour=pump.operating_cost_per_hour if pump else None,temperature_c=_decimal(temperature_c,"Temperature"),humidity_percent=_decimal(humidity_percent,"Humidity"),rain_probability_percent=_decimal(rain_probability_percent,"Rain probability"),expected_rain_mm=_decimal(expected_rain_mm,"Expected rain"),area_value=zone.area_value)
+        row=WaterRequirementCalculation(owner_id=user.id,farm_id=zone.farm_id,zone_id=zone.id,pump_id=pump.id if pump else None,calculation_date=date.today(),plant_count=count,base_litres_per_plant=lpp,base_water_litres=result.base_water_litres,soil_factor=result.soil_factor,irrigation_efficiency=result.irrigation_efficiency,temperature_c=_decimal(temperature_c,"Temperature"),humidity_percent=_decimal(humidity_percent,"Humidity"),rain_probability_percent=_decimal(rain_probability_percent,"Rain probability"),expected_rain_mm=_decimal(expected_rain_mm,"Expected rain"),weather_adjustment_percent=result.weather_adjustment_percent,effective_rain_litres=result.effective_rain_litres,final_water_litres=result.final_water_litres,water_saved_litres=result.water_saved_litres,estimated_runtime_minutes=result.estimated_runtime_minutes,estimated_operating_cost=result.estimated_operating_cost,recommendation=result.recommendation,recommendation_reason=result.reason,notes=_text(notes)); db.add(row); db.commit()
+        return templates.TemplateResponse(request=request,name="irrigation/calculator.html",context=_ctx(request,user,page_title="Smart Water Calculator",zones=zones,pumps=pumps,selected_zone=zone,result=result))
+    except ValueError as exc:
+        db.rollback(); return templates.TemplateResponse(request=request,name="irrigation/calculator.html",context=_ctx(request,user,page_title="Smart Water Calculator",zones=zones,pumps=pumps,selected_zone=None,result=None,error_message=str(exc)),status_code=400)
+
+@router.get("/irrigation/calculator/history", response_class=HTMLResponse)
+def water_calculator_history(request:Request,user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    # PATCH-IRR-004B: premium history dashboard metrics and trend data.
+    rows=list(db.execute(select(WaterRequirementCalculation,IrrigationZone,Farm).join(IrrigationZone,IrrigationZone.id==WaterRequirementCalculation.zone_id).join(Farm,Farm.id==WaterRequirementCalculation.farm_id).where(WaterRequirementCalculation.owner_id==user.id,IrrigationZone.owner_id==user.id,Farm.owner_id==user.id).order_by(WaterRequirementCalculation.created_at.desc()).limit(250)).all())
+    total=db.scalar(select(func.coalesce(func.sum(WaterRequirementCalculation.final_water_litres),0)).where(WaterRequirementCalculation.owner_id==user.id)) or 0
+    saved=db.scalar(select(func.coalesce(func.sum(WaterRequirementCalculation.water_saved_litres),0)).where(WaterRequirementCalculation.owner_id==user.id)) or 0
+    runtime=db.scalar(select(func.coalesce(func.sum(WaterRequirementCalculation.estimated_runtime_minutes),0)).where(WaterRequirementCalculation.owner_id==user.id)) or 0
+    cost=db.scalar(select(func.coalesce(func.sum(WaterRequirementCalculation.estimated_operating_cost),0)).where(WaterRequirementCalculation.owner_id==user.id)) or 0
+    count=db.scalar(select(func.count(WaterRequirementCalculation.id)).where(WaterRequirementCalculation.owner_id==user.id)) or 0
+
+    recent=list(reversed(rows[:12]))
+    max_final=max((float(item[0].final_water_litres or 0) for item in recent),default=0) or 1
+    trend=[{
+        "label": item[0].calculation_date.strftime("%d %b"),
+        "litres": float(item[0].final_water_litres or 0),
+        "saved": float(item[0].water_saved_litres or 0),
+        "height": max(8,round((float(item[0].final_water_litres or 0)/max_final)*100)),
+    } for item in recent]
+
+    return templates.TemplateResponse(request=request,name="irrigation/calculator_history.html",context=_ctx(request,user,page_title="Water Calculation History",rows=rows,total=total,saved=saved,runtime=runtime,cost=cost,count=count,trend=trend))
