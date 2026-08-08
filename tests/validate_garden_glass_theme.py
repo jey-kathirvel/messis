@@ -4,13 +4,13 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 theme = (root / "app/static/css/garden-glass.css").read_text(encoding="utf-8")
-for marker in ("MESSIS-UX-GLASS-001", "--glass-surface", "backdrop-filter", "prefers-reduced-transparency", ".sidebar", "table", "input,select,textarea", ".messis-mobile-navigation"):
+for marker in ("MESSIS-UX-GLASS-001", "--glass-surface", "backdrop-filter", "prefers-reduced-transparency", ".sidebar", "table", "input,select,textarea", ".messis-mobile-navigation", ".topbar .page-title strong", ".weather-summary-panel"):
     assert marker in theme, marker
 for relative in ("app/static/css/app.css", "app/static/css/agri-theme.css", "app/static/pwa/mobile-shell.css"):
     text = (root / relative).read_text(encoding="utf-8")
-    assert "garden-glass.css?v=001" in "\n".join(text.splitlines()[:3]), relative
+    assert "garden-glass.css?v=002" in "\n".join(text.splitlines()[:3]), relative
 for relative in ("app/templates/errors/404.html", "app/templates/errors/500.html", "app/templates/reminders/popup.html", "app/templates/setup/dynamic_fields.html"):
-    assert "garden-glass.css?v=001" in (root / relative).read_text(encoding="utf-8"), relative
+    assert "garden-glass.css?v=002" in (root / relative).read_text(encoding="utf-8"), relative
 for path in (root / "app/templates").rglob("*.html"):
     text = path.read_text(encoding="utf-8")
     if "<html" not in text.lower():

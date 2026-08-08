@@ -1,4 +1,4 @@
-@import url("/static/css/garden-glass.css?v=001");
+@import url("/static/css/garden-glass.css?v=002");
 :root{--farm-forest:#123b25;--farm-green:#187a3d;--farm-leaf:#49a942;--farm-lime:#b7d64b;--farm-gold:#e7aa24;--farm-soil:#8a542f;--farm-cream:#fbf8eb;--farm-mist:#eef7ef;--farm-water:#2c91a8;--farm-ink:#17351f;--farm-shadow:0 18px 50px rgba(20,70,36,.13)}
 html{accent-color:var(--farm-green)}body{color:var(--farm-ink);background-color:#f4f8f3!important;background-image:radial-gradient(circle at 8% 4%,rgba(183,214,75,.12),transparent 23rem),radial-gradient(circle at 94% 12%,rgba(44,145,168,.08),transparent 26rem),linear-gradient(145deg,#fafbf5 0%,#f2f7f1 58%,#eef6f3 100%)!important;background-attachment:fixed}
 a,button,input,select,textarea{transition:border-color .18s,box-shadow .18s,transform .18s,background-color .18s}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid rgba(231,170,36,.45)!important;outline-offset:2px}input:focus,select:focus,textarea:focus{border-color:var(--farm-green)!important;box-shadow:0 0 0 4px rgba(24,122,61,.1)!important}
