@@ -10,13 +10,15 @@ for marker in ("MESSIS-UX-HEADER-001", "height:54px", ".messis-nav-icon-button",
     assert marker in subpages, marker
 assert "messis-subpages.css?v=001b" in base
 assert 'aria-label="Go back"' in base and 'aria-label="Back to dashboard"' in base
-for marker in ("MESSIS-UX-GLASS-001", "--glass-surface", "backdrop-filter", "prefers-reduced-transparency", ".sidebar", "table", "input,select,textarea", ".messis-mobile-navigation", ".topbar .page-title strong", ".weather-summary-panel", ".topbar{padding-right:190px"):
+for marker in ("MESSIS-UX-GLASS-001", "--glass-surface", "backdrop-filter", "prefers-reduced-transparency", ".sidebar", "table", "input,select,textarea", ".messis-mobile-navigation", ".topbar .page-title strong", ".weather-summary-panel", ".topbar{padding-right:190px", ".pwa-install-button.visible"):
     assert marker in theme, marker
 for relative in ("app/static/css/app.css", "app/static/css/agri-theme.css", "app/static/pwa/mobile-shell.css"):
     text = (root / relative).read_text(encoding="utf-8")
-    assert "garden-glass.css?v=003" in "\n".join(text.splitlines()[:3]), relative
+    assert "garden-glass.css?v=004" in "\n".join(text.splitlines()[:3]), relative
 for relative in ("app/templates/errors/404.html", "app/templates/errors/500.html", "app/templates/reminders/popup.html", "app/templates/setup/dynamic_fields.html"):
-    assert "garden-glass.css?v=003" in (root / relative).read_text(encoding="utf-8"), relative
+    assert "garden-glass.css?v=004" in (root / relative).read_text(encoding="utf-8"), relative
+dashboard = (root / "app/templates/dashboard/business.html").read_text(encoding="utf-8")
+assert 'aria-label="Install Messis AI app"' in dashboard and "pwa-install-icon" in dashboard
 for path in (root / "app/templates").rglob("*.html"):
     text = path.read_text(encoding="utf-8")
     if "<html" not in text.lower():
