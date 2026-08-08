@@ -228,6 +228,76 @@ def current_user(
     return user
 
 
+def valid_recovery_email(value: str) -> bool:
+    return (
+        len(value) <= 254
+        and re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", value) is not None
+    )
+
+
+@app.get("/account/recovery-email", response_class=HTMLResponse)
+def recovery_email_page(
+    request: Request,
+    user: User = Depends(current_user),
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="auth/recovery_email.html",
+        context={
+            "page_title": "Recovery Email",
+            "current_user": user,
+            "email": user.email or "",
+            "next_path": request.query_params.get("next", "/dashboard"),
+            "error_message": None,
+            "is_required": not bool(user.email),
+        },
+    )
+
+
+@app.post("/account/recovery-email", response_class=HTMLResponse)
+def recovery_email_submit(
+    request: Request,
+    email: str = Form(...),
+    next_path: str = Form("/dashboard"),
+    user: User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    normalized_email = email.strip().lower()
+    error_message = None
+    if not valid_recovery_email(normalized_email):
+        error_message = "Enter a valid email address."
+    elif db.scalar(select(User.id).where(
+        func.lower(User.email) == normalized_email,
+        User.id != user.id,
+    )):
+        error_message = "This email address is already registered to another account."
+
+    if error_message:
+        return templates.TemplateResponse(
+            request=request,
+            name="auth/recovery_email.html",
+            context={
+                "page_title": "Recovery Email",
+                "current_user": user,
+                "email": normalized_email,
+                "next_path": next_path,
+                "error_message": error_message,
+                "is_required": not bool(user.email),
+            },
+            status_code=400,
+        )
+
+    user.email = normalized_email
+    audit(db, request, "recovery_email_saved", user.id)
+    db.commit()
+    destination = (
+        next_path
+        if next_path.startswith("/") and not next_path.startswith("//")
+        else "/dashboard"
+    )
+    return RedirectResponse(destination, status_code=303)
+
+
 @app.get("/account/change-passcode", response_class=HTMLResponse)
 def change_passcode_page(
     request: Request,
@@ -976,8 +1046,14 @@ def login(
     )
 
     setup = db.scalar(select(UserSetupProfile).where(UserSetupProfile.owner_id == user.id))
+    destination = "/setup" if setup and setup.status != "COMPLETED" else "/dashboard"
+    if not user.email:
+        return RedirectResponse(
+            "/account/recovery-email?next=" + quote(destination, safe=""),
+            status_code=303,
+        )
     return RedirectResponse(
-        "/setup" if setup and setup.status != "COMPLETED" else "/dashboard",
+        destination,
         status_code=303,
     )
 

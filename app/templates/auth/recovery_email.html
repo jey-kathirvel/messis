@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.recovery-email-shell{max-width:680px;margin:0 auto;padding:34px 18px 110px}.recovery-email-hero{padding:25px;border-radius:22px;color:#fff;background:linear-gradient(135deg,#073b2a,#168447);box-shadow:0 18px 42px rgba(7,59,42,.17)}.recovery-email-hero h1{margin:0 0 7px;font-size:clamp(25px,5vw,35px)}.recovery-email-hero p{margin:0;color:#d9fbe6;line-height:1.55}.recovery-email-card{margin-top:18px;padding:25px;border:1px solid #d6e7dc;border-radius:20px;background:rgba(255,255,255,.86);box-shadow:0 12px 32px rgba(7,59,42,.07);backdrop-filter:blur(18px)}.recovery-email-alert{margin-bottom:18px;padding:13px 15px;border-radius:12px;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;font-weight:750}.recovery-email-field label{display:block;margin-bottom:7px;color:#33443a;font-size:12px;font-weight:850}.recovery-email-field input{box-sizing:border-box;width:100%;min-height:50px;padding:12px 14px;border:1px solid #c8dace;border-radius:12px;color:#17231c;background:#fff;font:700 16px Manrope,sans-serif}.recovery-email-field input:focus{outline:3px solid #bbf7d0;border-color:#16a34a}.recovery-email-help{display:block;margin-top:8px;color:#718077;font-size:11px;line-height:1.5}.recovery-email-save{width:100%;min-height:47px;margin-top:22px;border:0;border-radius:12px;color:#fff;background:#168447;font-weight:850;cursor:pointer}.recovery-email-note{display:flex;gap:10px;margin-top:18px;padding:14px;border-radius:13px;color:#52645a;background:#f5faf6;font-size:12px;line-height:1.55}@media(max-width:600px){.recovery-email-shell{padding:17px 12px 100px}.recovery-email-hero,.recovery-email-card{padding:18px}}
+</style>
+<main class="recovery-email-shell">
+    <section class="recovery-email-hero">
+        <h1>✉ Secure your account</h1>
+        <p>{% if is_required %}Add your email once to enable secure passcode recovery.{% else %}Review or update the email used for passcode recovery.{% endif %}</p>
+    </section>
+    <section class="recovery-email-card">
+        {% if error_message %}<div class="recovery-email-alert" role="alert">{{ error_message }}</div>{% endif %}
+        <form method="post" action="/account/recovery-email">
+            <input type="hidden" name="next_path" value="{{ next_path }}">
+            <div class="recovery-email-field">
+                <label for="email">Recovery email address</label>
+                <input id="email" name="email" type="email" maxlength="254" value="{{ email }}" autocomplete="email" required autofocus>
+                <small class="recovery-email-help">We use this only for account security and passcode-reset messages. Each email can belong to only one Messis account.</small>
+            </div>
+            <button class="recovery-email-save" type="submit">Save and continue</button>
+        </form>
+        <div class="recovery-email-note"><span>🛡️</span><span>This updates only your recovery email. Your user ID, passcode, farms, harvests, finances, and all existing records remain unchanged.</span></div>
+    </section>
+</main>
+{% endblock %}

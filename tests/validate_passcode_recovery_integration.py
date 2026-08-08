@@ -20,7 +20,7 @@ import app.main as main_module
 from app.database import SessionLocal
 from app.main import app
 from app.models import Farm, PasscodeResetToken, User
-from app.security import verify_passcode
+from app.security import hash_passcode, verify_passcode
 
 
 def main() -> None:
@@ -39,6 +39,46 @@ def main() -> None:
     }
 
     with TestClient(app, base_url="https://messis.example.test") as client:
+        with SessionLocal() as db:
+            legacy_user = User(
+                user_id="legacy-owner",
+                mobile_number="9876543220",
+                display_name="Legacy Owner",
+                passcode_hash=hash_passcode("112233"),
+                role="owner",
+                is_active=True,
+            )
+            db.add(legacy_user)
+            db.flush()
+            legacy_user_id = legacy_user.id
+            db.add(Farm(owner_id=legacy_user.id, name="Legacy Preserved Farm", total_trees=77))
+            db.commit()
+
+        legacy_login = client.post(
+            "/auth/login",
+            data={"user_id": "legacy-owner", "passcode": "112233"},
+            follow_redirects=False,
+        )
+        assert legacy_login.status_code == 303
+        assert legacy_login.headers["location"].startswith("/account/recovery-email?next=")
+        recovery_page = client.get(legacy_login.headers["location"])
+        assert recovery_page.status_code == 200
+        assert "Save and continue" in recovery_page.text
+        saved_email = client.post(
+            "/account/recovery-email",
+            data={"email": "legacy@example.test", "next_path": "/dashboard"},
+            follow_redirects=False,
+        )
+        assert saved_email.status_code == 303
+        assert saved_email.headers["location"] == "/dashboard"
+        with SessionLocal() as db:
+            legacy_user = db.get(User, legacy_user_id)
+            legacy_farm = db.scalar(select(Farm).where(Farm.owner_id == legacy_user_id))
+            assert legacy_user.email == "legacy@example.test"
+            assert legacy_farm.name == "Legacy Preserved Farm" and legacy_farm.total_trees == 77
+            assert verify_passcode(legacy_user.passcode_hash, "112233")
+
+        client.post("/auth/logout")
         created = client.post("/auth/set-passcode", data=signup, follow_redirects=False)
         assert created.status_code == 303
 

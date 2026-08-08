@@ -11,6 +11,7 @@ def main() -> None:
     login = Path("app/templates/auth/login.html").read_text(encoding="utf-8")
     forgot = Path("app/templates/auth/forgot_passcode.html").read_text(encoding="utf-8")
     reset = Path("app/templates/auth/reset_passcode.html").read_text(encoding="utf-8")
+    recovery_email = Path("app/templates/auth/recovery_email.html").read_text(encoding="utf-8")
 
     for source in (main_source, models, config, mailer):
         ast.parse(source)
@@ -33,6 +34,11 @@ def main() -> None:
     assert "remain unchanged" in reset.lower()
     assert "smtplib.SMTP" in mailer and "starttls" in mailer
     assert "public_base_url" in config and "passcode_reset_minutes" in config
+    assert '@app.post("/account/recovery-email"' in main_source
+    assert "if not user.email:" in main_source
+    assert "recovery-email?next=" in main_source
+    assert "Save and continue" in recovery_email
+    assert "all existing records remain unchanged" in recovery_email
     print("PASSCODE RECOVERY SOURCE VALIDATION: PASSED")
 
 
