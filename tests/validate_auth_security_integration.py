@@ -19,6 +19,7 @@ def main() -> None:
     valid_data = {
         "username": f"uat-{suffix}",
         "mobile_number": f"98765{int(suffix, 16) % 100000:05d}",
+        "email": f"uat-{suffix}@example.test",
         "passcode": "246810",
         "confirm_passcode": "246810",
         "registration_code": settings.signup_access_code,

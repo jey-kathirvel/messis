@@ -12,6 +12,16 @@ class Settings(BaseSettings):
     signup_access_code: str = ""
     signup_max_attempts: int = 5
     signup_window_seconds: int = 900
+    passcode_reset_minutes: int = 30
+    passcode_reset_max_attempts: int = 5
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
+    public_base_url: str = ""
     csrf_trusted_origins: str = ""
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
