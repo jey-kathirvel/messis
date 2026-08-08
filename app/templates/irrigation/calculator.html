@@ -1,0 +1,110 @@
+{% extends "irrigation/layout.html" %}
+{% block irrigation_content %}
+<section class="calc-page">
+  <div class="calc-heading">
+    <div>
+      <span class="calc-kicker">SMART WATER PLANNING</span>
+      <h2>Calculate water requirement</h2>
+      <p>Select a zone, add current weather conditions, and receive an actionable irrigation recommendation.</p>
+    </div>
+    <a class="calc-history-link" href="/irrigation/calculator/history">View calculation history →</a>
+  </div>
+
+  <div class="calc-layout {% if not result %}calc-layout--single{% endif %}">
+    <article class="calc-card calc-form-card">
+      <form method="post" class="calc-form">
+        <div class="calc-section-title">
+          <span class="calc-section-icon">01</span>
+          <div><strong>Farm and irrigation setup</strong><small>Choose the zone and pump used for this calculation.</small></div>
+        </div>
+
+        <div class="calc-form-grid">
+          <label class="calc-field calc-field--wide">
+            <span>🌱 Irrigation zone <em>Required</em></span>
+            <select name="zone_id" required>
+              <option value="">Select an irrigation zone</option>
+              {% for z in zones %}
+              <option value="{{ z.id }}" {% if selected_zone and selected_zone.id == z.id %}selected{% endif %}>{{ z.name }} · {{ z.crop_name or 'Crop not set' }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label class="calc-field calc-field--wide">
+            <span>⚙️ Pump</span>
+            <select name="pump_id">
+              <option value="">Calculate without pump runtime</option>
+              {% for p in pumps %}
+              <option value="{{ p.id }}">{{ p.name }}{% if p.flow_rate_lpm %} · {{ p.flow_rate_lpm }} LPM{% endif %}</option>
+              {% endfor %}
+            </select>
+            <small>Selecting a pump enables runtime and operating-cost estimation.</small>
+          </label>
+        </div>
+
+        <div class="calc-divider"></div>
+        <div class="calc-section-title">
+          <span class="calc-section-icon">02</span>
+          <div><strong>Water baseline</strong><small>Confirm the number of plants and recommended water per plant.</small></div>
+        </div>
+
+        <div class="calc-form-grid">
+          <label class="calc-field">
+            <span>🌴 Plant count <em>Required</em></span>
+            <div class="calc-input-unit"><input type="number" min="1" name="plant_count" required value="{{ selected_zone.plant_count if selected_zone else '' }}"><b>plants</b></div>
+          </label>
+          <label class="calc-field">
+            <span>💧 Litres per plant <em>Required</em></span>
+            <div class="calc-input-unit"><input type="number" step="0.01" min="0.01" name="litres_per_plant" required value="{{ selected_zone.recommended_litres_per_plant if selected_zone else '' }}"><b>L</b></div>
+          </label>
+        </div>
+
+        <div class="calc-divider"></div>
+        <div class="calc-section-title">
+          <span class="calc-section-icon">03</span>
+          <div><strong>Weather conditions</strong><small>Optional values improve the recommendation accuracy.</small></div>
+        </div>
+
+        <div class="calc-form-grid calc-weather-grid">
+          <label class="calc-field"><span>🌡️ Temperature</span><div class="calc-input-unit"><input type="number" step="0.1" name="temperature_c" placeholder="e.g. 32"><b>°C</b></div></label>
+          <label class="calc-field"><span>💦 Humidity</span><div class="calc-input-unit"><input type="number" step="0.1" min="0" max="100" name="humidity_percent" placeholder="e.g. 65"><b>%</b></div></label>
+          <label class="calc-field"><span>🌧️ Rain probability</span><div class="calc-input-unit"><input type="number" step="0.1" min="0" max="100" name="rain_probability_percent" placeholder="e.g. 40"><b>%</b></div></label>
+          <label class="calc-field"><span>☔ Expected rainfall</span><div class="calc-input-unit"><input type="number" step="0.1" min="0" name="expected_rain_mm" placeholder="e.g. 5"><b>mm</b></div></label>
+          <label class="calc-field calc-field--wide"><span>📝 Notes</span><textarea name="notes" rows="3" placeholder="Add any field observation, soil condition, or instruction..."></textarea></label>
+        </div>
+
+        <div class="calc-actions">
+          <span>Calculation will be saved automatically to history.</span>
+          <button class="calc-submit" type="submit"><span>Calculate recommendation</span><b>→</b></button>
+        </div>
+      </form>
+    </article>
+
+    {% if result %}
+    <aside class="calc-result-card recommendation-{{ result.recommendation }}">
+      <div class="result-topline"><span>MESSIS AI RECOMMENDATION</span><b>{{ result.recommendation|replace('_',' ')|title }}</b></div>
+      <div class="result-water">
+        <span>Final water requirement</span>
+        <strong>{{ "{:,.0f}".format(result.final_water_litres|float) }}</strong>
+        <small>litres</small>
+      </div>
+      <p class="result-reason">{{ result.reason }}</p>
+
+      <div class="result-stats">
+        <div><span>Base water</span><strong>{{ "{:,.0f}".format(result.base_water_litres|float) }} L</strong></div>
+        <div><span>Water saved</span><strong>{{ "{:,.0f}".format(result.water_saved_litres|float) }} L</strong></div>
+        <div><span>Soil factor</span><strong>{{ result.soil_factor }}</strong></div>
+        <div><span>Efficiency</span><strong>{{ (result.irrigation_efficiency * 100)|round(0) }}%</strong></div>
+        <div><span>Weather adjustment</span><strong>{{ result.weather_adjustment_percent }}%</strong></div>
+        <div><span>Rain contribution</span><strong>{{ "{:,.0f}".format(result.effective_rain_litres|float) }} L</strong></div>
+      </div>
+
+      <div class="result-footer">
+        <div><span>⏱ Pump runtime</span><strong>{% if result.estimated_runtime_minutes is not none %}{{ result.estimated_runtime_minutes }} min{% else %}Select a pump{% endif %}</strong></div>
+        <div><span>₹ Estimated cost</span><strong>{% if result.estimated_operating_cost is not none %}₹{{ result.estimated_operating_cost }}{% else %}—{% endif %}</strong></div>
+      </div>
+      <a class="result-history-btn" href="/irrigation/calculator/history">Open full history</a>
+    </aside>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

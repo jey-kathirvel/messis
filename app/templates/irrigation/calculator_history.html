@@ -1,0 +1,99 @@
+{% extends "irrigation/layout.html" %}
+{% block irrigation_content %}
+<section class="history-page">
+  <div class="history-heading">
+    <div>
+      <span class="history-kicker">WATER PERFORMANCE</span>
+      <h2>Calculation intelligence</h2>
+      <p>Track every recommendation, water saving and pump-runtime estimate from one premium dashboard.</p>
+    </div>
+    <a class="history-new-btn" href="/irrigation/calculator"><span>＋</span> New calculation</a>
+  </div>
+
+  <section class="history-kpis">
+    <article class="history-kpi history-kpi--water">
+      <div class="history-kpi-icon">💧</div><div><span>Total recommended</span><strong>{{ "{:,.0f}".format(total|float) }}</strong><small>litres planned</small></div>
+    </article>
+    <article class="history-kpi history-kpi--saved">
+      <div class="history-kpi-icon">🌿</div><div><span>Water conserved</span><strong>{{ "{:,.0f}".format(saved|float) }}</strong><small>litres saved</small></div>
+    </article>
+    <article class="history-kpi history-kpi--runtime">
+      <div class="history-kpi-icon">⚡</div><div><span>Estimated runtime</span><strong>{{ "{:,.0f}".format(runtime|float) }}</strong><small>pump minutes</small></div>
+    </article>
+    <article class="history-kpi history-kpi--cost">
+      <div class="history-kpi-icon">₹</div><div><span>Estimated cost</span><strong>₹{{ "{:,.2f}".format(cost|float) }}</strong><small>{{ count }} calculation{{ '' if count == 1 else 's' }}</small></div>
+    </article>
+  </section>
+
+  <section class="history-grid">
+    <article class="history-panel history-trend-panel">
+      <div class="history-panel-head"><div><span>RECENT TREND</span><h3>Recommended water</h3></div><b>Last {{ trend|length }} records</b></div>
+      {% if trend %}
+      <div class="water-chart" aria-label="Recent recommended water trend">
+        <div class="water-chart-grid"><i></i><i></i><i></i><i></i></div>
+        <div class="water-bars">
+          {% for point in trend %}
+          <div class="water-bar-item" title="{{ point.label }}: {{ '{:,.0f}'.format(point.litres) }} litres">
+            <span class="water-bar-value">{{ '{:,.0f}'.format(point.litres) }}</span>
+            <div class="water-bar-track"><b style="height:{{ point.height }}%"></b></div>
+            <small>{{ point.label }}</small>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}<div class="history-empty-mini">Run your first calculation to unlock trend insights.</div>{% endif %}
+    </article>
+
+    <article class="history-panel history-insight-panel">
+      <div class="history-panel-head"><div><span>MESSIS INSIGHT</span><h3>Water efficiency</h3></div><i>AI</i></div>
+      {% set efficiency = ((saved|float / total|float) * 100) if total|float > 0 else 0 %}
+      <div class="efficiency-ring" style="--value:{{ [efficiency,100]|min }}"><div><strong>{{ "{:.1f}".format(efficiency) }}%</strong><span>saved</span></div></div>
+      <p>{% if saved|float > 0 %}Weather and field adjustments have prevented {{ "{:,.0f}".format(saved|float) }} litres of unnecessary irrigation.{% else %}Your recorded calculations currently recommend standard irrigation volumes. Add weather inputs to unlock saving opportunities.{% endif %}</p>
+    </article>
+  </section>
+
+  <article class="history-panel history-records">
+    <div class="history-panel-head history-records-head">
+      <div><span>ACTIVITY LOG</span><h3>Calculation history</h3></div>
+      <div class="history-search"><span>⌕</span><input id="historySearch" type="search" placeholder="Search farm, zone or status…" autocomplete="off"></div>
+    </div>
+    <div class="history-table-wrap">
+      <table class="history-table" id="historyTable">
+        <thead><tr><th>Date</th><th>Farm & zone</th><th>Plants</th><th>Base water</th><th>Final water</th><th>Saved</th><th>Decision</th><th>Runtime</th></tr></thead>
+        <tbody>
+          {% for c,z,f in rows %}
+          {% set recommendation = c.recommendation|replace('_',' ')|title %}
+          <tr>
+            <td><div class="date-cell"><b>{{ c.calculation_date.strftime('%d') }}</b><span>{{ c.calculation_date.strftime('%b %Y') }}</span></div></td>
+            <td><div class="farm-cell"><i>🌴</i><div><strong>{{ f.name }}</strong><span>{{ z.name }}</span></div></div></td>
+            <td><strong>{{ c.plant_count }}</strong><small>plants</small></td>
+            <td>{{ "{:,.0f}".format(c.base_water_litres|float) }} <small>L</small></td>
+            <td><strong class="final-litres">{{ "{:,.0f}".format(c.final_water_litres|float) }}</strong> <small>L</small></td>
+            <td><span class="saved-value {% if c.water_saved_litres|float > 0 %}has-saving{% endif %}">{{ "{:,.0f}".format(c.water_saved_litres|float) }} L</span></td>
+            <td><span class="decision-badge decision-{{ c.recommendation }}"><i></i>{{ recommendation }}</span></td>
+            <td>{% if c.estimated_runtime_minutes %}<strong>{{ "{:,.0f}".format(c.estimated_runtime_minutes|float) }}</strong> <small>min</small>{% else %}<span class="not-available">Not estimated</span>{% endif %}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8"><div class="history-empty"><span>💧</span><h3>No calculations yet</h3><p>Use the smart calculator to create your first water recommendation.</p><a href="/irrigation/calculator">Open calculator</a></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="history-footer"><span>Showing {{ rows|length }} most recent record{{ '' if rows|length == 1 else 's' }}</span><b id="visibleCount">{{ rows|length }} visible</b></div>
+  </article>
+</section>
+<script>
+(function(){
+  const input=document.getElementById('historySearch');
+  const table=document.getElementById('historyTable');
+  const counter=document.getElementById('visibleCount');
+  if(!input||!table)return;
+  const rows=[...table.tBodies[0].rows].filter(r=>!r.querySelector('.history-empty'));
+  input.addEventListener('input',function(){
+    const q=this.value.trim().toLowerCase(); let visible=0;
+    rows.forEach(row=>{const show=!q||row.innerText.toLowerCase().includes(q);row.hidden=!show;if(show)visible++;});
+    counter.textContent=visible+' visible';
+  });
+})();
+</script>
+{% endblock %}
