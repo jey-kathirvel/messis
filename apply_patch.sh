@@ -16,6 +16,17 @@ PYTHONPATH=. .venv/bin/python scripts/migrate_patch_irr_005.py
 PYTHONPATH=. .venv/bin/python tests/validate_patch_irr_005.py
 systemctl restart messis.service
 systemctl is-active --quiet messis.service
-curl -fsS http://127.0.0.1:8080/health >/dev/null
+healthy=0
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+    if curl -fsS http://127.0.0.1:8080/health >/dev/null; then
+        healthy=1
+        break
+    fi
+    sleep 1
+done
+if [ "${healthy}" -ne 1 ]; then
+    echo "Messis health endpoint did not become ready within 10 seconds" >&2
+    exit 1
+fi
 
 echo "PATCH-IRR-005 applied successfully; backup: ${BACKUP_DIR}"
