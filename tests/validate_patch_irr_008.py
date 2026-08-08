@@ -10,6 +10,10 @@ from app.services.irrigation_weather import build_irrigation_advice
 
 
 root = Path(__file__).resolve().parents[1]
+business_menu = (root / "app/templates/dashboard/business.html").read_text(encoding="utf-8")
+mobile_menu = (root / "app/templates/base.html").read_text(encoding="utf-8")
+assert 'href="/irrigation/weather"' in business_menu and "Weather Intelligence" in business_menu
+assert 'href="/irrigation/weather"' in mobile_menu
 for relative in ("weather_dashboard.html", "weather_report.html"):
     path = root / "app/templates/irrigation" / relative
     assert path.is_file(), relative
