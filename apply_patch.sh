@@ -3,17 +3,16 @@ set -euo pipefail
 
 PROJECT_DIR="${MESSIS_PROJECT_DIR:-/opt/messis}"
 STAMP="$(date +%Y%m%d_%H%M%S)"
-BACKUP_DIR="${PROJECT_DIR}/backups/PATCH-IRR-010-${STAMP}"
+BACKUP_DIR="${PROJECT_DIR}/backups/MESSIS-UX-GLASS-001-${STAMP}"
 
 cd "${PROJECT_DIR}"
 mkdir -p "${BACKUP_DIR}"
-tar -czf "${BACKUP_DIR}/application-files.tgz" app/models.py app/irrigation_management.py app/templates/base.html app/templates/dashboard/business.html app/templates/irrigation app/static/css/irrigation.css app/static/css/irrigation-execution.css app/static/css/fertigation.css app/static/css/irrigation-weather.css app/static/css/irrigation-alerts.css app/static/css/irrigation-reports.css
+tar -czf "${BACKUP_DIR}/application-files.tgz" app/templates app/static/css app/static/pwa/mobile-shell.css
 git rev-parse HEAD > "${BACKUP_DIR}/git-head.txt"
-PYTHONPATH=. .venv/bin/python scripts/backup_patch_irr_010.py "${BACKUP_DIR}/database.dump"
+PYTHONPATH=. .venv/bin/python scripts/backup_messis_ux_glass_001.py "${BACKUP_DIR}/database.dump"
 
-PYTHONPATH=. .venv/bin/python scripts/migrate_patch_irr_010.py
 .venv/bin/python -m compileall -q app
-PYTHONPATH=. .venv/bin/python tests/validate_patch_irr_010.py
+PYTHONPATH=. .venv/bin/python tests/validate_garden_glass_theme.py
 systemctl restart messis.service
 systemctl is-active --quiet messis.service
 healthy=0
@@ -29,4 +28,4 @@ if [ "${healthy}" -ne 1 ]; then
     exit 1
 fi
 
-echo "PATCH-IRR-010 applied successfully; backup: ${BACKUP_DIR}"
+echo "MESSIS-UX-GLASS-001 applied successfully; backup: ${BACKUP_DIR}"
