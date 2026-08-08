@@ -57,7 +57,7 @@
     <!-- PATCH-UI-SUBPAGES-001A -->
     <link
         rel="stylesheet"
-        href="/static/css/messis-subpages.css?v=001a"
+        href="/static/css/messis-subpages.css?v=001d"
     >
 
 
@@ -109,41 +109,7 @@
 <body class="messis-modern-subpage min-h-screen text-slate-800">
 
 <!-- PATCH-UI-SUBPAGES-001A-TOOLBAR -->
-<header class="messis-page-toolbar">
-    <div class="messis-page-toolbar-left">
-        <a
-            class="messis-page-brand"
-            href="/dashboard"
-            aria-label="Messis AI Dashboard"
-        >
-            <span class="messis-page-brand-icon">🌴</span>
-
-            <span class="messis-page-brand-copy">
-                <strong>Messis AI</strong>
-                <span>Smart Agriculture Management System</span>
-            </span>
-        </a>
-    </div>
-
-    <div class="messis-page-toolbar-right">
-        <button
-            class="messis-nav-button"
-            type="button"
-            onclick="messisGoBack()"
-        >
-            <span aria-hidden="true">←</span>
-            <span>Back</span>
-        </button>
-
-        <a
-            class="messis-nav-button messis-nav-button-primary"
-            href="/dashboard"
-        >
-            <span aria-hidden="true">⌂</span>
-            <span>Back to Dashboard</span>
-        </a>
-    </div>
-</header>
+{% include "partials/page_toolbar.html" %}
 
 
     <header

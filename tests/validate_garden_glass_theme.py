@@ -7,12 +7,26 @@ theme = (root / "app/static/css/garden-glass.css").read_text(encoding="utf-8")
 subpages = (root / "app/static/css/messis-subpages.css").read_text(encoding="utf-8")
 base = (root / "app/templates/base.html").read_text(encoding="utf-8")
 dashboard = (root / "app/templates/dashboard/business.html").read_text(encoding="utf-8")
+toolbar = (root / "app/templates/partials/page_toolbar.html").read_text(encoding="utf-8")
 for marker in ("MESSIS-UX-HEADER-001", "height:54px", ".messis-nav-icon-button", "position:sticky"):
     assert marker in subpages, marker
-assert "messis-subpages.css?v=001c" in base
-assert 'aria-label="Go back"' in base and 'aria-label="Back to dashboard"' in base
-assert 'class="messis-nav-icon"' in base and "<svg" in base
+assert "messis-subpages.css?v=001d" in base
+assert '{% include "partials/page_toolbar.html" %}' in base
+assert 'aria-label="Go back"' in toolbar and 'aria-label="Back to dashboard"' in toolbar
+assert 'class="messis-nav-icon"' in toolbar and "<svg" in toolbar
 assert ".messis-page-toolbar .messis-nav-icon-button" in subpages
+legacy_toolbars = []
+shared_toolbar_templates = []
+for template in (root / "app/templates").rglob("*.html"):
+    text = template.read_text(encoding="utf-8")
+    if '{% include "partials/page_toolbar.html" %}' in text:
+        shared_toolbar_templates.append(str(template.relative_to(root)))
+    if template != root / "app/templates/partials/page_toolbar.html" and '<header class="messis-page-toolbar">' in text:
+        legacy_toolbars.append(str(template.relative_to(root)))
+    if "messis-subpages.css?v=" in text:
+        assert "messis-subpages.css?v=001d" in text, template
+assert not legacy_toolbars, legacy_toolbars
+assert len(shared_toolbar_templates) == 35, shared_toolbar_templates
 for marker in ("PATCH-WEATHER-001D", ".weather-day-card strong", ".weather-advisory-mini p"):
     assert marker in dashboard, marker
 for marker in ("MESSIS-UX-GLASS-001", "--glass-surface", "backdrop-filter", "prefers-reduced-transparency", ".sidebar", "table", "input,select,textarea", ".messis-mobile-navigation", ".topbar .page-title strong", ".weather-summary-panel", ".topbar{padding-right:190px", ".pwa-install-button.visible"):
