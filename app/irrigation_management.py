@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from datetime import date
+from calendar import monthrange
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from urllib.parse import quote
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -14,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services.water_calculator import calculate_water
-from app.models import (Farm, IrrigationEquipment, IrrigationPump, IrrigationZone, PumpMaintenanceRecord, PumpRuntimeLog, User, WaterSource, WaterRequirementCalculation)
+from app.models import (Farm, IrrigationAlert, IrrigationEquipment, IrrigationPump, IrrigationSchedule, IrrigationZone, PumpMaintenanceRecord, PumpRuntimeLog, User, WaterSource, WaterRequirementCalculation)
 
 router = APIRouter(tags=["Irrigation Management"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
@@ -30,6 +32,8 @@ PUMP_STATUSES = ("available", "running", "idle", "maintenance", "faulty", "offli
 EQUIPMENT_TYPES = ("filter", "fertigation_tank", "valve", "pressure_gauge", "flow_meter", "automation_controller", "pipe", "sprinkler", "drip_unit", "other")
 EQUIPMENT_STATUSES = ("available", "in_use", "maintenance", "faulty", "retired")
 SERVICE_TYPES = ("inspection", "preventive", "repair", "oil_change", "bearing_change", "electrical", "overhaul", "other")
+SCHEDULE_STATUSES = ("planned", "confirmed", "in_progress", "completed", "postponed", "cancelled")
+RECURRENCE_TYPES = ("none", "daily", "weekly", "monthly")
 
 
 def current_irrigation_user(request: Request, db: Session = Depends(get_db)) -> User:
@@ -107,6 +111,88 @@ def _source(db: Session, owner_id: int, source_id: int) -> WaterSource:
 
 def _ctx(request: Request, user: User, **extra):
     return {"request": request, "current_user": user, "success_message": request.query_params.get("success"), "error_message": request.query_params.get("error"), **extra}
+
+
+def _schedule(db: Session, owner_id: int, schedule_id: int) -> IrrigationSchedule:
+    schedule = db.scalar(select(IrrigationSchedule).where(IrrigationSchedule.id == schedule_id, IrrigationSchedule.owner_id == owner_id))
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Irrigation schedule not found")
+    return schedule
+
+
+def _clock(value: str | None, label: str) -> str | None:
+    value = (value or "").strip()
+    if not value:
+        return None
+    try:
+        return time.fromisoformat(value).strftime("%H:%M")
+    except ValueError as exc:
+        raise ValueError(f"{label} must be a valid time.") from exc
+
+
+def _schedule_minutes(schedule: IrrigationSchedule) -> tuple[int, int]:
+    start = schedule.scheduled_start_time or "00:00"
+    hour, minute = (int(part) for part in start.split(":")[:2])
+    start_minutes = hour * 60 + minute
+    return start_minutes, start_minutes + (schedule.estimated_duration_minutes or 0)
+
+
+def _schedule_conflicts(db: Session, owner_id: int, *, scheduled_date: date, start_time: str | None,
+                        duration: int | None, zone_id: int, pump_id: int | None,
+                        assigned_worker: str | None, exclude_id: int | None = None) -> list[str]:
+    probe = IrrigationSchedule(scheduled_start_time=start_time, estimated_duration_minutes=duration)
+    probe_start, probe_end = _schedule_minutes(probe)
+    stmt = select(IrrigationSchedule).where(
+        IrrigationSchedule.owner_id == owner_id,
+        IrrigationSchedule.scheduled_date == scheduled_date,
+        IrrigationSchedule.status.not_in(("cancelled", "completed")),
+    )
+    if exclude_id:
+        stmt = stmt.where(IrrigationSchedule.id != exclude_id)
+    conflicts: list[str] = []
+    worker_key = (assigned_worker or "").strip().casefold()
+    for item in db.scalars(stmt):
+        item_start, item_end = _schedule_minutes(item)
+        overlaps = probe_start < item_end and item_start < probe_end
+        if not overlaps:
+            continue
+        resources = []
+        if item.zone_id == zone_id:
+            resources.append("zone")
+        if pump_id and item.pump_id == pump_id:
+            resources.append("pump")
+        if worker_key and (item.assigned_worker or "").strip().casefold() == worker_key:
+            resources.append("worker")
+        if resources:
+            conflicts.append(f"Schedule #{item.id} overlaps for {', '.join(resources)}.")
+    return conflicts
+
+
+def _recurring_dates(start: date, recurrence_type: str, interval: int, end: date | None) -> list[date]:
+    if recurrence_type == "none":
+        return [start]
+    if not end:
+        raise ValueError("Recurrence end date is required for recurring schedules.")
+    if end < start:
+        raise ValueError("Recurrence end date cannot be before the start date.")
+    dates: list[date] = []
+    current = start
+    monthly_step = 0
+    while current <= end and len(dates) < 366:
+        dates.append(current)
+        if recurrence_type == "daily":
+            current += timedelta(days=interval)
+        elif recurrence_type == "weekly":
+            current += timedelta(days=7 * interval)
+        else:
+            monthly_step += interval
+            month_index = start.month - 1 + monthly_step
+            year = start.year + month_index // 12
+            month = month_index % 12 + 1
+            current = date(year, month, min(start.day, monthrange(year, month)[1]))
+    if len(dates) >= 366 and current <= end:
+        raise ValueError("Recurring schedules are limited to 366 occurrences.")
+    return dates
 
 
 @router.get("/irrigation", response_class=HTMLResponse)
@@ -399,6 +485,219 @@ def runtime_create(pump_id:int,run_date:str=Form(...),runtime_minutes:str=Form(.
     except ValueError as exc:
         db.rollback(); return RedirectResponse(f"/irrigation/pumps/{pump_id}/runtime?error={quote(str(exc))}",status_code=303)
     return RedirectResponse(f"/irrigation/pumps/{pump_id}/runtime?success="+quote("Runtime log added."),status_code=303)
+
+
+# PATCH-IRR-005: SMART IRRIGATION SCHEDULER & CALENDAR
+def _scheduler_options(db: Session, owner_id: int):
+    farms = list(db.scalars(select(Farm).where(Farm.owner_id == owner_id).order_by(Farm.name)))
+    zones = list(db.scalars(select(IrrigationZone).where(IrrigationZone.owner_id == owner_id, IrrigationZone.is_active.is_(True)).order_by(IrrigationZone.name)))
+    sources = list(db.scalars(select(WaterSource).where(WaterSource.owner_id == owner_id, WaterSource.is_active.is_(True)).order_by(WaterSource.name)))
+    pumps = list(db.scalars(select(IrrigationPump).where(IrrigationPump.owner_id == owner_id).order_by(IrrigationPump.name)))
+    return farms, zones, sources, pumps
+
+
+@router.get("/irrigation/schedules", response_class=HTMLResponse)
+def schedule_calendar(request: Request, month: str | None = None, farm_id: int | None = None,
+                      user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    try:
+        month_start = datetime.strptime(month, "%Y-%m").date().replace(day=1) if month else date.today().replace(day=1)
+    except ValueError:
+        month_start = date.today().replace(day=1)
+    next_month = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
+    month_end = next_month - timedelta(days=1)
+    stmt = select(IrrigationSchedule, IrrigationZone, Farm, IrrigationPump).join(
+        IrrigationZone, IrrigationZone.id == IrrigationSchedule.zone_id
+    ).join(Farm, Farm.id == IrrigationSchedule.farm_id).outerjoin(
+        IrrigationPump, IrrigationPump.id == IrrigationSchedule.pump_id
+    ).where(
+        IrrigationSchedule.owner_id == user.id,
+        IrrigationZone.owner_id == user.id,
+        Farm.owner_id == user.id,
+        IrrigationSchedule.scheduled_date.between(month_start, month_end),
+    )
+    if farm_id:
+        _farm(db, user.id, farm_id)
+        stmt = stmt.where(IrrigationSchedule.farm_id == farm_id)
+    rows = list(db.execute(stmt.order_by(IrrigationSchedule.scheduled_date, IrrigationSchedule.scheduled_start_time)).all())
+    by_day: dict[int, list] = {}
+    for row in rows:
+        by_day.setdefault(row[0].scheduled_date.day, []).append(row)
+    leading = month_start.weekday()
+    cells = [None] * leading + list(range(1, month_end.day + 1))
+    while len(cells) % 7:
+        cells.append(None)
+    weeks = [cells[index:index + 7] for index in range(0, len(cells), 7)]
+    farms, zones, sources, pumps = _scheduler_options(db, user.id)
+    today = date.today()
+    upcoming = [row for row in rows if row[0].scheduled_date >= today and row[0].status not in ("completed", "cancelled")][:8]
+    counts = {status: sum(1 for row in rows if row[0].status == status) for status in SCHEDULE_STATUSES}
+    return templates.TemplateResponse(request=request, name="irrigation/schedule_calendar.html", context=_ctx(
+        request, user, page_title="Irrigation Scheduler", rows=rows, by_day=by_day, weeks=weeks,
+        month_start=month_start, previous_month=(month_start - timedelta(days=1)).strftime("%Y-%m"),
+        next_month=next_month.strftime("%Y-%m"), farms=farms, zones=zones, sources=sources,
+        pumps=pumps, selected_farm_id=farm_id, upcoming=upcoming, counts=counts, today=today,
+    ))
+
+
+@router.get("/irrigation/schedules/new", response_class=HTMLResponse)
+def schedule_new(request: Request, zone_id: int | None = None, scheduled_date: str | None = None,
+                 user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    farms, zones, sources, pumps = _scheduler_options(db, user.id)
+    selected_zone = _zone(db, user.id, zone_id) if zone_id else None
+    return templates.TemplateResponse(request=request, name="irrigation/schedule_form.html", context=_ctx(
+        request, user, page_title="Create Irrigation Schedule", schedule=None, farms=farms, zones=zones,
+        sources=sources, pumps=pumps, selected_zone=selected_zone, selected_date=scheduled_date or date.today().isoformat(),
+        statuses=SCHEDULE_STATUSES, recurrence_types=RECURRENCE_TYPES,
+    ))
+
+
+@router.post("/irrigation/schedules/new")
+def schedule_create(farm_id: int = Form(...), zone_id: int = Form(...), water_source_id: str = Form(""),
+                    pump_id: str = Form(""), scheduled_date: str = Form(...), scheduled_start_time: str = Form(""),
+                    planned_litres: str = Form(""), estimated_duration_minutes: str = Form(""),
+                    assigned_worker: str = Form(""), status: str = Form("planned"), instructions: str = Form(""),
+                    recurrence_type: str = Form("none"), recurrence_interval: str = Form("1"),
+                    recurrence_end_date: str = Form(""), fertigation_required: str | None = Form(None),
+                    user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    try:
+        _farm(db, user.id, farm_id)
+        zone = _zone(db, user.id, zone_id)
+        if zone.farm_id != farm_id:
+            raise ValueError("Zone must belong to the selected farm.")
+        source_id = _integer(water_source_id, "Water source")
+        source = _source(db, user.id, source_id) if source_id else None
+        selected_pump_id = _integer(pump_id, "Pump")
+        pump = _pump(db, user.id, selected_pump_id) if selected_pump_id else None
+        if source and source.farm_id != farm_id:
+            raise ValueError("Water source must belong to the selected farm.")
+        if pump and pump.farm_id != farm_id:
+            raise ValueError("Pump must belong to the selected farm.")
+        if status not in SCHEDULE_STATUSES or recurrence_type not in RECURRENCE_TYPES:
+            raise ValueError("Invalid scheduler configuration.")
+        start_date = _date(scheduled_date, "Scheduled date")
+        if not start_date:
+            raise ValueError("Scheduled date is required.")
+        start_time = _clock(scheduled_start_time, "Start time")
+        duration = _integer(estimated_duration_minutes, "Estimated duration", allow_zero=False)
+        if not start_time or not duration:
+            raise ValueError("Start time and estimated duration are required.")
+        interval = _integer(recurrence_interval, "Recurrence interval", allow_zero=False) or 1
+        end_date = _date(recurrence_end_date, "Recurrence end date")
+        dates = _recurring_dates(start_date, recurrence_type, interval, end_date)
+        worker = _text(assigned_worker)
+        conflicts: list[str] = []
+        for occurrence in dates:
+            conflicts.extend(_schedule_conflicts(db, user.id, scheduled_date=occurrence, start_time=start_time,
+                duration=duration, zone_id=zone_id, pump_id=selected_pump_id, assigned_worker=worker))
+        if conflicts:
+            alert = IrrigationAlert(owner_id=user.id, farm_id=farm_id, zone_id=zone_id, alert_type="schedule_conflict",
+                severity="warning", title="Irrigation scheduling conflict", message=" ".join(conflicts[:5]), status="open")
+            db.add(alert); db.commit()
+            raise ValueError("Conflict detected: " + " ".join(conflicts[:3]))
+        group_id = uuid4().hex if len(dates) > 1 else None
+        for occurrence in dates:
+            db.add(IrrigationSchedule(owner_id=user.id, farm_id=farm_id, zone_id=zone_id,
+                water_source_id=source_id, pump_id=selected_pump_id, scheduled_date=occurrence,
+                scheduled_start_time=start_time, planned_litres=_decimal(planned_litres, "Planned litres"),
+                estimated_duration_minutes=duration, assigned_worker=worker, status=status,
+                instructions=_text(instructions), recurrence_type=recurrence_type, recurrence_interval=interval,
+                recurrence_end_date=end_date, recurrence_group_id=group_id,
+                fertigation_required=fertigation_required == "on"))
+        db.commit()
+    except (ValueError, IntegrityError) as exc:
+        if not (isinstance(exc, ValueError) and str(exc).startswith("Conflict detected:")):
+            db.rollback()
+        return RedirectResponse("/irrigation/schedules/new?error=" + quote(str(exc)), status_code=303)
+    return RedirectResponse("/irrigation/schedules?success=" + quote(f"Created {len(dates)} irrigation schedule(s)."), status_code=303)
+
+
+@router.get("/irrigation/schedules/{schedule_id}/edit", response_class=HTMLResponse)
+def schedule_edit(schedule_id: int, request: Request, user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    schedule = _schedule(db, user.id, schedule_id)
+    farms, zones, sources, pumps = _scheduler_options(db, user.id)
+    return templates.TemplateResponse(request=request, name="irrigation/schedule_form.html", context=_ctx(
+        request, user, page_title="Edit Irrigation Schedule", schedule=schedule, farms=farms, zones=zones,
+        sources=sources, pumps=pumps, selected_zone=_zone(db, user.id, schedule.zone_id), selected_date=None,
+        statuses=SCHEDULE_STATUSES, recurrence_types=RECURRENCE_TYPES,
+    ))
+
+
+@router.post("/irrigation/schedules/{schedule_id}/edit")
+def schedule_update(schedule_id: int, farm_id: int = Form(...), zone_id: int = Form(...), water_source_id: str = Form(""),
+                    pump_id: str = Form(""), scheduled_date: str = Form(...), scheduled_start_time: str = Form(""),
+                    planned_litres: str = Form(""), estimated_duration_minutes: str = Form(""), assigned_worker: str = Form(""),
+                    status: str = Form("planned"), instructions: str = Form(""), fertigation_required: str | None = Form(None),
+                    user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    item = _schedule(db, user.id, schedule_id)
+    try:
+        _farm(db, user.id, farm_id); zone = _zone(db, user.id, zone_id)
+        if zone.farm_id != farm_id or status not in SCHEDULE_STATUSES:
+            raise ValueError("Invalid farm, zone or status.")
+        source_id = _integer(water_source_id, "Water source"); pump_id_value = _integer(pump_id, "Pump")
+        if source_id and _source(db, user.id, source_id).farm_id != farm_id:
+            raise ValueError("Water source must belong to the selected farm.")
+        if pump_id_value and _pump(db, user.id, pump_id_value).farm_id != farm_id:
+            raise ValueError("Pump must belong to the selected farm.")
+        day = _date(scheduled_date, "Scheduled date"); start = _clock(scheduled_start_time, "Start time")
+        duration = _integer(estimated_duration_minutes, "Estimated duration", allow_zero=False)
+        if not day or not start or not duration:
+            raise ValueError("Date, start time and duration are required.")
+        worker = _text(assigned_worker)
+        conflicts = _schedule_conflicts(db, user.id, scheduled_date=day, start_time=start, duration=duration,
+            zone_id=zone_id, pump_id=pump_id_value, assigned_worker=worker, exclude_id=item.id)
+        if conflicts:
+            raise ValueError("Conflict detected: " + " ".join(conflicts[:3]))
+        item.farm_id=farm_id; item.zone_id=zone_id; item.water_source_id=source_id; item.pump_id=pump_id_value
+        item.scheduled_date=day; item.scheduled_start_time=start; item.planned_litres=_decimal(planned_litres,"Planned litres")
+        item.estimated_duration_minutes=duration; item.assigned_worker=worker; item.status=status
+        item.instructions=_text(instructions); item.fertigation_required=fertigation_required == "on"; db.commit()
+    except (ValueError, IntegrityError) as exc:
+        db.rollback(); return RedirectResponse(f"/irrigation/schedules/{schedule_id}/edit?error=" + quote(str(exc)), status_code=303)
+    return RedirectResponse("/irrigation/schedules?success=" + quote("Schedule updated."), status_code=303)
+
+
+@router.post("/irrigation/schedules/{schedule_id}/status")
+def schedule_status(schedule_id: int, status: str = Form(...), user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    item = _schedule(db, user.id, schedule_id)
+    if status not in SCHEDULE_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid schedule status")
+    item.status = status; db.commit()
+    return RedirectResponse("/irrigation/schedules?success=" + quote("Schedule status updated."), status_code=303)
+
+
+@router.post("/irrigation/schedules/{schedule_id}/delete")
+def schedule_delete(schedule_id: int, series: str | None = Form(None), user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    item = _schedule(db, user.id, schedule_id)
+    if series == "on" and item.recurrence_group_id:
+        items = list(db.scalars(select(IrrigationSchedule).where(IrrigationSchedule.owner_id == user.id,
+            IrrigationSchedule.recurrence_group_id == item.recurrence_group_id, IrrigationSchedule.scheduled_date >= item.scheduled_date)))
+    else:
+        items = [item]
+    try:
+        for row in items: db.delete(row)
+        db.commit()
+    except IntegrityError:
+        db.rollback(); return RedirectResponse("/irrigation/schedules?error=" + quote("Schedule has dependent execution records and cannot be deleted."), status_code=303)
+    return RedirectResponse("/irrigation/schedules?success=" + quote(f"Deleted {len(items)} schedule(s)."), status_code=303)
+
+
+@router.get("/irrigation/schedules/report", response_class=HTMLResponse)
+def schedule_report(request: Request, date_from: str | None = None, date_to: str | None = None,
+                    user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    start = _date(date_from, "From date") if date_from else date.today().replace(day=1)
+    end = _date(date_to, "To date") if date_to else date.today()
+    rows = list(db.execute(select(IrrigationSchedule, IrrigationZone, Farm, IrrigationPump).join(
+        IrrigationZone, IrrigationZone.id == IrrigationSchedule.zone_id).join(Farm, Farm.id == IrrigationSchedule.farm_id).outerjoin(
+        IrrigationPump, IrrigationPump.id == IrrigationSchedule.pump_id).where(
+        IrrigationSchedule.owner_id == user.id, IrrigationSchedule.scheduled_date.between(start, end),
+        IrrigationZone.owner_id == user.id, Farm.owner_id == user.id).order_by(IrrigationSchedule.scheduled_date)).all())
+    total_litres = sum((row[0].planned_litres or Decimal("0") for row in rows), Decimal("0"))
+    total_minutes = sum((row[0].estimated_duration_minutes or 0 for row in rows))
+    return templates.TemplateResponse(request=request, name="irrigation/schedule_report.html", context=_ctx(
+        request, user, page_title="Irrigation Schedule Report", rows=rows, start=start, end=end,
+        total_litres=total_litres, total_minutes=total_minutes,
+        completed=sum(1 for row in rows if row[0].status == "completed"),
+    ))
 
 
 # PATCH-IRR-004: SMART WATER REQUIREMENT CALCULATOR

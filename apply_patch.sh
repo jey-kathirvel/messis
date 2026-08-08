@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT_DIR="${MESSIS_PROJECT_DIR:-/opt/messis}"
+STAMP="$(date +%Y%m%d_%H%M%S)"
+BACKUP_DIR="${PROJECT_DIR}/backups/PATCH-IRR-005-${STAMP}"
+
+cd "${PROJECT_DIR}"
+mkdir -p "${BACKUP_DIR}"
+tar -czf "${BACKUP_DIR}/application-files.tgz" app/models.py app/irrigation_management.py app/templates/irrigation app/static/css/irrigation.css
+git rev-parse HEAD > "${BACKUP_DIR}/git-head.txt"
+PYTHONPATH=. .venv/bin/python scripts/backup_patch_irr_005.py "${BACKUP_DIR}/database.dump"
+
+PYTHONPATH=. .venv/bin/python scripts/migrate_patch_irr_005.py
+.venv/bin/python -m compileall -q app
+PYTHONPATH=. .venv/bin/python tests/validate_patch_irr_005.py
+systemctl restart messis.service
+systemctl is-active --quiet messis.service
+curl -fsS http://127.0.0.1:8080/health >/dev/null
+
+echo "PATCH-IRR-005 applied successfully; backup: ${BACKUP_DIR}"
