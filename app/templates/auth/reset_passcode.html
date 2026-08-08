@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Reset passcode | Messis AI</title>
+    <link rel="stylesheet" href="/static/css/agri-theme.css?v=005">
+    <style>
+        *{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif}.recovery-page{min-height:100vh;display:grid;place-items:center;padding:24px}.recovery-card{width:min(100%,480px);padding:30px;border-radius:24px;background:rgba(255,255,255,.82);border:1px solid rgba(255,255,255,.85);box-shadow:0 22px 60px rgba(18,61,43,.16);backdrop-filter:blur(20px)}.brand{display:flex;align-items:center;gap:11px;color:#123d2b;font-weight:900}.brand-mark{display:grid;width:42px;height:42px;place-items:center;border-radius:13px;color:#fff;background:linear-gradient(135deg,#168447,#0d6b42)}h1{margin:24px 0 8px;color:#17372a;font-size:28px}.intro{margin:0 0 22px;color:#61796d;line-height:1.55}.field{margin-top:15px}.field label{display:block;margin-bottom:8px;color:#33443a;font-size:12px;font-weight:850}.field input{width:100%;min-height:50px;padding:12px 14px;border:1px solid #bfd5c7;border-radius:12px;font:750 18px inherit;letter-spacing:.18em}.action{width:100%;min-height:48px;margin-top:20px;border:0;border-radius:12px;color:#fff;background:linear-gradient(135deg,#2f8f55,#43a65e);font-weight:850;cursor:pointer}.alert{padding:14px;border-radius:12px;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;line-height:1.5}.back{display:block;margin-top:18px;color:#176b3d;text-align:center;font-weight:800;text-decoration:none}
+    </style>
+</head>
+<body>
+<main class="recovery-page"><section class="recovery-card">
+    <a class="brand" href="/"><span class="brand-mark">🌴</span><span>Messis AI</span></a>
+    <h1>Set new passcode</h1>
+    {% if error_message %}<div class="alert" role="alert">{{ error_message }}</div>{% endif %}
+    {% if invalid_token %}
+        <p class="intro">Request a new reset email to continue securely.</p>
+        <a class="back" href="/auth/forgot-passcode">Request another reset link</a>
+    {% else %}
+        <p class="intro">Choose a new six-digit passcode. Your farms, harvests, transactions, and other account data will remain unchanged.</p>
+        <form id="reset-passcode-form" method="post" action="/auth/reset-passcode" autocomplete="off">
+            <input type="hidden" name="token" value="{{ token }}">
+            <div class="field"><label for="new_passcode">New six-digit passcode</label><input id="new_passcode" name="new_passcode" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" required autofocus></div>
+            <div class="field"><label for="confirm_passcode">Confirm new passcode</label><input id="confirm_passcode" name="confirm_passcode" type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" autocomplete="new-password" required></div>
+            <button class="action" type="submit">Update passcode</button>
+        </form>
+    {% endif %}
+    <a class="back" href="/">Back to sign in</a>
+</section></main>
+<script>document.querySelectorAll('input[inputmode="numeric"]').forEach(input=>input.addEventListener('input',()=>{input.value=input.value.replace(/\D/g,'').slice(0,6)}));</script>
+</body>
+</html>

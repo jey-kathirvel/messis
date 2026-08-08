@@ -107,7 +107,7 @@
         </section>
         <section class="card">
             <h2>Set passcode</h2>
-            <p class="subtitle">Enter your username, mobile number, and a six-digit passcode.</p>
+            <p class="subtitle">Enter your username, mobile number, email address, and a six-digit passcode.</p>
             {% if error_message %}<div class="alert" role="alert">{{ error_message }}</div>{% endif %}
             <form id="set-passcode-form" method="post" action="/auth/set-passcode" autocomplete="on">
                 <div class="field">
@@ -117,6 +117,11 @@
                 <div class="field">
                     <label for="mobile_number">Mobile number</label>
                     <input id="mobile_number" name="mobile_number" type="tel" inputmode="numeric" pattern="[0-9]{10,15}" maxlength="15" value="{{ form_values.get('mobile_number', '') }}" autocomplete="tel" required>
+                </div>
+                <div class="field">
+                    <label for="email">Email address</label>
+                    <input id="email" name="email" type="email" maxlength="254" value="{{ form_values.get('email', '') }}" autocomplete="email" required>
+                    <p class="field-help">Required for secure passcode recovery.</p>
                 </div>
                 <div class="field">
                     <label for="registration_code">

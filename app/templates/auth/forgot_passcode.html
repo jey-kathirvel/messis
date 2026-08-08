@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Forgot passcode | Messis AI</title>
+    <link rel="stylesheet" href="/static/css/agri-theme.css?v=005">
+    <style>
+        *{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif}.recovery-page{min-height:100vh;display:grid;place-items:center;padding:24px}.recovery-card{width:min(100%,480px);padding:30px;border-radius:24px;background:rgba(255,255,255,.82);border:1px solid rgba(255,255,255,.85);box-shadow:0 22px 60px rgba(18,61,43,.16);backdrop-filter:blur(20px)}.brand{display:flex;align-items:center;gap:11px;color:#123d2b;font-weight:900}.brand-mark{display:grid;width:42px;height:42px;place-items:center;border-radius:13px;color:#fff;background:linear-gradient(135deg,#168447,#0d6b42)}h1{margin:24px 0 8px;color:#17372a;font-size:28px}.intro{margin:0 0 22px;color:#61796d;line-height:1.55}.field label{display:block;margin-bottom:8px;color:#33443a;font-size:12px;font-weight:850}.field input{width:100%;min-height:50px;padding:12px 14px;border:1px solid #bfd5c7;border-radius:12px;font:600 15px inherit}.action{width:100%;min-height:48px;margin-top:18px;border:0;border-radius:12px;color:#fff;background:linear-gradient(135deg,#2f8f55,#43a65e);font-weight:850;cursor:pointer}.notice{padding:14px;border-radius:12px;color:#166534;background:#f0fdf4;border:1px solid #86efac;line-height:1.5}.back{display:block;margin-top:18px;color:#176b3d;text-align:center;font-weight:800;text-decoration:none}.security{margin-top:18px;color:#718077;font-size:11px;line-height:1.55}
+    </style>
+</head>
+<body>
+<main class="recovery-page"><section class="recovery-card">
+    <a class="brand" href="/"><span class="brand-mark">🌴</span><span>Messis AI</span></a>
+    <h1>Forgot passcode?</h1>
+    <p class="intro">Enter the email address registered with your account. We will send a secure link to set a new six-digit passcode.</p>
+    {% if submitted %}
+        <div class="notice" role="status">{{ success_message }}</div>
+    {% else %}
+        <form method="post" action="/auth/forgot-passcode">
+            <div class="field"><label for="email">Registered email address</label><input id="email" name="email" type="email" maxlength="254" autocomplete="email" required autofocus></div>
+            <button class="action" type="submit">Send reset link</button>
+        </form>
+    {% endif %}
+    <a class="back" href="/">Back to sign in</a>
+    <p class="security">For privacy, the response is the same whether or not an account matches the submitted email.</p>
+</section></main>
+</body>
+</html>

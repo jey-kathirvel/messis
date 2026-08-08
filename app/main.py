@@ -1,5 +1,7 @@
 import shutil
 import secrets
+import hashlib
+import re
 import csv
 import io
 from reportlab.lib import colors
@@ -35,14 +37,15 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Request, File, Upload
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, or_, select, text
+from sqlalchemy import func, inspect, or_, select, text, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
 from app.database import Base, engine, get_db
-from app.models import AuditLog, Buyer, CoconutTree, Expense, ExpenseCategory, Farm, HarvestCycle, HarvestRecord, Sale, SalePayment, User, UserSetupProfile, Vendor
+from app.models import AuditLog, Buyer, CoconutTree, Expense, ExpenseCategory, Farm, HarvestCycle, HarvestRecord, PasscodeResetToken, Sale, SalePayment, User, UserSetupProfile, Vendor
+from app.email_service import send_passcode_reset_email
 from app.agro_framework import farm_template_context, router as agro_router, seed_agro_framework
 from app.task_management import router as task_router
 from app.reminders import router as reminder_router
@@ -150,9 +153,29 @@ async def enforce_csrf(request: Request, call_next):
 @app.on_event("startup")
 def startup() -> None:
     Base.metadata.create_all(bind=engine)
+    ensure_auth_recovery_schema()
     from app.database import SessionLocal
     with SessionLocal() as db:
         seed_agro_framework(db)
+
+
+def ensure_auth_recovery_schema() -> None:
+    """Add recovery columns safely for installations created before this patch."""
+    columns = {column["name"] for column in inspect(engine).get_columns("users")}
+    if "email" not in columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(254)"))
+    with engine.begin() as connection:
+        if engine.dialect.name == "postgresql":
+            connection.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email_lower "
+                "ON users (lower(email)) WHERE email IS NOT NULL"
+            ))
+        else:
+            connection.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email "
+                "ON users (email)"
+            ))
 
 
 def audit(
@@ -548,6 +571,7 @@ def set_passcode(
     request: Request,
     username: str = Form(...),
     mobile_number: str = Form(...),
+    email: str = Form(...),
     passcode: str = Form(...),
     confirm_passcode: str = Form(...),
     registration_code: str = Form(""),
@@ -555,6 +579,7 @@ def set_passcode(
 ):
     normalized_username = username.strip()
     normalized_mobile = "".join(mobile_number.split())
+    normalized_email = email.strip().lower()
     normalized_registration_code = (
         registration_code.strip()
     )
@@ -574,6 +599,7 @@ def set_passcode(
     form_values = {
         "username": normalized_username,
         "mobile_number": normalized_mobile,
+        "email": normalized_email,
     }
 
     error_message = None
@@ -606,6 +632,10 @@ def set_passcode(
         error_message = "Username cannot exceed 50 characters."
     elif not normalized_mobile.isdigit() or not 10 <= len(normalized_mobile) <= 15:
         error_message = "Mobile number must contain 10 to 15 digits."
+    elif not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", normalized_email):
+        error_message = "Enter a valid email address."
+    elif len(normalized_email) > 254:
+        error_message = "Email address cannot exceed 254 characters."
     elif not valid_passcode(passcode):
         error_message = "Passcode must contain exactly six digits."
     elif passcode != confirm_passcode:
@@ -617,10 +647,11 @@ def set_passcode(
                 User.mobile_number == normalized_username,
                 User.user_id == normalized_mobile,
                 User.mobile_number == normalized_mobile,
+                func.lower(User.email) == normalized_email,
             )
         )
     ):
-        error_message = "Username or mobile number is already registered."
+        error_message = "Username, mobile number, or email is already registered."
 
     if error_message:
         return templates.TemplateResponse(
@@ -636,6 +667,7 @@ def set_passcode(
     user = User(
         user_id=normalized_username,
         mobile_number=normalized_mobile,
+        email=normalized_email,
         display_name=normalized_username,
         passcode_hash=hash_passcode(passcode),
         role="owner",
@@ -655,7 +687,7 @@ def set_passcode(
             name="auth/set_passcode.html",
             context={
                 "error_message": (
-                    "Username or mobile number is already registered."
+                    "Username, mobile number, or email is already registered."
                 ),
                 "form_values": form_values,
             },
@@ -664,6 +696,172 @@ def set_passcode(
 
     return RedirectResponse(
         "/?success=" + quote("Passcode set. You can now sign in."),
+        status_code=303,
+    )
+
+
+def passcode_reset_record(db: Session, token: str) -> PasscodeResetToken | None:
+    if not token or len(token) > 200:
+        return None
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    record = db.scalar(select(PasscodeResetToken).where(
+        PasscodeResetToken.token_hash == token_hash,
+        PasscodeResetToken.used_at.is_(None),
+    ))
+    if not record:
+        return None
+    expires_at = record.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at <= datetime.now(timezone.utc):
+        return None
+    return record
+
+
+@app.get("/auth/forgot-passcode", response_class=HTMLResponse)
+def forgot_passcode_page(request: Request):
+    if request.session.get("user_id"):
+        return RedirectResponse("/dashboard", status_code=303)
+    return templates.TemplateResponse(
+        request=request,
+        name="auth/forgot_passcode.html",
+        context={"submitted": False, "error_message": None},
+    )
+
+
+@app.post("/auth/forgot-passcode", response_class=HTMLResponse)
+def forgot_passcode(
+    request: Request,
+    email: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    normalized_email = email.strip().lower()
+    generic_message = (
+        "If that email belongs to an active Messis AI account, a secure "
+        "passcode reset link has been sent."
+    )
+    now = datetime.now(timezone.utc)
+    client_key = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else "unknown")
+    )
+    recent_count = db.scalar(select(func.count(AuditLog.id)).where(
+        AuditLog.event_type == "passcode_reset_requested",
+        AuditLog.ip_address == client_key,
+        AuditLog.created_at >= now - timedelta(seconds=settings.signup_window_seconds),
+    )) or 0
+    user = None
+    if recent_count < settings.passcode_reset_max_attempts:
+        user = db.scalar(select(User).where(
+            func.lower(User.email) == normalized_email,
+            User.is_active.is_(True),
+        ))
+
+    if user:
+        db.execute(update(PasscodeResetToken).where(
+            PasscodeResetToken.user_id == user.id,
+            PasscodeResetToken.used_at.is_(None),
+        ).values(used_at=now))
+        raw_token = secrets.token_urlsafe(32)
+        record = PasscodeResetToken(
+            user_id=user.id,
+            token_hash=hashlib.sha256(raw_token.encode("utf-8")).hexdigest(),
+            expires_at=now + timedelta(minutes=settings.passcode_reset_minutes),
+        )
+        db.add(record)
+        audit(db, request, "passcode_reset_requested", user.id)
+        db.commit()
+        base_url = settings.public_base_url.rstrip("/") or str(request.base_url).rstrip("/")
+        reset_url = f"{base_url}/auth/reset-passcode?token={quote(raw_token)}"
+        try:
+            send_passcode_reset_email(settings, normalized_email, reset_url)
+            audit(db, request, "passcode_reset_email_sent", user.id)
+        except Exception:
+            record.used_at = datetime.now(timezone.utc)
+            audit(db, request, "passcode_reset_email_failed", user.id)
+        db.commit()
+    else:
+        audit(db, request, "passcode_reset_requested")
+        db.commit()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="auth/forgot_passcode.html",
+        context={"submitted": True, "success_message": generic_message},
+    )
+
+
+@app.get("/auth/reset-passcode", response_class=HTMLResponse)
+def reset_passcode_page(
+    request: Request,
+    token: str = "",
+    db: Session = Depends(get_db),
+):
+    record = passcode_reset_record(db, token)
+    return templates.TemplateResponse(
+        request=request,
+        name="auth/reset_passcode.html",
+        context={
+            "token": token if record else "",
+            "invalid_token": record is None,
+            "error_message": None,
+        },
+        status_code=200 if record else 400,
+    )
+
+
+@app.post("/auth/reset-passcode", response_class=HTMLResponse)
+def reset_passcode(
+    request: Request,
+    token: str = Form(...),
+    new_passcode: str = Form(...),
+    confirm_passcode: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    record = passcode_reset_record(db, token)
+    error_message = None
+    if not record:
+        error_message = "This reset link is invalid, expired, or has already been used."
+    elif not valid_passcode(new_passcode):
+        error_message = "New passcode must contain exactly six digits."
+    elif new_passcode != confirm_passcode:
+        error_message = "New passcode and confirmation do not match."
+
+    if error_message:
+        return templates.TemplateResponse(
+            request=request,
+            name="auth/reset_passcode.html",
+            context={
+                "token": token if record else "",
+                "invalid_token": record is None,
+                "error_message": error_message,
+            },
+            status_code=400,
+        )
+
+    user = db.get(User, record.user_id)
+    if not user or not user.is_active:
+        return templates.TemplateResponse(
+            request=request,
+            name="auth/reset_passcode.html",
+            context={"token": "", "invalid_token": True, "error_message": "This reset link is no longer valid."},
+            status_code=400,
+        )
+
+    user.passcode_hash = hash_passcode(new_passcode)
+    user.failed_attempts = 0
+    user.locked_until = None
+    record.used_at = datetime.now(timezone.utc)
+    db.execute(update(PasscodeResetToken).where(
+        PasscodeResetToken.user_id == user.id,
+        PasscodeResetToken.id != record.id,
+        PasscodeResetToken.used_at.is_(None),
+    ).values(used_at=record.used_at))
+    audit(db, request, "passcode_reset_completed", user.id)
+    db.commit()
+    request.session.clear()
+    return RedirectResponse(
+        "/?success=" + quote("Passcode reset successfully. Sign in with your new passcode."),
         status_code=303,
     )
 
