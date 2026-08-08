@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 from calendar import monthrange
+import csv
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal, InvalidOperation
+from io import StringIO
 from pathlib import Path
 from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
@@ -1438,6 +1440,77 @@ def irrigation_alerts_report(request:Request,date_from:str|None=None,date_to:str
         IrrigationZone,IrrigationZone.id==IrrigationAlert.zone_id).where(IrrigationAlert.owner_id==user.id,
         IrrigationAlert.created_at>=start_at,IrrigationAlert.created_at<end_at,Farm.owner_id==user.id).order_by(IrrigationAlert.created_at.desc())).all())
     return templates.TemplateResponse(request=request,name="irrigation/alerts_report.html",context=_ctx(request,user,page_title="Irrigation Alert Report",rows=rows,start=start,end=end,error_message=report_error))
+
+
+# PATCH-IRR-010: CONSOLIDATED REPORTS & PRODUCTION HARDENING
+def _irrigation_report_data(db:Session,user:User,date_from:str|None,date_to:str|None,farm_id:int|None,zone_id:int|None):
+    start=_date(date_from,"From date") if date_from else date.today().replace(day=1)
+    end=_date(date_to,"To date") if date_to else date.today()
+    if end<start: raise ValueError("To date cannot be before from date.")
+    if farm_id: _farm(db,user.id,farm_id)
+    if zone_id:
+        zone=_zone(db,user.id,zone_id)
+        if farm_id and zone.farm_id!=farm_id: raise ValueError("Zone does not belong to the selected farm.")
+        farm_id=farm_id or zone.farm_id
+    farms=list(db.scalars(select(Farm).where(Farm.owner_id==user.id).order_by(Farm.name)))
+    zones_stmt=select(IrrigationZone).where(IrrigationZone.owner_id==user.id)
+    if farm_id: zones_stmt=zones_stmt.where(IrrigationZone.farm_id==farm_id)
+    zones=list(db.scalars(zones_stmt.order_by(IrrigationZone.name)))
+    schedule_stmt=select(IrrigationSchedule,IrrigationZone,Farm).join(IrrigationZone,IrrigationZone.id==IrrigationSchedule.zone_id).join(
+        Farm,Farm.id==IrrigationSchedule.farm_id).where(IrrigationSchedule.owner_id==user.id,IrrigationZone.owner_id==user.id,
+        Farm.owner_id==user.id,IrrigationSchedule.scheduled_date.between(start,end))
+    if farm_id: schedule_stmt=schedule_stmt.where(IrrigationSchedule.farm_id==farm_id)
+    if zone_id: schedule_stmt=schedule_stmt.where(IrrigationSchedule.zone_id==zone_id)
+    schedules=list(db.execute(schedule_stmt.order_by(IrrigationSchedule.scheduled_date.desc())).all())
+    schedule_ids=[row[0].id for row in schedules]
+    executions=list(db.scalars(select(IrrigationExecution).where(IrrigationExecution.owner_id==user.id,
+        IrrigationExecution.schedule_id.in_(schedule_ids)))) if schedule_ids else []
+    execution_by_schedule={row.schedule_id:row for row in executions}
+    planned=sum((row[0].planned_litres or Decimal("0") for row in schedules),Decimal("0"))
+    actual=sum((row.actual_water_litres or Decimal("0") for row in executions),Decimal("0"))
+    executed_plan=sum((row[0].planned_litres or Decimal("0") for row in schedules if row[0].id in execution_by_schedule),Decimal("0"))
+    saved=max(Decimal("0"),executed_plan-actual)
+    runtime_stmt=select(PumpRuntimeLog).where(PumpRuntimeLog.owner_id==user.id,PumpRuntimeLog.run_date.between(start,end))
+    if farm_id: runtime_stmt=runtime_stmt.where(PumpRuntimeLog.farm_id==farm_id)
+    runtime_logs=list(db.scalars(runtime_stmt)); runtime_minutes=sum((row.runtime_minutes or 0 for row in runtime_logs)); operating_cost=sum((row.operating_cost or Decimal("0") for row in runtime_logs),Decimal("0"))
+    weather_stmt=select(WeatherIrrigationRecommendation).where(WeatherIrrigationRecommendation.owner_id==user.id,WeatherIrrigationRecommendation.forecast_date.between(start,end))
+    fert_stmt=select(FertigationPlan).where(FertigationPlan.owner_id==user.id,FertigationPlan.planned_date.between(start,end))
+    alert_start=datetime.combine(start,time.min); alert_end=datetime.combine(end+timedelta(days=1),time.min)
+    alert_stmt=select(IrrigationAlert).where(IrrigationAlert.owner_id==user.id,IrrigationAlert.created_at>=alert_start,IrrigationAlert.created_at<alert_end)
+    if farm_id: weather_stmt=weather_stmt.where(WeatherIrrigationRecommendation.farm_id==farm_id); fert_stmt=fert_stmt.where(FertigationPlan.farm_id==farm_id); alert_stmt=alert_stmt.where(IrrigationAlert.farm_id==farm_id)
+    if zone_id: weather_stmt=weather_stmt.where(WeatherIrrigationRecommendation.zone_id==zone_id); fert_stmt=fert_stmt.where(FertigationPlan.zone_id==zone_id); alert_stmt=alert_stmt.where(IrrigationAlert.zone_id==zone_id)
+    weather=list(db.scalars(weather_stmt)); fertigation=list(db.scalars(fert_stmt)); alerts=list(db.scalars(alert_stmt))
+    zone_rows=[]
+    for zone in zones:
+        scoped=[row for row in schedules if row[0].zone_id==zone.id]
+        if not scoped and zone_id: continue
+        zone_planned=sum((row[0].planned_litres or Decimal("0") for row in scoped),Decimal("0")); zone_actual=sum((execution_by_schedule[row[0].id].actual_water_litres or Decimal("0") for row in scoped if row[0].id in execution_by_schedule),Decimal("0"))
+        zone_rows.append({"farm":next((row[2].name for row in scoped),next((farm.name for farm in farms if farm.id==zone.farm_id),"")),"zone":zone.name,"schedules":len(scoped),"completed":sum(1 for row in scoped if row[0].status=="completed"),"planned":zone_planned,"actual":zone_actual,"variance":zone_actual-zone_planned})
+    metrics={"schedules":len(schedules),"completed":sum(1 for row in schedules if row[0].status=="completed"),"planned":planned,"actual":actual,"saved":saved,
+        "completion_rate":round((sum(1 for row in schedules if row[0].status=="completed")/len(schedules)*100),1) if schedules else 0,
+        "runtime_minutes":runtime_minutes,"operating_cost":operating_cost,"weather_adjustments":sum(1 for row in weather if row.user_decision=="accepted"),
+        "fertigation_completed":sum(1 for row in fertigation if row.status=="completed"),"alerts":len(alerts),"alerts_resolved":sum(1 for row in alerts if row.status=="resolved")}
+    return {"start":start,"end":end,"farms":farms,"zones":zones,"farm_id":farm_id,"zone_id":zone_id,"schedules":schedules,"execution_by_schedule":execution_by_schedule,"zone_rows":zone_rows,"metrics":metrics}
+
+
+@router.get("/irrigation/reports",response_class=HTMLResponse)
+def irrigation_consolidated_report(request:Request,date_from:str|None=None,date_to:str|None=None,farm_id:int|None=None,zone_id:int|None=None,user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    try: data=_irrigation_report_data(db,user,date_from,date_to,farm_id,zone_id); report_error=None
+    except ValueError as exc: data=_irrigation_report_data(db,user,None,None,None,None); report_error=str(exc)
+    return templates.TemplateResponse(request=request,name="irrigation/consolidated_report.html",context=_ctx(request,user,page_title="Irrigation Management Report",error_message=report_error,**data))
+
+
+@router.get("/irrigation/reports/export.csv")
+def irrigation_consolidated_csv(date_from:str|None=None,date_to:str|None=None,farm_id:int|None=None,zone_id:int|None=None,user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    try: data=_irrigation_report_data(db,user,date_from,date_to,farm_id,zone_id)
+    except ValueError as exc: raise HTTPException(status_code=400,detail=str(exc)) from exc
+    output=StringIO(); writer=csv.writer(output); writer.writerow(("Messis AI Irrigation Management Report",)); writer.writerow(("Period",data["start"],data["end"])); writer.writerow(())
+    writer.writerow(("Date","Farm","Zone","Status","Planned litres","Actual litres","Water variance","Weather recommendation"))
+    for schedule,zone,farm in data["schedules"]:
+        execution=data["execution_by_schedule"].get(schedule.id); actual=execution.actual_water_litres if execution else None
+        writer.writerow((schedule.scheduled_date,farm.name,zone.name,schedule.status,schedule.planned_litres or "",actual if actual is not None else "",(actual-schedule.planned_litres) if actual is not None and schedule.planned_litres is not None else "",schedule.weather_recommendation or ""))
+    filename=f"messis-irrigation-report-{data['start']}-to-{data['end']}.csv"
+    return Response(content="\ufeff"+output.getvalue(),media_type="text/csv; charset=utf-8",headers={"Content-Disposition":f'attachment; filename="{filename}"',"X-Content-Type-Options":"nosniff","Cache-Control":"private, no-store"})
 
 
 # PATCH-IRR-004: SMART WATER REQUIREMENT CALCULATOR
