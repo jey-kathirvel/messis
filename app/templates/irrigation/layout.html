@@ -4,8 +4,9 @@
 <link rel="stylesheet" href="/static/css/irrigation-execution.css?v=008">
 <link rel="stylesheet" href="/static/css/fertigation.css?v=008">
 <link rel="stylesheet" href="/static/css/irrigation-weather.css?v=008">
+<link rel="stylesheet" href="/static/css/irrigation-alerts.css?v=009">
 <main class="irr-shell">
-<div class="scheduler-shortcut"><a href="/irrigation/schedules">Calendar</a><a href="/irrigation/executions">Field Operations</a><a href="/irrigation/weather">Weather Intelligence</a><a href="/irrigation/fertigation">Fertigation</a><a href="/irrigation/fertilizers">Fertilizer Stock</a></div>
+<div class="scheduler-shortcut"><a href="/irrigation/schedules">Calendar</a><a href="/irrigation/executions">Field Operations</a><a href="/irrigation/weather">Weather Intelligence</a><a href="/irrigation/alerts">Alerts</a><a href="/irrigation/fertigation">Fertigation</a><a href="/irrigation/fertilizers">Fertilizer Stock</a></div>
 <header class="irr-hero"><div><span class="eyebrow">MESSIS AI · WATER INTELLIGENCE</span><h1>{{ page_title }}</h1><p>Plan water distribution with farm-level ownership and field-ready records.</p></div><nav><a href="/irrigation">Overview</a><a href="/irrigation/zones">Zones</a><a href="/irrigation/water-sources">Water Sources</a><a href="/irrigation/pumps">Pumps</a><a href="/irrigation/equipment">Equipment</a><a href="/irrigation/calculator">Calculator</a><a href="/irrigation/calculator/history">History</a></nav></header>
 {% if success_message %}<div class="alert success">{{ success_message }}</div>{% endif %}{% if error_message %}<div class="alert error">{{ error_message }}</div>{% endif %}
 {% block irrigation_content %}{% endblock %}

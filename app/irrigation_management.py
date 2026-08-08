@@ -1345,6 +1345,101 @@ def irrigation_weather_report(request:Request,date_from:str|None=None,date_to:st
         request,user,page_title="Weather Irrigation Report",rows=rows,start=start,end=end,saved=saved,error_message=report_error))
 
 
+# PATCH-IRR-009: IRRIGATION ALERTS & NOTIFICATIONS
+def _ensure_irrigation_alert(db:Session, *, owner_id:int, farm_id:int, alert_type:str, severity:str,
+                             title:str, message:str, zone_id:int|None=None, schedule_id:int|None=None,
+                             due_at:datetime|None=None) -> bool:
+    existing=db.scalar(select(IrrigationAlert.id).where(IrrigationAlert.owner_id==owner_id,IrrigationAlert.farm_id==farm_id,
+        IrrigationAlert.alert_type==alert_type,IrrigationAlert.title==title,
+        IrrigationAlert.status.in_(("open","acknowledged"))))
+    if existing: return False
+    db.add(IrrigationAlert(owner_id=owner_id,farm_id=farm_id,zone_id=zone_id,schedule_id=schedule_id,
+        alert_type=alert_type,severity=severity,title=title,message=message,status="open",due_at=due_at))
+    return True
+
+
+def _generate_irrigation_alerts(db:Session,user:User) -> int:
+    today=date.today(); horizon=today+timedelta(days=3); created=0
+    schedules=list(db.scalars(select(IrrigationSchedule).where(IrrigationSchedule.owner_id==user.id,
+        IrrigationSchedule.status.in_(("planned","postponed")),IrrigationSchedule.scheduled_date<=horizon)))
+    for schedule in schedules:
+        overdue=schedule.scheduled_date<today
+        created+=_ensure_irrigation_alert(db,owner_id=user.id,farm_id=schedule.farm_id,zone_id=schedule.zone_id,
+            schedule_id=schedule.id,alert_type="schedule_overdue" if overdue else "schedule_upcoming",
+            severity="critical" if overdue else "info",
+            title=f"{'Overdue' if overdue else 'Upcoming'} irrigation schedule #{schedule.id}",
+            message=f"Irrigation is scheduled for {schedule.scheduled_date}.",
+            due_at=datetime.combine(schedule.scheduled_date,time.min,tzinfo=timezone.utc))
+    for source in db.scalars(select(WaterSource).where(WaterSource.owner_id==user.id,WaterSource.is_active.is_(True))):
+        if source.capacity_litres and source.current_level_litres is not None and source.current_level_litres/source.capacity_litres<=Decimal("0.20"):
+            created+=_ensure_irrigation_alert(db,owner_id=user.id,farm_id=source.farm_id,alert_type="low_water_source",
+                severity="critical",title=f"Low water level: {source.name}",message=f"Current level is {source.current_level_litres} L of {source.capacity_litres} L capacity.")
+    for pump in db.scalars(select(IrrigationPump).where(IrrigationPump.owner_id==user.id)):
+        if pump.status in ("faulty","maintenance","unavailable") or (pump.next_service_date and pump.next_service_date<=today+timedelta(days=7)):
+            created+=_ensure_irrigation_alert(db,owner_id=user.id,farm_id=pump.farm_id,alert_type="pump_attention",
+                severity="critical" if pump.status=="faulty" else "warning",title=f"Pump attention: {pump.name}",
+                message=f"Status: {pump.status}. Next service: {pump.next_service_date or 'not recorded'}.")
+    for equipment in db.scalars(select(IrrigationEquipment).where(IrrigationEquipment.owner_id==user.id,IrrigationEquipment.is_active.is_(True))):
+        if equipment.status in ("faulty","maintenance","unavailable") or (equipment.next_service_date and equipment.next_service_date<=today+timedelta(days=7)):
+            created+=_ensure_irrigation_alert(db,owner_id=user.id,farm_id=equipment.farm_id,zone_id=equipment.zone_id,
+                alert_type="equipment_attention",severity="warning",title=f"Equipment attention: {equipment.name}",
+                message=f"Status: {equipment.status}. Next service: {equipment.next_service_date or 'not recorded'}.")
+    for plan in db.scalars(select(FertigationPlan).where(FertigationPlan.owner_id==user.id,FertigationPlan.approval_status=="pending")):
+        created+=_ensure_irrigation_alert(db,owner_id=user.id,farm_id=plan.farm_id,zone_id=plan.zone_id,
+            schedule_id=plan.schedule_id,alert_type="fertigation_approval",severity="warning",
+            title=f"Fertigation approval pending: {plan.name}",message=f"Plan date: {plan.planned_date}.")
+    for product in db.scalars(select(FertilizerProduct).where(FertilizerProduct.owner_id==user.id,FertilizerProduct.is_active.is_(True),FertilizerProduct.stock_quantity<=0)):
+        farm_id=db.scalar(select(Farm.id).where(Farm.owner_id==user.id).order_by(Farm.id).limit(1))
+        if farm_id: created+=_ensure_irrigation_alert(db,owner_id=user.id,farm_id=farm_id,alert_type="fertilizer_stock",
+            severity="warning",title=f"Fertilizer out of stock: {product.name}",message="Replenish stock before the next fertigation operation.")
+    return created
+
+
+@router.get("/irrigation/alerts",response_class=HTMLResponse)
+def irrigation_alerts_dashboard(request:Request,status:str="active",severity:str="",user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    stmt=select(IrrigationAlert,Farm,IrrigationZone).join(Farm,Farm.id==IrrigationAlert.farm_id).outerjoin(
+        IrrigationZone,IrrigationZone.id==IrrigationAlert.zone_id).where(IrrigationAlert.owner_id==user.id,Farm.owner_id==user.id)
+    if status=="active": stmt=stmt.where(IrrigationAlert.status.in_(("open","acknowledged")))
+    elif status in ("open","acknowledged","resolved","dismissed"): stmt=stmt.where(IrrigationAlert.status==status)
+    if severity in ("info","warning","critical"): stmt=stmt.where(IrrigationAlert.severity==severity)
+    rows=list(db.execute(stmt.order_by(IrrigationAlert.created_at.desc()).limit(500)).all())
+    counts={value:db.scalar(select(func.count(IrrigationAlert.id)).where(IrrigationAlert.owner_id==user.id,IrrigationAlert.status==value)) or 0 for value in ("open","acknowledged","resolved","dismissed")}
+    critical=db.scalar(select(func.count(IrrigationAlert.id)).where(IrrigationAlert.owner_id==user.id,IrrigationAlert.status.in_(("open","acknowledged")),IrrigationAlert.severity=="critical")) or 0
+    return templates.TemplateResponse(request=request,name="irrigation/alerts_dashboard.html",context=_ctx(request,user,page_title="Irrigation Alerts & Notifications",rows=rows,counts=counts,critical=critical,selected_status=status,selected_severity=severity))
+
+
+@router.post("/irrigation/alerts/generate")
+def irrigation_alerts_generate(request:Request,user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    created=_generate_irrigation_alerts(db,user); _irrigation_audit(db,request,user,"irrigation_alerts_generated",f"created={created}"); db.commit()
+    return RedirectResponse("/irrigation/alerts?success="+quote(f"Generated {created} new alerts."),status_code=303)
+
+
+@router.post("/irrigation/alerts/{alert_id}/status")
+def irrigation_alert_status(alert_id:int,request:Request,status:str=Form(...),user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    alert=db.scalar(select(IrrigationAlert).where(IrrigationAlert.id==alert_id,IrrigationAlert.owner_id==user.id))
+    if not alert: raise HTTPException(status_code=404,detail="Irrigation alert not found")
+    if status not in ("acknowledged","resolved","dismissed","open"): raise HTTPException(status_code=400,detail="Invalid alert status")
+    alert.status=status
+    if status=="acknowledged": alert.acknowledged_at=_utcnow()
+    elif status=="resolved": alert.resolved_at=_utcnow()
+    _irrigation_audit(db,request,user,"irrigation_alert_status_changed",f"alert_id={alert.id}; status={status}"); db.commit()
+    return RedirectResponse("/irrigation/alerts?success="+quote(f"Alert marked {status}."),status_code=303)
+
+
+@router.get("/irrigation/alerts/report",response_class=HTMLResponse)
+def irrigation_alerts_report(request:Request,date_from:str|None=None,date_to:str|None=None,user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    try:
+        start=_date(date_from,"From date") if date_from else date.today().replace(day=1); end=_date(date_to,"To date") if date_to else date.today()
+        if end<start: raise ValueError("To date cannot be before from date.")
+    except ValueError as exc: start=date.today().replace(day=1); end=date.today(); report_error=str(exc)
+    else: report_error=None
+    start_at=datetime.combine(start,time.min); end_at=datetime.combine(end+timedelta(days=1),time.min)
+    rows=list(db.execute(select(IrrigationAlert,Farm,IrrigationZone).join(Farm,Farm.id==IrrigationAlert.farm_id).outerjoin(
+        IrrigationZone,IrrigationZone.id==IrrigationAlert.zone_id).where(IrrigationAlert.owner_id==user.id,
+        IrrigationAlert.created_at>=start_at,IrrigationAlert.created_at<end_at,Farm.owner_id==user.id).order_by(IrrigationAlert.created_at.desc())).all())
+    return templates.TemplateResponse(request=request,name="irrigation/alerts_report.html",context=_ctx(request,user,page_title="Irrigation Alert Report",rows=rows,start=start,end=end,error_message=report_error))
+
+
 # PATCH-IRR-004: SMART WATER REQUIREMENT CALCULATOR
 @router.get("/irrigation/calculator", response_class=HTMLResponse)
 def water_calculator_page(request:Request, zone_id:int|None=None, user:User=Depends(current_irrigation_user), db:Session=Depends(get_db)):
