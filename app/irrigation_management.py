@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from calendar import monthrange
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from urllib.parse import quote
@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services.water_calculator import calculate_water
-from app.models import (Farm, IrrigationAlert, IrrigationEquipment, IrrigationPump, IrrigationSchedule, IrrigationZone, PumpMaintenanceRecord, PumpRuntimeLog, User, WaterSource, WaterRequirementCalculation)
+from app.models import (AuditLog, Farm, IrrigationAlert, IrrigationEquipment, IrrigationExecution, IrrigationPump, IrrigationSchedule, IrrigationZone, PumpMaintenanceRecord, PumpRuntimeLog, User, WaterSource, WaterRequirementCalculation)
 
 router = APIRouter(tags=["Irrigation Management"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
@@ -118,6 +118,34 @@ def _schedule(db: Session, owner_id: int, schedule_id: int) -> IrrigationSchedul
     if not schedule:
         raise HTTPException(status_code=404, detail="Irrigation schedule not found")
     return schedule
+
+
+def _execution(db: Session, owner_id: int, execution_id: int) -> IrrigationExecution:
+    execution = db.scalar(select(IrrigationExecution).where(IrrigationExecution.id == execution_id, IrrigationExecution.owner_id == owner_id))
+    if not execution:
+        raise HTTPException(status_code=404, detail="Irrigation execution not found")
+    return execution
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _aware(value: datetime) -> datetime:
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
+def _elapsed_minutes(started_at: datetime | None, ended_at: datetime | None, paused_minutes: int = 0) -> int:
+    if not started_at or not ended_at:
+        return 0
+    elapsed = int((_aware(ended_at) - _aware(started_at)).total_seconds() // 60) - paused_minutes
+    return max(0, elapsed)
+
+
+def _irrigation_audit(db: Session, request: Request, user: User, event: str, detail: str) -> None:
+    forwarded = request.headers.get("x-forwarded-for")
+    ip_address = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else None)
+    db.add(AuditLog(owner_id=user.id, event_type=event, ip_address=ip_address, detail=detail))
 
 
 def _clock(value: str | None, label: str) -> str | None:
@@ -698,6 +726,191 @@ def schedule_report(request: Request, date_from: str | None = None, date_to: str
         total_litres=total_litres, total_minutes=total_minutes,
         completed=sum(1 for row in rows if row[0].status == "completed"),
     ))
+
+
+# PATCH-IRR-006: IRRIGATION EXECUTION & FIELD OPERATIONS
+def _execution_rows(db: Session, owner_id: int):
+    return select(IrrigationExecution, IrrigationSchedule, IrrigationZone, Farm, IrrigationPump).join(
+        IrrigationSchedule, IrrigationSchedule.id == IrrigationExecution.schedule_id
+    ).join(IrrigationZone, IrrigationZone.id == IrrigationSchedule.zone_id).join(
+        Farm, Farm.id == IrrigationSchedule.farm_id
+    ).outerjoin(IrrigationPump, IrrigationPump.id == IrrigationSchedule.pump_id).where(
+        IrrigationExecution.owner_id == owner_id, IrrigationSchedule.owner_id == owner_id,
+        IrrigationZone.owner_id == owner_id, Farm.owner_id == owner_id,
+    )
+
+
+@router.get("/irrigation/executions", response_class=HTMLResponse)
+def execution_dashboard(request: Request, user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    rows = list(db.execute(_execution_rows(db, user.id).order_by(IrrigationExecution.created_at.desc()).limit(250)).all())
+    active = [row for row in rows if row[0].status in ("in_progress", "paused")]
+    completed = [row for row in rows if row[0].status in ("completed", "approved")]
+    water = sum((row[0].actual_water_litres or Decimal("0") for row in completed), Decimal("0"))
+    issues = sum(1 for row in rows if row[0].leakage_reported or row[0].pump_issue_reported)
+    pending_approval = sum(1 for row in rows if row[0].status == "completed" and not row[0].supervisor_approved_at)
+    return templates.TemplateResponse(request=request, name="irrigation/execution_dashboard.html", context=_ctx(
+        request, user, page_title="Irrigation Field Operations", rows=rows, active=active,
+        completed=completed[:20], water=water, issues=issues, pending_approval=pending_approval,
+    ))
+
+
+@router.get("/irrigation/executions/report", response_class=HTMLResponse)
+def execution_report(request: Request, date_from: str | None = None, date_to: str | None = None,
+                     user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    try:
+        start = _date(date_from, "From date") if date_from else date.today().replace(day=1)
+        end = _date(date_to, "To date") if date_to else date.today()
+        if start and end and end < start:
+            raise ValueError("To date cannot be before from date.")
+    except ValueError as exc:
+        start = date.today().replace(day=1); end = date.today(); error = str(exc)
+    else:
+        error = None
+    stmt = _execution_rows(db, user.id).where(IrrigationSchedule.scheduled_date.between(start, end))
+    rows = list(db.execute(stmt.order_by(IrrigationSchedule.scheduled_date.desc())).all())
+    planned_water = sum((row[1].planned_litres or Decimal("0") for row in rows), Decimal("0"))
+    actual_water = sum((row[0].actual_water_litres or Decimal("0") for row in rows), Decimal("0"))
+    planned_minutes = sum((row[1].estimated_duration_minutes or 0 for row in rows))
+    actual_minutes = sum((row[0].actual_duration_minutes or 0 for row in rows))
+    return templates.TemplateResponse(request=request, name="irrigation/execution_report.html", context=_ctx(
+        request, user, page_title="Irrigation Execution Report", rows=rows, start=start, end=end,
+        planned_water=planned_water, actual_water=actual_water, planned_minutes=planned_minutes,
+        actual_minutes=actual_minutes, error_message=error,
+    ))
+
+
+@router.get("/irrigation/schedules/{schedule_id}/execute", response_class=HTMLResponse)
+def execution_field_page(schedule_id: int, request: Request, user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    schedule = _schedule(db, user.id, schedule_id)
+    zone = _zone(db, user.id, schedule.zone_id); farm = _farm(db, user.id, schedule.farm_id)
+    pump = _pump(db, user.id, schedule.pump_id) if schedule.pump_id else None
+    execution = db.scalar(select(IrrigationExecution).where(IrrigationExecution.owner_id == user.id, IrrigationExecution.schedule_id == schedule.id))
+    return templates.TemplateResponse(request=request, name="irrigation/execution_field.html", context=_ctx(
+        request, user, page_title="Field Irrigation", schedule=schedule, execution=execution,
+        zone=zone, farm=farm, pump=pump, now=_utcnow(),
+    ))
+
+
+@router.post("/irrigation/schedules/{schedule_id}/execute/start")
+def execution_start(schedule_id: int, request: Request, opening_meter_reading: str = Form(""),
+                    opening_tank_level_litres: str = Form(""), worker_remarks: str = Form(""),
+                    user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    schedule = _schedule(db, user.id, schedule_id)
+    existing = db.scalar(select(IrrigationExecution).where(IrrigationExecution.owner_id == user.id, IrrigationExecution.schedule_id == schedule.id))
+    if existing:
+        return RedirectResponse(f"/irrigation/schedules/{schedule_id}/execute?error=" + quote("Execution already exists for this schedule."), status_code=303)
+    if schedule.status in ("completed", "cancelled"):
+        return RedirectResponse(f"/irrigation/schedules/{schedule_id}/execute?error=" + quote("Completed or cancelled schedules cannot be started."), status_code=303)
+    try:
+        execution = IrrigationExecution(owner_id=user.id, farm_id=schedule.farm_id, schedule_id=schedule.id,
+            status="in_progress", started_at=_utcnow(), opening_meter_reading=_decimal(opening_meter_reading, "Opening meter reading"),
+            opening_tank_level_litres=_decimal(opening_tank_level_litres, "Opening tank level"), worker_remarks=_text(worker_remarks))
+        db.add(execution); schedule.status = "in_progress"
+        if schedule.pump_id:
+            _pump(db, user.id, schedule.pump_id).status = "running"
+        _irrigation_audit(db, request, user, "irrigation_execution_started", f"schedule_id={schedule.id}")
+        db.commit()
+    except (ValueError, IntegrityError) as exc:
+        db.rollback(); return RedirectResponse(f"/irrigation/schedules/{schedule_id}/execute?error=" + quote(str(exc)), status_code=303)
+    return RedirectResponse(f"/irrigation/schedules/{schedule_id}/execute?success=" + quote("Irrigation started."), status_code=303)
+
+
+@router.post("/irrigation/executions/{execution_id}/pause")
+def execution_pause(execution_id: int, request: Request, user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    execution = _execution(db, user.id, execution_id)
+    if execution.status != "in_progress":
+        raise HTTPException(status_code=409, detail="Only active executions can be paused")
+    execution.status = "paused"; execution.paused_at = _utcnow()
+    _irrigation_audit(db, request, user, "irrigation_execution_paused", f"execution_id={execution.id}")
+    db.commit()
+    return RedirectResponse(f"/irrigation/schedules/{execution.schedule_id}/execute?success=" + quote("Irrigation paused."), status_code=303)
+
+
+@router.post("/irrigation/executions/{execution_id}/resume")
+def execution_resume(execution_id: int, request: Request, user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    execution = _execution(db, user.id, execution_id)
+    if execution.status != "paused" or not execution.paused_at:
+        raise HTTPException(status_code=409, detail="Only paused executions can be resumed")
+    execution.total_paused_minutes += _elapsed_minutes(execution.paused_at, _utcnow())
+    execution.paused_at = None; execution.status = "in_progress"
+    _irrigation_audit(db, request, user, "irrigation_execution_resumed", f"execution_id={execution.id}")
+    db.commit()
+    return RedirectResponse(f"/irrigation/schedules/{execution.schedule_id}/execute?success=" + quote("Irrigation resumed."), status_code=303)
+
+
+@router.post("/irrigation/executions/{execution_id}/complete")
+def execution_complete(execution_id: int, request: Request, closing_meter_reading: str = Form(""),
+                       closing_tank_level_litres: str = Form(""), actual_water_litres: str = Form(""),
+                       actual_duration_minutes: str = Form(""), completion_percentage: str = Form("100"),
+                       worker_remarks: str = Form(""), leakage_reported: str | None = Form(None),
+                       pump_issue_reported: str | None = Form(None), user: User = Depends(current_irrigation_user),
+                       db: Session = Depends(get_db)):
+    execution = _execution(db, user.id, execution_id); schedule = _schedule(db, user.id, execution.schedule_id)
+    if execution.status not in ("in_progress", "paused"):
+        raise HTTPException(status_code=409, detail="Execution is not active")
+    try:
+        now = _utcnow(); paused = execution.total_paused_minutes
+        if execution.status == "paused" and execution.paused_at:
+            paused += _elapsed_minutes(execution.paused_at, now)
+        closing_meter = _decimal(closing_meter_reading, "Closing meter reading")
+        closing_tank = _decimal(closing_tank_level_litres, "Closing tank level")
+        actual_water = _decimal(actual_water_litres, "Actual water")
+        if execution.opening_meter_reading is not None and closing_meter is not None:
+            if closing_meter < execution.opening_meter_reading:
+                raise ValueError("Closing meter reading cannot be below the opening reading.")
+            meter_water = closing_meter - execution.opening_meter_reading
+            if actual_water is None:
+                actual_water = meter_water
+        if execution.opening_tank_level_litres is not None and closing_tank is not None and closing_tank > execution.opening_tank_level_litres:
+            raise ValueError("Closing tank level cannot exceed the opening level.")
+        if actual_water is None and execution.opening_tank_level_litres is not None and closing_tank is not None:
+            actual_water = execution.opening_tank_level_litres - closing_tank
+        percentage = _decimal(completion_percentage, "Completion percentage") or Decimal("0")
+        if percentage > 100:
+            raise ValueError("Completion percentage cannot exceed 100.")
+        manual_duration = _integer(actual_duration_minutes, "Actual duration", allow_zero=False)
+        execution.completed_at=now; execution.total_paused_minutes=paused; execution.paused_at=None
+        execution.actual_duration_minutes=manual_duration or _elapsed_minutes(execution.started_at, now, paused)
+        execution.closing_meter_reading=closing_meter; execution.closing_tank_level_litres=closing_tank
+        execution.actual_water_litres=actual_water; execution.completion_percentage=percentage
+        execution.worker_remarks=_text(worker_remarks) or execution.worker_remarks
+        execution.leakage_reported=leakage_reported == "on"; execution.pump_issue_reported=pump_issue_reported == "on"
+        execution.status="completed"; schedule.status="completed" if percentage >= 100 else "postponed"
+        zone = _zone(db, user.id, schedule.zone_id); zone.last_irrigation_date = now.date()
+        if zone.recommended_interval_days:
+            zone.next_irrigation_date = now.date() + timedelta(days=zone.recommended_interval_days)
+        if schedule.pump_id:
+            pump = _pump(db, user.id, schedule.pump_id)
+            pump.status = "faulty" if execution.pump_issue_reported else "available"
+            if execution.actual_duration_minutes:
+                db.add(PumpRuntimeLog(owner_id=user.id, farm_id=schedule.farm_id, pump_id=pump.id,
+                    run_date=schedule.scheduled_date, runtime_minutes=execution.actual_duration_minutes,
+                    water_pumped_litres=actual_water, notes=f"Generated from irrigation execution #{execution.id}"))
+        issue_labels = []
+        if execution.leakage_reported: issue_labels.append("leakage")
+        if execution.pump_issue_reported: issue_labels.append("pump issue")
+        if issue_labels:
+            db.add(IrrigationAlert(owner_id=user.id, farm_id=schedule.farm_id, zone_id=schedule.zone_id,
+                schedule_id=schedule.id, alert_type="execution_issue", severity="critical" if execution.pump_issue_reported else "warning",
+                title="Irrigation execution issue", message=f"Execution #{execution.id}: {', '.join(issue_labels)} reported.", status="open"))
+        _irrigation_audit(db, request, user, "irrigation_execution_completed", f"execution_id={execution.id}; completion={percentage}")
+        db.commit()
+    except (ValueError, IntegrityError) as exc:
+        db.rollback(); return RedirectResponse(f"/irrigation/schedules/{schedule.id}/execute?error=" + quote(str(exc)), status_code=303)
+    return RedirectResponse(f"/irrigation/schedules/{schedule.id}/execute?success=" + quote("Irrigation completed and recorded."), status_code=303)
+
+
+@router.post("/irrigation/executions/{execution_id}/approve")
+def execution_approve(execution_id: int, request: Request, supervisor_notes: str = Form(""),
+                      user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    execution = _execution(db, user.id, execution_id)
+    if execution.status not in ("completed", "approved"):
+        raise HTTPException(status_code=409, detail="Only completed executions can be approved")
+    execution.status="approved"; execution.supervisor_approved_by=user.id
+    execution.supervisor_approved_at=_utcnow(); execution.supervisor_notes=_text(supervisor_notes)
+    _irrigation_audit(db, request, user, "irrigation_execution_approved", f"execution_id={execution.id}")
+    db.commit()
+    return RedirectResponse(f"/irrigation/schedules/{execution.schedule_id}/execute?success=" + quote("Execution approved."), status_code=303)
 
 
 # PATCH-IRR-004: SMART WATER REQUIREMENT CALCULATOR
