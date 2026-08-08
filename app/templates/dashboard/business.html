@@ -1652,6 +1652,35 @@
             line-height: 1.5;
         }
 
+        /* PATCH-WEATHER-001D — readable light forecast surfaces */
+        body .weather-summary-panel .weather-day-card,
+        body .weather-summary-panel .weather-advisory-mini {
+            color: #17372a !important;
+            background: rgba(255, 255, 255, 0.94) !important;
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            box-shadow: 0 8px 22px rgba(3, 69, 73, 0.10);
+        }
+
+        body .weather-summary-panel .weather-day-card strong {
+            color: #17372a !important;
+        }
+
+        body .weather-summary-panel .weather-day-card span {
+            color: #0369a1 !important;
+        }
+
+        body .weather-summary-panel .weather-day-card small {
+            color: #526b60 !important;
+        }
+
+        body .weather-summary-panel .weather-advisory-mini strong {
+            color: #9a4d08 !important;
+        }
+
+        body .weather-summary-panel .weather-advisory-mini p {
+            color: #52645c !important;
+        }
+
         .weather-loading,
         .weather-empty,
         .weather-dashboard-error {
@@ -2561,7 +2590,7 @@
         href="/static/pwa/mobile-shell.css?v=001b"
     >
 
-    <link rel="stylesheet" href="/static/css/agri-theme.css?v=002">
+    <link rel="stylesheet" href="/static/css/agri-theme.css?v=005">
 </head>
 
 <body>
@@ -2625,6 +2654,9 @@
                     </div>
                 </details>
             </section>
+
+            <!-- PATCH-IRR-002: DASHBOARD NAVIGATION -->
+            <section class="menu-section"><div class="menu-label">Water Management</div><details class="menu-group" open><summary class="submenu-summary"><span class="menu-icon">💧</span><span class="menu-text">Irrigation</span><span class="submenu-chevron">›</span></summary><div class="submenu"><a class="menu-link" href="/irrigation"><span class="menu-icon">⌁</span><span class="menu-text">Irrigation Overview</span></a><a class="menu-link" href="/irrigation/zones"><span class="menu-icon">▦</span><span class="menu-text">Irrigation Zones</span></a><a class="menu-link" href="/irrigation/water-sources"><span class="menu-icon">◉</span><span class="menu-text">Water Sources</span></a><a class="menu-link" href="/irrigation/schedules"><span class="menu-icon">▣</span><span class="menu-text">Scheduler &amp; Calendar</span></a><a class="menu-link" href="/irrigation/executions"><span class="menu-icon">▶</span><span class="menu-text">Field Operations</span></a><a class="menu-link" href="/irrigation/fertigation"><span class="menu-icon">♧</span><span class="menu-text">Fertigation</span></a><a class="menu-link" href="/irrigation/weather"><span class="menu-icon">☁</span><span class="menu-text">Weather Intelligence</span></a><a class="menu-link" href="/irrigation/alerts"><span class="menu-icon">⚠</span><span class="menu-text">Alerts &amp; Notifications</span></a><a class="menu-link" href="/irrigation/reports"><span class="menu-icon">▤</span><span class="menu-text">Reports &amp; Analytics</span></a></div></details></section>
 
             {% if dashboard_context.is_coconut %}<section class="menu-section">
                 <div class="menu-label">Harvest Management</div>
@@ -3007,8 +3039,11 @@
                     class="top-link pwa-install-button"
                     id="pwa-install-button"
                     type="button"
+                    aria-label="Install Messis AI app"
+                    title="Install App"
                 >
-                    📲 Install App
+                    <span class="pwa-install-icon" aria-hidden="true">📲</span>
+                    <span class="pwa-install-label">Install App</span>
                 </button>
 
                 <a class="top-link" href="/reports">
