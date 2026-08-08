@@ -1652,6 +1652,35 @@
             line-height: 1.5;
         }
 
+        /* PATCH-WEATHER-001D — readable light forecast surfaces */
+        body .weather-summary-panel .weather-day-card,
+        body .weather-summary-panel .weather-advisory-mini {
+            color: #17372a !important;
+            background: rgba(255, 255, 255, 0.94) !important;
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            box-shadow: 0 8px 22px rgba(3, 69, 73, 0.10);
+        }
+
+        body .weather-summary-panel .weather-day-card strong {
+            color: #17372a !important;
+        }
+
+        body .weather-summary-panel .weather-day-card span {
+            color: #0369a1 !important;
+        }
+
+        body .weather-summary-panel .weather-day-card small {
+            color: #526b60 !important;
+        }
+
+        body .weather-summary-panel .weather-advisory-mini strong {
+            color: #9a4d08 !important;
+        }
+
+        body .weather-summary-panel .weather-advisory-mini p {
+            color: #52645c !important;
+        }
+
         .weather-loading,
         .weather-empty,
         .weather-dashboard-error {
