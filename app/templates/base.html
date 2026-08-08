@@ -14,7 +14,7 @@
     <!-- PATCH-UI-SUBPAGES-001A -->
     <link
         rel="stylesheet"
-        href="/static/css/messis-subpages.css?v=001a"
+        href="/static/css/messis-subpages.css?v=001b"
     >
 
 
@@ -84,20 +84,22 @@
 
     <div class="messis-page-toolbar-right">
         <button
-            class="messis-nav-button"
+            class="messis-nav-button messis-nav-icon-button"
             type="button"
             onclick="messisGoBack()"
+            aria-label="Go back"
+            title="Back"
         >
             <span aria-hidden="true">←</span>
-            <span>Back</span>
         </button>
 
         <a
-            class="messis-nav-button messis-nav-button-primary"
+            class="messis-nav-button messis-nav-button-primary messis-nav-icon-button"
             href="/dashboard"
+            aria-label="Back to dashboard"
+            title="Dashboard"
         >
             <span aria-hidden="true">⌂</span>
-            <span>Back to Dashboard</span>
         </a>
     </div>
 </header>

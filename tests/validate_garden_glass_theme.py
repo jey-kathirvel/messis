@@ -4,6 +4,12 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 theme = (root / "app/static/css/garden-glass.css").read_text(encoding="utf-8")
+subpages = (root / "app/static/css/messis-subpages.css").read_text(encoding="utf-8")
+base = (root / "app/templates/base.html").read_text(encoding="utf-8")
+for marker in ("MESSIS-UX-HEADER-001", "height:54px", ".messis-nav-icon-button", "position:sticky"):
+    assert marker in subpages, marker
+assert "messis-subpages.css?v=001b" in base
+assert 'aria-label="Go back"' in base and 'aria-label="Back to dashboard"' in base
 for marker in ("MESSIS-UX-GLASS-001", "--glass-surface", "backdrop-filter", "prefers-reduced-transparency", ".sidebar", "table", "input,select,textarea", ".messis-mobile-navigation", ".topbar .page-title strong", ".weather-summary-panel", ".topbar{padding-right:190px"):
     assert marker in theme, marker
 for relative in ("app/static/css/app.css", "app/static/css/agri-theme.css", "app/static/pwa/mobile-shell.css"):
