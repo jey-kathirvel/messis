@@ -15,7 +15,7 @@ checks = {
     "recommendation badges": "decision-badge" in template,
     "client-side search": "historySearch" in template,
     "responsive premium CSS": "PATCH-IRR-004B — Premium Calculator History Dashboard" in css,
-    "cache version": "irrigation.css?v=007" in layout,
+    "cache version": "irrigation.css?v=008" in layout,
 }
 failed = [name for name, ok in checks.items() if not ok]
 if failed:

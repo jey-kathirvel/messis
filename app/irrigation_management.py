@@ -10,16 +10,17 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services.water_calculator import calculate_water
+from app.services.irrigation_weather import PROVIDER as WEATHER_PROVIDER, build_irrigation_advice, fetch_daily_forecast
 from app.models import (AuditLog, Farm, FertigationPlan, FertigationPlanItem, FertilizerProduct,
     FertilizerStockMovement, IrrigationAlert, IrrigationEquipment, IrrigationExecution,
     IrrigationPump, IrrigationSchedule, IrrigationZone, PumpMaintenanceRecord, PumpRuntimeLog,
-    User, WaterSource, WaterRequirementCalculation)
+    User, WaterSource, WaterRequirementCalculation, WeatherIrrigationRecommendation)
 
 router = APIRouter(tags=["Irrigation Management"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
@@ -1218,6 +1219,130 @@ def fertigation_report(request:Request,date_from:str|None=None,date_to:str|None=
         FertigationPlan.owner_id==user.id,FertigationPlan.planned_date.between(start,end),Farm.owner_id==user.id,IrrigationZone.owner_id==user.id).order_by(FertigationPlan.planned_date.desc())).all())
     completed=sum(1 for row in rows if row[0].status=="completed"); water=sum((row[0].total_water_litres or Decimal("0") for row in rows),Decimal("0"))
     return templates.TemplateResponse(request=request,name="irrigation/fertigation_report.html",context=_ctx(request,user,page_title="Fertigation Report",rows=rows,start=start,end=end,completed=completed,water=water,error_message=report_error))
+
+
+# PATCH-IRR-008: WEATHER INTELLIGENCE
+def _farm_weather_locations(db: Session, owner_id: int, farm_id: int | None = None):
+    sql = """SELECT w.farm_id, w.location_name, w.latitude, w.longitude, f.name AS farm_name
+             FROM farm_weather_locations w JOIN farms f ON f.id=w.farm_id
+             WHERE w.owner_id=:owner_id AND f.owner_id=:owner_id"""
+    parameters: dict[str, object] = {"owner_id": owner_id}
+    if farm_id is not None:
+        sql += " AND w.farm_id=:farm_id"; parameters["farm_id"] = farm_id
+    return list(db.execute(text(sql), parameters).mappings().all())
+
+
+@router.get("/irrigation/weather", response_class=HTMLResponse)
+def irrigation_weather_dashboard(request: Request, farm_id: int | None = None,
+                                 user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    if farm_id: _farm(db,user.id,farm_id)
+    farms=list(db.scalars(select(Farm).where(Farm.owner_id==user.id).order_by(Farm.name)))
+    locations=_farm_weather_locations(db,user.id,farm_id)
+    stmt=select(WeatherIrrigationRecommendation,IrrigationZone,Farm,IrrigationSchedule).join(
+        IrrigationZone,IrrigationZone.id==WeatherIrrigationRecommendation.zone_id).join(
+        Farm,Farm.id==WeatherIrrigationRecommendation.farm_id).outerjoin(
+        IrrigationSchedule,IrrigationSchedule.id==WeatherIrrigationRecommendation.schedule_id).where(
+        WeatherIrrigationRecommendation.owner_id==user.id,IrrigationZone.owner_id==user.id,Farm.owner_id==user.id,
+        WeatherIrrigationRecommendation.forecast_date>=date.today())
+    if farm_id: stmt=stmt.where(WeatherIrrigationRecommendation.farm_id==farm_id)
+    rows=list(db.execute(stmt.order_by(WeatherIrrigationRecommendation.forecast_date,IrrigationZone.name).limit(300)).all())
+    counts={key:sum(1 for row in rows if row[0].recommendation==key) for key in ("delay_irrigation","reduce_water","proceed","increase_water")}
+    pending=sum(1 for row in rows if row[0].user_decision=="pending")
+    return templates.TemplateResponse(request=request,name="irrigation/weather_dashboard.html",context=_ctx(
+        request,user,page_title="Irrigation Weather Intelligence",rows=rows,farms=farms,locations=locations,
+        selected_farm_id=farm_id,counts=counts,pending=pending,provider=WEATHER_PROVIDER,today=date.today()))
+
+
+@router.post("/irrigation/weather/refresh")
+def irrigation_weather_refresh(request:Request,farm_id:str=Form(""),forecast_days:str=Form("10"),
+                               user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    try:
+        selected_farm=_integer(farm_id,"Farm"); days=_integer(forecast_days,"Forecast days",allow_zero=False) or 10
+        if days>16: raise ValueError("Forecast days cannot exceed 16.")
+        if selected_farm: _farm(db,user.id,selected_farm)
+        locations=_farm_weather_locations(db,user.id,selected_farm)
+        if not locations: raise ValueError("Configure farm weather coordinates before refreshing irrigation intelligence.")
+        generated=0
+        for location in locations:
+            forecasts=fetch_daily_forecast(float(location["latitude"]),float(location["longitude"]),days)
+            zones=list(db.scalars(select(IrrigationZone).where(IrrigationZone.owner_id==user.id,
+                IrrigationZone.farm_id==location["farm_id"],IrrigationZone.is_active.is_(True))))
+            for forecast in forecasts:
+                forecast_date=_date(str(forecast["date"]),"Forecast date")
+                for zone in zones:
+                    schedule=db.scalar(select(IrrigationSchedule).where(IrrigationSchedule.owner_id==user.id,
+                        IrrigationSchedule.zone_id==zone.id,IrrigationSchedule.scheduled_date==forecast_date,
+                        IrrigationSchedule.status.not_in(("completed","cancelled"))).order_by(IrrigationSchedule.scheduled_start_time).limit(1))
+                    base=schedule.planned_litres if schedule else None
+                    if base is None and zone.plant_count and zone.recommended_litres_per_plant:
+                        base=Decimal(zone.plant_count)*zone.recommended_litres_per_plant
+                    advice=build_irrigation_advice(forecast,base,zone.irrigation_method)
+                    existing=db.scalar(select(WeatherIrrigationRecommendation).where(
+                        WeatherIrrigationRecommendation.owner_id==user.id,WeatherIrrigationRecommendation.zone_id==zone.id,
+                        WeatherIrrigationRecommendation.forecast_date==forecast_date,
+                        WeatherIrrigationRecommendation.schedule_id== (schedule.id if schedule else None)))
+                    row=existing or WeatherIrrigationRecommendation(owner_id=user.id,farm_id=zone.farm_id,zone_id=zone.id,
+                        schedule_id=schedule.id if schedule else None,forecast_date=forecast_date)
+                    row.temperature_c=forecast.get("temperature_max"); row.humidity_percent=forecast.get("humidity_mean")
+                    row.rain_probability_percent=forecast.get("rain_probability"); row.forecast_rain_mm=max(
+                        Decimal(str(forecast.get("rain_mm") or 0)),Decimal(str(forecast.get("precipitation_mm") or 0)))
+                    row.wind_speed_kph=forecast.get("wind_speed_max"); row.recommendation=advice.recommendation
+                    row.adjustment_percent=advice.adjustment_percent; row.recommended_litres=advice.recommended_litres
+                    row.reason=advice.reason; row.source_name=WEATHER_PROVIDER; row.raw_weather_json=forecast
+                    if existing is None: db.add(row)
+                    if advice.severity=="high" and schedule:
+                        alert_exists=db.scalar(select(IrrigationAlert.id).where(IrrigationAlert.owner_id==user.id,
+                            IrrigationAlert.schedule_id==schedule.id,IrrigationAlert.alert_type=="weather_irrigation",
+                            IrrigationAlert.status=="open"))
+                        if not alert_exists:
+                            db.add(IrrigationAlert(owner_id=user.id,farm_id=zone.farm_id,zone_id=zone.id,schedule_id=schedule.id,
+                                alert_type="weather_irrigation",severity="warning",title="Weather adjustment recommended",
+                                message=advice.reason,status="open",due_at=datetime.combine(forecast_date,time.min,tzinfo=timezone.utc)))
+                    generated+=1
+        _irrigation_audit(db,request,user,"irrigation_weather_refreshed",f"recommendations={generated}; provider={WEATHER_PROVIDER}")
+        db.commit()
+    except (ValueError,RuntimeError,IntegrityError) as exc:
+        db.rollback(); return RedirectResponse("/irrigation/weather?error="+quote(str(exc)),status_code=303)
+    return RedirectResponse("/irrigation/weather?success="+quote(f"Generated or updated {generated} zone forecasts."),status_code=303)
+
+
+@router.post("/irrigation/weather/{recommendation_id}/decision")
+def irrigation_weather_decision(recommendation_id:int,request:Request,decision:str=Form(...),
+                                user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    row=db.scalar(select(WeatherIrrigationRecommendation).where(WeatherIrrigationRecommendation.id==recommendation_id,
+        WeatherIrrigationRecommendation.owner_id==user.id))
+    if not row: raise HTTPException(status_code=404,detail="Weather recommendation not found")
+    if decision not in ("accepted","ignored"): raise HTTPException(status_code=400,detail="Invalid weather decision")
+    row.user_decision=decision; row.decided_at=_utcnow()
+    if decision=="accepted" and row.schedule_id:
+        schedule=_schedule(db,user.id,row.schedule_id); schedule.weather_recommendation=row.recommendation
+        if row.recommended_litres is not None: schedule.planned_litres=row.recommended_litres
+        if row.recommendation=="delay_irrigation":
+            schedule.postponed_from_date=schedule.postponed_from_date or schedule.scheduled_date; schedule.status="postponed"
+        alerts=list(db.scalars(select(IrrigationAlert).where(IrrigationAlert.owner_id==user.id,
+            IrrigationAlert.schedule_id==schedule.id,IrrigationAlert.alert_type=="weather_irrigation",IrrigationAlert.status=="open")))
+        for alert in alerts: alert.status="acknowledged"; alert.acknowledged_at=_utcnow()
+    _irrigation_audit(db,request,user,"irrigation_weather_decision",f"recommendation_id={row.id}; decision={decision}"); db.commit()
+    return RedirectResponse("/irrigation/weather?success="+quote(f"Weather recommendation {decision}."),status_code=303)
+
+
+@router.get("/irrigation/weather/report",response_class=HTMLResponse)
+def irrigation_weather_report(request:Request,date_from:str|None=None,date_to:str|None=None,
+                              user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    try:
+        start=_date(date_from,"From date") if date_from else date.today(); end=_date(date_to,"To date") if date_to else date.today()+timedelta(days=10)
+        if end<start: raise ValueError("To date cannot be before from date.")
+    except ValueError as exc:
+        start=date.today(); end=date.today()+timedelta(days=10); report_error=str(exc)
+    else: report_error=None
+    rows=list(db.execute(select(WeatherIrrigationRecommendation,IrrigationZone,Farm,IrrigationSchedule).join(
+        IrrigationZone,IrrigationZone.id==WeatherIrrigationRecommendation.zone_id).join(Farm,Farm.id==WeatherIrrigationRecommendation.farm_id).outerjoin(
+        IrrigationSchedule,IrrigationSchedule.id==WeatherIrrigationRecommendation.schedule_id).where(
+        WeatherIrrigationRecommendation.owner_id==user.id,WeatherIrrigationRecommendation.forecast_date.between(start,end),
+        IrrigationZone.owner_id==user.id,Farm.owner_id==user.id).order_by(WeatherIrrigationRecommendation.forecast_date)).all())
+    saved=sum(((row[3].planned_litres-row[0].recommended_litres) if row[3] and row[3].planned_litres and row[0].recommended_litres is not None and row[3].planned_litres>row[0].recommended_litres else Decimal("0") for row in rows),Decimal("0"))
+    return templates.TemplateResponse(request=request,name="irrigation/weather_report.html",context=_ctx(
+        request,user,page_title="Weather Irrigation Report",rows=rows,start=start,end=end,saved=saved,error_message=report_error))
 
 
 # PATCH-IRR-004: SMART WATER REQUIREMENT CALCULATOR

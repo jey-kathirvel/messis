@@ -17,7 +17,7 @@ for marker in ("calc-layout", "calc-form-grid", "calc-result-card", "Calculate r
     assert marker in text, f"Calculator UI marker missing: {marker}"
 for marker in ("PATCH-IRR-004A", ".calc-layout", ".calc-result-card", "@media(max-width:720px)"):
     assert marker in css_text, f"Calculator CSS marker missing: {marker}"
-assert "irrigation.css?v=007" in layout_text, "CSS cache version was not updated"
+assert "irrigation.css?v=008" in layout_text, "CSS cache version was not updated"
 
 Environment().parse(text)
 Environment().parse(layout_text)
