@@ -1430,8 +1430,13 @@ class FertigationPlan(Base):
     agronomist_reference: Mapped[str | None] = mapped_column(String(255))
     assigned_worker: Mapped[str | None] = mapped_column(String(140))
     approval_status: Mapped[str] = mapped_column(String(30), nullable=False, default="draft", index=True)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="planned", index=True)
     approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approval_notes: Mapped[str | None] = mapped_column(Text)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    worker_remarks: Mapped[str | None] = mapped_column(Text)
+    stock_deducted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     safety_instructions: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -1452,6 +1457,22 @@ class FertigationPlanItem(Base):
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class FertilizerStockMovement(Base):
+    __tablename__ = "fertilizer_stock_movements"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    farm_id: Mapped[int | None] = mapped_column(ForeignKey("farms.id", ondelete="SET NULL"), index=True)
+    fertilizer_product_id: Mapped[int] = mapped_column(ForeignKey("fertilizer_products.id", ondelete="RESTRICT"), nullable=False, index=True)
+    fertigation_plan_id: Mapped[int | None] = mapped_column(ForeignKey("fertigation_plans.id", ondelete="SET NULL"), index=True)
+    movement_type: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    quantity_change: Mapped[Decimal] = mapped_column(Numeric(14, 3), nullable=False)
+    balance_after: Mapped[Decimal] = mapped_column(Numeric(14, 3), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, index=True)
 
 
 class WeatherIrrigationRecommendation(Base):

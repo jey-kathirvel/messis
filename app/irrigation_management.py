@@ -16,7 +16,10 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.services.water_calculator import calculate_water
-from app.models import (AuditLog, Farm, IrrigationAlert, IrrigationEquipment, IrrigationExecution, IrrigationPump, IrrigationSchedule, IrrigationZone, PumpMaintenanceRecord, PumpRuntimeLog, User, WaterSource, WaterRequirementCalculation)
+from app.models import (AuditLog, Farm, FertigationPlan, FertigationPlanItem, FertilizerProduct,
+    FertilizerStockMovement, IrrigationAlert, IrrigationEquipment, IrrigationExecution,
+    IrrigationPump, IrrigationSchedule, IrrigationZone, PumpMaintenanceRecord, PumpRuntimeLog,
+    User, WaterSource, WaterRequirementCalculation)
 
 router = APIRouter(tags=["Irrigation Management"])
 templates = Jinja2Templates(directory=Path(__file__).resolve().parent / "templates")
@@ -34,6 +37,9 @@ EQUIPMENT_STATUSES = ("available", "in_use", "maintenance", "faulty", "retired")
 SERVICE_TYPES = ("inspection", "preventive", "repair", "oil_change", "bearing_change", "electrical", "overhaul", "other")
 SCHEDULE_STATUSES = ("planned", "confirmed", "in_progress", "completed", "postponed", "cancelled")
 RECURRENCE_TYPES = ("none", "daily", "weekly", "monthly")
+FERTILIZER_CATEGORIES = ("nitrogen", "phosphorus", "potassium", "npk", "micronutrient", "organic", "biofertilizer", "other")
+FERTILIZER_UNITS = ("kg", "g", "litre", "ml")
+FERTIGATION_APPROVAL_STATUSES = ("draft", "pending", "approved", "rejected")
 
 
 def current_irrigation_user(request: Request, db: Session = Depends(get_db)) -> User:
@@ -125,6 +131,26 @@ def _execution(db: Session, owner_id: int, execution_id: int) -> IrrigationExecu
     if not execution:
         raise HTTPException(status_code=404, detail="Irrigation execution not found")
     return execution
+
+
+def _fertilizer_product(db: Session, owner_id: int, product_id: int) -> FertilizerProduct:
+    product = db.scalar(select(FertilizerProduct).where(FertilizerProduct.id == product_id, FertilizerProduct.owner_id == owner_id))
+    if not product:
+        raise HTTPException(status_code=404, detail="Fertilizer product not found")
+    return product
+
+
+def _fertigation_plan(db: Session, owner_id: int, plan_id: int) -> FertigationPlan:
+    plan = db.scalar(select(FertigationPlan).where(FertigationPlan.id == plan_id, FertigationPlan.owner_id == owner_id))
+    if not plan:
+        raise HTTPException(status_code=404, detail="Fertigation plan not found")
+    return plan
+
+
+def _safe_fertigation_quantity(product: FertilizerProduct, total_water_litres: Decimal | None) -> Decimal | None:
+    if product.safe_concentration_per_1000l is None or not total_water_litres:
+        return None
+    return (product.safe_concentration_per_1000l * total_water_litres / Decimal("1000")).quantize(Decimal("0.001"))
 
 
 def _utcnow() -> datetime:
@@ -911,6 +937,287 @@ def execution_approve(execution_id: int, request: Request, supervisor_notes: str
     _irrigation_audit(db, request, user, "irrigation_execution_approved", f"execution_id={execution.id}")
     db.commit()
     return RedirectResponse(f"/irrigation/schedules/{execution.schedule_id}/execute?success=" + quote("Execution approved."), status_code=303)
+
+
+# PATCH-IRR-007: FERTIGATION MANAGEMENT
+@router.get("/irrigation/fertigation", response_class=HTMLResponse)
+def fertigation_dashboard(request: Request, user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    products = list(db.scalars(select(FertilizerProduct).where(FertilizerProduct.owner_id == user.id).order_by(FertilizerProduct.name)))
+    rows = list(db.execute(select(FertigationPlan, Farm, IrrigationZone).join(Farm, Farm.id == FertigationPlan.farm_id).join(
+        IrrigationZone, IrrigationZone.id == FertigationPlan.zone_id).where(FertigationPlan.owner_id == user.id,
+        Farm.owner_id == user.id, IrrigationZone.owner_id == user.id).order_by(FertigationPlan.planned_date.desc()).limit(100)).all())
+    today = date.today()
+    low_stock = [product for product in products if product.is_active and product.stock_quantity <= Decimal("0")]
+    expiring = [product for product in products if product.expiry_date and product.expiry_date <= today + timedelta(days=30)]
+    pending = sum(1 for row in rows if row[0].approval_status == "pending")
+    approved = sum(1 for row in rows if row[0].approval_status == "approved" and row[0].status == "planned")
+    return templates.TemplateResponse(request=request, name="irrigation/fertigation_dashboard.html", context=_ctx(
+        request, user, page_title="Fertigation Management", rows=rows, products=products,
+        low_stock=low_stock, expiring=expiring, pending=pending, approved=approved,
+    ))
+
+
+@router.get("/irrigation/fertilizers", response_class=HTMLResponse)
+def fertilizer_list(request: Request, user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    products = list(db.scalars(select(FertilizerProduct).where(FertilizerProduct.owner_id == user.id).order_by(FertilizerProduct.is_active.desc(), FertilizerProduct.name)))
+    movements = list(db.execute(select(FertilizerStockMovement, FertilizerProduct).join(
+        FertilizerProduct, FertilizerProduct.id == FertilizerStockMovement.fertilizer_product_id).where(
+        FertilizerStockMovement.owner_id == user.id, FertilizerProduct.owner_id == user.id).order_by(
+        FertilizerStockMovement.created_at.desc()).limit(50)).all())
+    return templates.TemplateResponse(request=request, name="irrigation/fertilizer_list.html", context=_ctx(
+        request, user, page_title="Fertilizer Inventory", products=products, movements=movements, today=date.today(),
+    ))
+
+
+@router.get("/irrigation/fertilizers/new", response_class=HTMLResponse)
+def fertilizer_new(request: Request, user: User = Depends(current_irrigation_user)):
+    return templates.TemplateResponse(request=request, name="irrigation/fertilizer_form.html", context=_ctx(
+        request, user, page_title="Add Fertilizer Product", product=None, categories=FERTILIZER_CATEGORIES, units=FERTILIZER_UNITS,
+    ))
+
+
+@router.post("/irrigation/fertilizers/new")
+def fertilizer_create(request: Request, name: str = Form(...), category: str = Form(...), manufacturer: str = Form(""),
+                      unit: str = Form("kg"), stock_quantity: str = Form("0"), safe_concentration_per_1000l: str = Form(""),
+                      expiry_date: str = Form(""), compatibility_notes: str = Form(""), safety_instructions: str = Form(""),
+                      is_active: str | None = Form(None), user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    try:
+        clean = (name or "").strip()
+        if not clean or category not in FERTILIZER_CATEGORIES or unit not in FERTILIZER_UNITS:
+            raise ValueError("Valid product name, category and unit are required.")
+        stock = _decimal(stock_quantity, "Opening stock") or Decimal("0")
+        product = FertilizerProduct(owner_id=user.id, name=clean, category=category, manufacturer=_text(manufacturer), unit=unit,
+            stock_quantity=stock, safe_concentration_per_1000l=_decimal(safe_concentration_per_1000l, "Safe concentration"),
+            expiry_date=_date(expiry_date, "Expiry date"), compatibility_notes=_text(compatibility_notes),
+            safety_instructions=_text(safety_instructions), is_active=is_active == "on")
+        db.add(product); db.flush()
+        if stock:
+            db.add(FertilizerStockMovement(owner_id=user.id, fertilizer_product_id=product.id, movement_type="opening_stock",
+                quantity_change=stock, balance_after=stock, notes="Opening inventory", created_by=user.id))
+        _irrigation_audit(db, request, user, "fertilizer_product_created", f"product_id={product.id}; stock={stock}")
+        db.commit()
+    except (ValueError, IntegrityError) as exc:
+        db.rollback(); message = "A fertilizer product with this name already exists." if isinstance(exc, IntegrityError) else str(exc)
+        return RedirectResponse("/irrigation/fertilizers/new?error=" + quote(message), status_code=303)
+    return RedirectResponse("/irrigation/fertilizers?success=" + quote("Fertilizer product created."), status_code=303)
+
+
+@router.get("/irrigation/fertilizers/{product_id}/edit", response_class=HTMLResponse)
+def fertilizer_edit(product_id: int, request: Request, user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    product = _fertilizer_product(db, user.id, product_id)
+    return templates.TemplateResponse(request=request, name="irrigation/fertilizer_form.html", context=_ctx(
+        request, user, page_title="Edit Fertilizer Product", product=product, categories=FERTILIZER_CATEGORIES, units=FERTILIZER_UNITS,
+    ))
+
+
+@router.post("/irrigation/fertilizers/{product_id}/edit")
+def fertilizer_update(product_id: int, request: Request, name: str = Form(...), category: str = Form(...),
+                      manufacturer: str = Form(""), unit: str = Form("kg"), safe_concentration_per_1000l: str = Form(""),
+                      expiry_date: str = Form(""), compatibility_notes: str = Form(""), safety_instructions: str = Form(""),
+                      is_active: str | None = Form(None), user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    product = _fertilizer_product(db, user.id, product_id)
+    try:
+        clean = (name or "").strip()
+        if not clean or category not in FERTILIZER_CATEGORIES or unit not in FERTILIZER_UNITS:
+            raise ValueError("Valid product name, category and unit are required.")
+        if unit != product.unit:
+            usage = db.scalar(select(func.count(FertilizerStockMovement.id)).where(
+                FertilizerStockMovement.owner_id == user.id, FertilizerStockMovement.fertilizer_product_id == product.id)) or 0
+            plan_usage = db.scalar(select(func.count(FertigationPlanItem.id)).where(
+                FertigationPlanItem.owner_id == user.id, FertigationPlanItem.fertilizer_product_id == product.id)) or 0
+            if product.stock_quantity != 0 or usage or plan_usage:
+                raise ValueError("Unit cannot be changed after stock or plan history exists.")
+        product.name=clean; product.category=category; product.manufacturer=_text(manufacturer); product.unit=unit
+        product.safe_concentration_per_1000l=_decimal(safe_concentration_per_1000l,"Safe concentration")
+        product.expiry_date=_date(expiry_date,"Expiry date"); product.compatibility_notes=_text(compatibility_notes)
+        product.safety_instructions=_text(safety_instructions); product.is_active=is_active == "on"
+        _irrigation_audit(db, request, user, "fertilizer_product_updated", f"product_id={product.id}"); db.commit()
+    except (ValueError, IntegrityError) as exc:
+        db.rollback(); return RedirectResponse(f"/irrigation/fertilizers/{product_id}/edit?error=" + quote(str(exc)), status_code=303)
+    return RedirectResponse("/irrigation/fertilizers?success=" + quote("Fertilizer product updated."), status_code=303)
+
+
+@router.post("/irrigation/fertilizers/{product_id}/stock")
+def fertilizer_stock_adjust(product_id: int, request: Request, movement_type: str = Form(...), quantity: str = Form(...),
+                            notes: str = Form(""), user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    product = _fertilizer_product(db, user.id, product_id)
+    try:
+        amount = _decimal(quantity, "Quantity", allow_zero=False)
+        if movement_type not in ("purchase", "adjustment_add", "adjustment_remove") or not amount:
+            raise ValueError("Valid movement type and quantity are required.")
+        change = -amount if movement_type == "adjustment_remove" else amount
+        balance = product.stock_quantity + change
+        if balance < 0:
+            raise ValueError("Stock cannot become negative.")
+        product.stock_quantity = balance
+        db.add(FertilizerStockMovement(owner_id=user.id, fertilizer_product_id=product.id, movement_type=movement_type,
+            quantity_change=change, balance_after=balance, notes=_text(notes), created_by=user.id))
+        _irrigation_audit(db, request, user, "fertilizer_stock_adjusted", f"product_id={product.id}; change={change}; balance={balance}")
+        db.commit()
+    except ValueError as exc:
+        db.rollback(); return RedirectResponse("/irrigation/fertilizers?error=" + quote(str(exc)), status_code=303)
+    return RedirectResponse("/irrigation/fertilizers?success=" + quote("Stock updated."), status_code=303)
+
+
+@router.get("/irrigation/fertigation/plans/new", response_class=HTMLResponse)
+def fertigation_plan_new(request: Request, schedule_id: int | None = None, user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    farms, zones, sources, pumps = _scheduler_options(db, user.id)
+    schedule = _schedule(db, user.id, schedule_id) if schedule_id else None
+    schedules = list(db.scalars(select(IrrigationSchedule).where(IrrigationSchedule.owner_id == user.id,
+        IrrigationSchedule.fertigation_required.is_(True), IrrigationSchedule.status.not_in(("completed","cancelled"))).order_by(IrrigationSchedule.scheduled_date)))
+    return templates.TemplateResponse(request=request, name="irrigation/fertigation_plan_form.html", context=_ctx(
+        request, user, page_title="Create Fertigation Plan", farms=farms, zones=zones, schedules=schedules,
+        selected_schedule=schedule, today=date.today(),
+    ))
+
+
+@router.post("/irrigation/fertigation/plans/new")
+def fertigation_plan_create(request: Request, farm_id: int = Form(...), zone_id: int = Form(...), schedule_id: str = Form(""),
+                           name: str = Form(...), planned_date: str = Form(...), growth_stage: str = Form(""),
+                           total_water_litres: str = Form(...), tank_capacity_litres: str = Form(...),
+                           initial_flush_minutes: str = Form(""), injection_minutes: str = Form(""), final_flush_minutes: str = Form(""),
+                           agronomist_reference: str = Form(""), assigned_worker: str = Form(""), safety_instructions: str = Form(""),
+                           user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    try:
+        _farm(db,user.id,farm_id); zone=_zone(db,user.id,zone_id)
+        if zone.farm_id != farm_id: raise ValueError("Zone must belong to the selected farm.")
+        sid=_integer(schedule_id,"Schedule"); schedule=_schedule(db,user.id,sid) if sid else None
+        if schedule and (schedule.farm_id != farm_id or schedule.zone_id != zone_id): raise ValueError("Schedule must match the selected farm and zone.")
+        water=_decimal(total_water_litres,"Total water",allow_zero=False); tank=_decimal(tank_capacity_litres,"Tank capacity",allow_zero=False)
+        if not water or not tank: raise ValueError("Total water and tank capacity are required.")
+        batches=int((water / tank).to_integral_value(rounding="ROUND_CEILING"))
+        planned=_date(planned_date,"Planned date")
+        if not planned or not (name or "").strip(): raise ValueError("Plan name and date are required.")
+        plan=FertigationPlan(owner_id=user.id,farm_id=farm_id,zone_id=zone_id,schedule_id=sid,name=name.strip(),planned_date=planned,
+            growth_stage=_text(growth_stage),total_water_litres=water,tank_capacity_litres=tank,number_of_batches=batches,
+            initial_flush_minutes=_integer(initial_flush_minutes,"Initial flush"),injection_minutes=_integer(injection_minutes,"Injection time"),
+            final_flush_minutes=_integer(final_flush_minutes,"Final flush"),agronomist_reference=_text(agronomist_reference),
+            assigned_worker=_text(assigned_worker),approval_status="draft",status="planned",safety_instructions=_text(safety_instructions))
+        db.add(plan)
+        if schedule: schedule.fertigation_required=True
+        db.flush(); _irrigation_audit(db,request,user,"fertigation_plan_created",f"plan_id={plan.id}; batches={batches}"); db.commit()
+    except (ValueError,IntegrityError) as exc:
+        db.rollback(); return RedirectResponse("/irrigation/fertigation/plans/new?error="+quote(str(exc)),status_code=303)
+    return RedirectResponse(f"/irrigation/fertigation/plans/{plan.id}?success="+quote("Plan created. Add fertilizer items."),status_code=303)
+
+
+@router.get("/irrigation/fertigation/plans/{plan_id}", response_class=HTMLResponse)
+def fertigation_plan_detail(plan_id: int, request: Request, user: User = Depends(current_irrigation_user), db: Session = Depends(get_db)):
+    plan=_fertigation_plan(db,user.id,plan_id); farm=_farm(db,user.id,plan.farm_id); zone=_zone(db,user.id,plan.zone_id)
+    schedule=_schedule(db,user.id,plan.schedule_id) if plan.schedule_id else None
+    items=list(db.execute(select(FertigationPlanItem,FertilizerProduct).join(FertilizerProduct,FertilizerProduct.id==FertigationPlanItem.fertilizer_product_id).where(
+        FertigationPlanItem.owner_id==user.id,FertigationPlanItem.fertigation_plan_id==plan.id,FertilizerProduct.owner_id==user.id).order_by(FertigationPlanItem.mixing_order)).all())
+    products=list(db.scalars(select(FertilizerProduct).where(FertilizerProduct.owner_id==user.id,FertilizerProduct.is_active.is_(True)).order_by(FertilizerProduct.name)))
+    return templates.TemplateResponse(request=request,name="irrigation/fertigation_plan_detail.html",context=_ctx(
+        request,user,page_title="Fertigation Plan",plan=plan,farm=farm,zone=zone,schedule=schedule,items=items,products=products,today=date.today()))
+
+
+@router.post("/irrigation/fertigation/plans/{plan_id}/items")
+def fertigation_item_add(plan_id:int,request:Request,fertilizer_product_id:int=Form(...),quantity:str=Form(...),mixing_order:str=Form("1"),
+                        notes:str=Form(""),user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    plan=_fertigation_plan(db,user.id,plan_id); product=_fertilizer_product(db,user.id,fertilizer_product_id)
+    try:
+        if plan.approval_status not in ("draft","rejected"): raise ValueError("Only draft or rejected plans can be changed.")
+        if product.expiry_date and product.expiry_date < plan.planned_date: raise ValueError("Product expires before the planned application date.")
+        amount=_decimal(quantity,"Quantity",allow_zero=False); order=_integer(mixing_order,"Mixing order",allow_zero=False)
+        if not amount or not order: raise ValueError("Quantity and mixing order are required.")
+        if amount>product.stock_quantity: raise ValueError("Requested quantity exceeds current stock.")
+        safe=_safe_fertigation_quantity(product,plan.total_water_litres)
+        if safe is not None and amount>safe: raise ValueError(f"Quantity exceeds safe limit of {safe} {product.unit} for this water volume.")
+        existing=db.scalar(select(FertigationPlanItem).where(FertigationPlanItem.owner_id==user.id,FertigationPlanItem.fertigation_plan_id==plan.id,FertigationPlanItem.fertilizer_product_id==product.id))
+        if existing: raise ValueError("This fertilizer is already included in the plan.")
+        occupied=db.scalar(select(FertigationPlanItem.id).where(FertigationPlanItem.owner_id==user.id,
+            FertigationPlanItem.fertigation_plan_id==plan.id,FertigationPlanItem.mixing_order==order))
+        if occupied: raise ValueError("Mixing order is already used by another item.")
+        db.add(FertigationPlanItem(owner_id=user.id,farm_id=plan.farm_id,fertigation_plan_id=plan.id,fertilizer_product_id=product.id,
+            quantity=amount,unit=product.unit,mixing_order=order,quantity_per_batch=(amount/plan.number_of_batches).quantize(Decimal("0.001")),notes=_text(notes)))
+        plan.approval_status="draft"; _irrigation_audit(db,request,user,"fertigation_item_added",f"plan_id={plan.id}; product_id={product.id}; quantity={amount}"); db.commit()
+    except (ValueError,IntegrityError) as exc:
+        db.rollback(); return RedirectResponse(f"/irrigation/fertigation/plans/{plan.id}?error="+quote(str(exc)),status_code=303)
+    return RedirectResponse(f"/irrigation/fertigation/plans/{plan.id}?success="+quote("Fertilizer added."),status_code=303)
+
+
+@router.post("/irrigation/fertigation/plans/{plan_id}/items/{item_id}/delete")
+def fertigation_item_delete(plan_id:int,item_id:int,request:Request,user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    plan=_fertigation_plan(db,user.id,plan_id)
+    if plan.approval_status not in ("draft","rejected"): raise HTTPException(status_code=409,detail="Approved plans cannot be changed")
+    item=db.scalar(select(FertigationPlanItem).where(FertigationPlanItem.id==item_id,FertigationPlanItem.owner_id==user.id,FertigationPlanItem.fertigation_plan_id==plan.id))
+    if not item: raise HTTPException(status_code=404,detail="Plan item not found")
+    db.delete(item); _irrigation_audit(db,request,user,"fertigation_item_deleted",f"plan_id={plan.id}; item_id={item.id}"); db.commit()
+    return RedirectResponse(f"/irrigation/fertigation/plans/{plan.id}?success="+quote("Fertilizer removed."),status_code=303)
+
+
+@router.post("/irrigation/fertigation/plans/{plan_id}/submit")
+def fertigation_submit(plan_id:int,request:Request,user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    plan=_fertigation_plan(db,user.id,plan_id)
+    count=db.scalar(select(func.count(FertigationPlanItem.id)).where(FertigationPlanItem.owner_id==user.id,FertigationPlanItem.fertigation_plan_id==plan.id)) or 0
+    if not count: return RedirectResponse(f"/irrigation/fertigation/plans/{plan.id}?error="+quote("Add at least one fertilizer before submission."),status_code=303)
+    plan.approval_status="pending"; plan.approval_notes=None
+    _irrigation_audit(db,request,user,"fertigation_plan_submitted",f"plan_id={plan.id}"); db.commit()
+    return RedirectResponse(f"/irrigation/fertigation/plans/{plan.id}?success="+quote("Plan submitted for approval."),status_code=303)
+
+
+@router.post("/irrigation/fertigation/plans/{plan_id}/decision")
+def fertigation_decision(plan_id:int,request:Request,decision:str=Form(...),approval_notes:str=Form(""),user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    plan=_fertigation_plan(db,user.id,plan_id)
+    if plan.approval_status!="pending" or decision not in ("approved","rejected"): raise HTTPException(status_code=409,detail="Plan is not awaiting a valid decision")
+    try:
+        if decision=="approved":
+            items=list(db.execute(select(FertigationPlanItem,FertilizerProduct).join(FertilizerProduct,FertilizerProduct.id==FertigationPlanItem.fertilizer_product_id).where(
+                FertigationPlanItem.owner_id==user.id,FertigationPlanItem.fertigation_plan_id==plan.id,FertilizerProduct.owner_id==user.id)).all())
+            if not items: raise ValueError("Plan has no fertilizer items.")
+            for item,product in items:
+                if not product.is_active: raise ValueError(f"{product.name} is inactive.")
+                if product.expiry_date and product.expiry_date<plan.planned_date: raise ValueError(f"{product.name} expires before the planned date.")
+                if product.stock_quantity<item.quantity: raise ValueError(f"Insufficient stock for {product.name}.")
+                safe=_safe_fertigation_quantity(product,plan.total_water_litres)
+                if safe is not None and item.quantity>safe: raise ValueError(f"{product.name} exceeds its safe concentration limit.")
+        plan.approval_status=decision; plan.approval_notes=_text(approval_notes); plan.approved_by=user.id if decision=="approved" else None
+        plan.approved_at=_utcnow() if decision=="approved" else None
+        _irrigation_audit(db,request,user,f"fertigation_plan_{decision}",f"plan_id={plan.id}"); db.commit()
+    except ValueError as exc:
+        db.rollback(); return RedirectResponse(f"/irrigation/fertigation/plans/{plan.id}?error="+quote(str(exc)),status_code=303)
+    return RedirectResponse(f"/irrigation/fertigation/plans/{plan.id}?success="+quote(f"Plan {decision}."),status_code=303)
+
+
+@router.post("/irrigation/fertigation/plans/{plan_id}/complete")
+def fertigation_complete(plan_id:int,request:Request,worker_remarks:str=Form(""),user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    plan=_fertigation_plan(db,user.id,plan_id)
+    if plan.approval_status!="approved" or plan.status=="completed": raise HTTPException(status_code=409,detail="Only approved pending plans can be completed")
+    items=list(db.execute(select(FertigationPlanItem,FertilizerProduct).join(FertilizerProduct,FertilizerProduct.id==FertigationPlanItem.fertilizer_product_id).where(
+        FertigationPlanItem.owner_id==user.id,FertigationPlanItem.fertigation_plan_id==plan.id,FertilizerProduct.owner_id==user.id).with_for_update()).all())
+    try:
+        if not items: raise ValueError("Plan has no fertilizer items.")
+        for item,product in items:
+            if not product.is_active: raise ValueError(f"{product.name} is inactive.")
+            if product.expiry_date and product.expiry_date<date.today(): raise ValueError(f"{product.name} is expired.")
+            if product.stock_quantity<item.quantity: raise ValueError(f"Insufficient stock for {product.name}.")
+            safe=_safe_fertigation_quantity(product,plan.total_water_litres)
+            if safe is not None and item.quantity>safe: raise ValueError(f"{product.name} exceeds its safe concentration limit.")
+        for item,product in items:
+            product.stock_quantity-=item.quantity
+            db.add(FertilizerStockMovement(owner_id=user.id,farm_id=plan.farm_id,fertilizer_product_id=product.id,fertigation_plan_id=plan.id,
+                movement_type="fertigation_consumption",quantity_change=-item.quantity,balance_after=product.stock_quantity,
+                notes=f"Applied in fertigation plan #{plan.id}",created_by=user.id))
+        plan.status="completed"; plan.completed_at=_utcnow(); plan.worker_remarks=_text(worker_remarks); plan.stock_deducted=True
+        _irrigation_audit(db,request,user,"fertigation_plan_completed",f"plan_id={plan.id}; items={len(items)}"); db.commit()
+    except (ValueError,IntegrityError) as exc:
+        db.rollback(); return RedirectResponse(f"/irrigation/fertigation/plans/{plan.id}?error="+quote(str(exc)),status_code=303)
+    return RedirectResponse(f"/irrigation/fertigation/plans/{plan.id}?success="+quote("Fertigation completed and stock deducted."),status_code=303)
+
+
+@router.get("/irrigation/fertigation/report",response_class=HTMLResponse)
+def fertigation_report(request:Request,date_from:str|None=None,date_to:str|None=None,user:User=Depends(current_irrigation_user),db:Session=Depends(get_db)):
+    try:
+        start=_date(date_from,"From date") if date_from else date.today().replace(day=1); end=_date(date_to,"To date") if date_to else date.today()
+        if end<start: raise ValueError("To date cannot be before from date.")
+    except ValueError as exc:
+        start=date.today().replace(day=1); end=date.today(); report_error=str(exc)
+    else: report_error=None
+    rows=list(db.execute(select(FertigationPlan,Farm,IrrigationZone).join(Farm,Farm.id==FertigationPlan.farm_id).join(IrrigationZone,IrrigationZone.id==FertigationPlan.zone_id).where(
+        FertigationPlan.owner_id==user.id,FertigationPlan.planned_date.between(start,end),Farm.owner_id==user.id,IrrigationZone.owner_id==user.id).order_by(FertigationPlan.planned_date.desc())).all())
+    completed=sum(1 for row in rows if row[0].status=="completed"); water=sum((row[0].total_water_litres or Decimal("0") for row in rows),Decimal("0"))
+    return templates.TemplateResponse(request=request,name="irrigation/fertigation_report.html",context=_ctx(request,user,page_title="Fertigation Report",rows=rows,start=start,end=end,completed=completed,water=water,error_message=report_error))
 
 
 # PATCH-IRR-004: SMART WATER REQUIREMENT CALCULATOR
