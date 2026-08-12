@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import (
-    Farm, FarmCategory, FarmFieldValue, FarmTemplate, FarmTemplateAssignment,
+    Farm, FarmCategory, FarmFieldValue, FarmOperationalProfile, FarmTemplate, FarmTemplateAssignment,
     FarmTemplateVersion, FarmType, TemplateField, User, UserSetupProfile,
 )
 
@@ -30,6 +30,32 @@ SEEDS = {
         "terms": {"production_unit": "Litres", "production_event": "Milking", "asset_count": "Cattle Count", "cycle": "Lactation Cycle", "output": "Milk Production"},
         "fields": [("cattle_count", "Cattle count", "number", True, {"min": 1}), ("breed", "Primary breed", "text", True, {}), ("daily_capacity", "Daily milk capacity", "number", False, {"min": 0})]},
 }
+
+# Capabilities are the stable contract used by navigation, route guards and
+# domain modules. Farm type codes are presentation/configuration choices;
+# capabilities describe what the assigned farm is actually allowed to do.
+FARM_TYPE_CAPABILITIES = {
+    "coconut": frozenset({
+        "cultivation", "perennial_assets", "crop_activities", "irrigation",
+        "legacy_coconut_harvest", "cultivation_sales", "finance", "tasks", "reports",
+    }),
+    "paddy": frozenset({
+        "cultivation", "plots", "crop_cycles", "crop_activities", "irrigation",
+        "production", "cultivation_sales", "finance", "tasks", "reports",
+    }),
+    "dairy": frozenset({
+        "dairy", "herd", "milk", "breeding", "animal_health", "feed",
+        "dairy_sales", "finance", "tasks", "reports",
+    }),
+}
+
+
+def capabilities_for_type(farm_type_code: str) -> frozenset[str]:
+    """Return the immutable capability contract for a configured farm type."""
+    return FARM_TYPE_CAPABILITIES.get(
+        farm_type_code,
+        frozenset({"finance", "tasks", "reports"}),
+    )
 
 FIELD_HELP = {
     "tree_count": "Number of coconut trees currently planted on this farm.",
@@ -69,6 +95,44 @@ def seed_agro_framework(db: Session) -> None:
                 options = ["Tall", "Dwarf", "Hybrid"] if key == "variety" else (["Rainfed", "Canal", "Borewell", "Drip"] if key == "irrigation_type" else [])
                 db.add(TemplateField(template_version_id=version.id, field_key=key, field_label=label, field_type=kind, is_required=required, validation_rules_json=rules, options_json=options, display_order=order))
     db.commit()
+
+
+def assign_legacy_farms(db: Session) -> int:
+    """Explicitly assign unconfigured historical farms to Coconut v1.
+
+    This replaces the perpetual implicit Coconut fallback with durable,
+    auditable configuration while preserving every existing farm record.
+    """
+    coconut_version = db.scalar(
+        select(FarmTemplateVersion)
+        .join(FarmTemplate)
+        .join(FarmType)
+        .where(
+            FarmType.code == "coconut",
+            FarmTemplateVersion.status == "PUBLISHED",
+        )
+        .order_by(FarmTemplateVersion.version.desc())
+    )
+    if not coconut_version:
+        return 0
+    assigned_farm_ids = select(FarmTemplateAssignment.farm_id)
+    farms = db.scalars(select(Farm).where(Farm.id.not_in(assigned_farm_ids))).all()
+    for farm in farms:
+        db.add(FarmTemplateAssignment(
+            farm_id=farm.id,
+            owner_id=farm.owner_id,
+            template_version_id=coconut_version.id,
+        ))
+        if not db.scalar(select(FarmOperationalProfile.id).where(
+            FarmOperationalProfile.farm_id == farm.id
+        )):
+            db.add(FarmOperationalProfile(
+                farm_id=farm.id,
+                owner_id=farm.owner_id,
+                area_unit="Acres",
+            ))
+    db.commit()
+    return len(farms)
 
 
 def signed_in_user(request: Request, db: Session = Depends(get_db)) -> User:
@@ -173,6 +237,7 @@ def complete_setup(farm_type_id: int = Form(...), farm_name: str = Form(...), lo
     farm = Farm(owner_id=user.id, name=name, location=location.strip() or None, acreage=str(parsed_area), total_trees=0)
     db.add(farm); db.flush()
     db.add(FarmTemplateAssignment(farm_id=farm.id, owner_id=user.id, template_version_id=template.id))
+    db.add(FarmOperationalProfile(farm_id=farm.id, owner_id=user.id, area_unit="Acres"))
     p.status = "COMPLETED"; p.current_step = 6; p.completed_at = datetime.now(timezone.utc); p.draft_json = {}
     db.commit()
     return RedirectResponse(f"/farms/{farm.id}", 303)
@@ -208,7 +273,12 @@ async def complete_setup_json(request: Request, user: User = Depends(signed_in_u
         TemplateField.template_version_id == version.id,
         TemplateField.is_active.is_(True),
     )).all()
-    values = payload.get("dynamic_values") or {}
+    values = dict(payload.get("dynamic_values") or {})
+    # Setup historically displayed these values but discarded them. Preserve
+    # them when the assigned template defines matching fields.
+    for key in ("area_unit", "soil_type", "irrigation", "season"):
+        if payload.get(key) not in (None, "") and key not in values:
+            values[key] = payload[key]
     errors: dict[str, str] = {}
     for field in fields:
         value = values.get(field.field_key)
@@ -232,6 +302,14 @@ async def complete_setup_json(request: Request, user: User = Depends(signed_in_u
     )
     db.add(farm); db.flush()
     db.add(FarmTemplateAssignment(farm_id=farm.id, owner_id=user.id, template_version_id=version.id))
+    db.add(FarmOperationalProfile(
+        farm_id=farm.id,
+        owner_id=user.id,
+        area_unit=str(payload.get("area_unit") or "Acres"),
+        soil_type=str(payload.get("soil_type") or "").strip() or None,
+        water_system=str(payload.get("irrigation") or "").strip() or None,
+        production_cycle=str(payload.get("season") or "").strip() or None,
+    ))
     for field in fields:
         if field.field_key in values and values[field.field_key] not in (None, ""):
             db.add(FarmFieldValue(farm_id=farm.id, owner_id=user.id, template_field_id=field.id, value_json=values[field.field_key]))
@@ -259,6 +337,7 @@ def farm_template_context(db: Session, farm: Farm, owner_id: int) -> dict[str, A
             "assigned": False, "farm_type_code": "coconut", "farm_type_name": "Coconut",
             "icon": "🥥", "is_coconut": True,
             "terminology": SEEDS["coconut"]["terms"], "dynamic_fields": [],
+            "capabilities": sorted(capabilities_for_type("coconut")),
             "asset_label": "Trees", "asset_value": farm.total_trees or 0,
         }
     version = db.get(FarmTemplateVersion, assignment.template_version_id)
@@ -277,6 +356,7 @@ def farm_template_context(db: Session, farm: Farm, owner_id: int) -> dict[str, A
     return {
         "assigned": True, "farm_type_code": farm_type.code, "farm_type_name": farm_type.name,
         "icon": farm_type.icon or "🌱", "is_coconut": farm_type.code == "coconut",
+        "capabilities": sorted(capabilities_for_type(farm_type.code)),
         "terminology": terms, "dynamic_fields": dynamic,
         "asset_label": terms.get("asset_count", "Farm capacity"),
         "asset_value": asset_field["value"] if asset_field else "—",

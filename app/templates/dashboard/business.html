@@ -2647,7 +2647,7 @@
                             <span class="menu-text">Farm Tasks</span>
                         </a>
 
-                        {% if dashboard_context.is_coconut %}<a class="menu-link" href="/farms">
+                        {% if 'perennial_assets' in dashboard_context.capabilities %}<a class="menu-link" href="/farms">
                             <span class="menu-icon">♧</span>
                             <span class="menu-text">Coconut Trees</span>
                         </a>{% endif %}
@@ -2656,9 +2656,9 @@
             </section>
 
             <!-- PATCH-IRR-002: DASHBOARD NAVIGATION -->
-            <section class="menu-section"><div class="menu-label">Water Management</div><details class="menu-group" open><summary class="submenu-summary"><span class="menu-icon">💧</span><span class="menu-text">Irrigation</span><span class="submenu-chevron">›</span></summary><div class="submenu"><a class="menu-link" href="/irrigation"><span class="menu-icon">⌁</span><span class="menu-text">Irrigation Overview</span></a><a class="menu-link" href="/irrigation/zones"><span class="menu-icon">▦</span><span class="menu-text">Irrigation Zones</span></a><a class="menu-link" href="/irrigation/water-sources"><span class="menu-icon">◉</span><span class="menu-text">Water Sources</span></a><a class="menu-link" href="/irrigation/schedules"><span class="menu-icon">▣</span><span class="menu-text">Scheduler &amp; Calendar</span></a><a class="menu-link" href="/irrigation/executions"><span class="menu-icon">▶</span><span class="menu-text">Field Operations</span></a><a class="menu-link" href="/irrigation/fertigation"><span class="menu-icon">♧</span><span class="menu-text">Fertigation</span></a><a class="menu-link" href="/irrigation/weather"><span class="menu-icon">☁</span><span class="menu-text">Weather Intelligence</span></a><a class="menu-link" href="/irrigation/alerts"><span class="menu-icon">⚠</span><span class="menu-text">Alerts &amp; Notifications</span></a><a class="menu-link" href="/irrigation/reports"><span class="menu-icon">▤</span><span class="menu-text">Reports &amp; Analytics</span></a></div></details></section>
+            {% if 'irrigation' in dashboard_context.capabilities %}<section class="menu-section"><div class="menu-label">Water Management</div><details class="menu-group" open><summary class="submenu-summary"><span class="menu-icon">💧</span><span class="menu-text">Irrigation</span><span class="submenu-chevron">›</span></summary><div class="submenu"><a class="menu-link" href="/irrigation"><span class="menu-icon">⌁</span><span class="menu-text">Irrigation Overview</span></a><a class="menu-link" href="/irrigation/zones"><span class="menu-icon">▦</span><span class="menu-text">Irrigation Zones</span></a><a class="menu-link" href="/irrigation/water-sources"><span class="menu-icon">◉</span><span class="menu-text">Water Sources</span></a><a class="menu-link" href="/irrigation/schedules"><span class="menu-icon">▣</span><span class="menu-text">Scheduler &amp; Calendar</span></a><a class="menu-link" href="/irrigation/executions"><span class="menu-icon">▶</span><span class="menu-text">Field Operations</span></a><a class="menu-link" href="/irrigation/fertigation"><span class="menu-icon">♧</span><span class="menu-text">Fertigation</span></a><a class="menu-link" href="/irrigation/weather"><span class="menu-icon">☁</span><span class="menu-text">Weather Intelligence</span></a><a class="menu-link" href="/irrigation/alerts"><span class="menu-icon">⚠</span><span class="menu-text">Alerts &amp; Notifications</span></a><a class="menu-link" href="/irrigation/reports"><span class="menu-icon">▤</span><span class="menu-text">Reports &amp; Analytics</span></a></div></details></section>{% endif %}
 
-            {% if dashboard_context.is_coconut %}<section class="menu-section">
+            {% if 'legacy_coconut_harvest' in dashboard_context.capabilities %}<section class="menu-section">
                 <div class="menu-label">Harvest Management</div>
 
                 <details class="menu-group" open>
@@ -5912,14 +5912,14 @@
         <span class="messis-mobile-nav-label">Farms</span>
     </a>
 
-    <a
+    {% if 'legacy_coconut_harvest' in dashboard_context.capabilities %}<a
         class="messis-mobile-nav-item"
         href="/harvests/manage"
         data-mobile-route="harvest"
     >
         <span class="messis-mobile-nav-icon">🥥</span>
         <span class="messis-mobile-nav-label">Harvest</span>
-    </a>
+    </a>{% endif %}
 
     <a
         class="messis-mobile-nav-item"

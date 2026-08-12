@@ -46,13 +46,14 @@ from app.config import get_settings
 from app.database import Base, engine, get_db
 from app.models import AuditLog, Buyer, CoconutTree, Expense, ExpenseCategory, Farm, HarvestCycle, HarvestRecord, PasscodeResetToken, Sale, SalePayment, User, UserSetupProfile, Vendor
 from app.email_service import send_passcode_reset_email
-from app.agro_framework import farm_template_context, router as agro_router, seed_agro_framework
+from app.agro_framework import assign_legacy_farms, farm_template_context, router as agro_router, seed_agro_framework
 from app.task_management import router as task_router
 from app.reminders import router as reminder_router
 from app.harvest_phases import lifecycle_context, router as harvest_phase_router
 from app.irrigation_management import router as irrigation_router
 from app.security import hash_passcode, valid_passcode, verify_passcode
 from app.version import APP_VERSION, RELEASE_NAME
+from app.farm_capabilities import FarmCapabilityMiddleware
 
 BASE_DIR = Path(__file__).resolve().parent
 settings = get_settings()
@@ -63,6 +64,10 @@ app.include_router(task_router)
 app.include_router(reminder_router)
 app.include_router(harvest_phase_router)
 app.include_router(irrigation_router)
+
+# Added before SessionMiddleware so the session wrapper runs first and makes
+# authenticated owner context available to capability enforcement.
+app.add_middleware(FarmCapabilityMiddleware)
 
 app.add_middleware(
     SessionMiddleware,
@@ -157,6 +162,7 @@ def startup() -> None:
     from app.database import SessionLocal
     with SessionLocal() as db:
         seed_agro_framework(db)
+        assign_legacy_farms(db)
 
 
 def ensure_auth_recovery_schema() -> None:
@@ -7435,6 +7441,11 @@ def business_dashboard_page(
             "farm_type_name": "All Farms" if len(type_names) != 1 else (type_names[0] if type_names else "All Farms"),
             "icon": "🌱", "asset_label": "Farm capacity", "asset_value": "Mixed units",
             "terminology": {"production_unit": "Mixed units", "output": "Farm production", "production_event": "Production"},
+            "capabilities": sorted({
+                capability
+                for context in dashboard_farm_contexts.values()
+                for capability in context.get("capabilities", [])
+            }),
             "available_types": type_names,
         }
 

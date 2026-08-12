@@ -1228,6 +1228,24 @@ class FarmFieldValue(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class FarmOperationalProfile(Base):
+    """Neutral setup data shared by farm types without polluting Farm."""
+    __tablename__ = "farm_operational_profiles"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    farm_id: Mapped[int] = mapped_column(
+        ForeignKey("farms.id", ondelete="CASCADE"), unique=True, nullable=False, index=True
+    )
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    area_unit: Mapped[str] = mapped_column(String(30), default="Acres", nullable=False)
+    soil_type: Mapped[str | None] = mapped_column(String(80))
+    water_system: Mapped[str | None] = mapped_column(String(80))
+    production_cycle: Mapped[str | None] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class FarmTask(Base):
     """A farm-scoped work item with a simple New -> Pending -> Closed lifecycle."""
     __tablename__ = "farm_tasks"
