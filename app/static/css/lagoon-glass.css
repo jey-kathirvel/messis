@@ -1,0 +1,280 @@
+/* MESSIS-LAGOON-GLASS-001 — light, colorful, farm-neutral UI system */
+:root {
+    --lagoon-950: #103f40;
+    --lagoon-900: #145355;
+    --lagoon-800: #176b6d;
+    --lagoon-700: #168f91;
+    --lagoon-600: #20a6a4;
+    --lagoon-500: #42beb6;
+    --lagoon-100: #d6f5ef;
+    --lagoon-50: #effcf9;
+    --lagoon-ink: #143b3c;
+    --lagoon-muted: #617f81;
+    --lagoon-canvas: #f2fbfb;
+    --lagoon-glass: rgba(255, 255, 255, .69);
+    --lagoon-glass-strong: rgba(255, 255, 255, .88);
+    --lagoon-border: rgba(255, 255, 255, .86);
+    --lagoon-line: rgba(21, 112, 113, .13);
+    --lagoon-blue: #dceaff;
+    --lagoon-mint: #d6f5ef;
+    --lagoon-gold: #fff0c8;
+    --lagoon-rose: #fce0e8;
+    --lagoon-lilac: #eee3ff;
+    --lagoon-shadow: 0 18px 48px rgba(18, 91, 92, .12), inset 0 1px 0 rgba(255, 255, 255, .76);
+    --lagoon-shadow-soft: 0 10px 28px rgba(18, 91, 92, .09), inset 0 1px 0 rgba(255, 255, 255, .72);
+    --lagoon-blur: 22px;
+}
+
+html { accent-color: var(--lagoon-700); }
+
+body {
+    color: var(--lagoon-ink) !important;
+    background-color: var(--lagoon-canvas) !important;
+    background-image:
+        radial-gradient(circle at 4% 2%, rgba(86, 211, 190, .23), transparent 25rem),
+        radial-gradient(circle at 97% 7%, rgba(143, 180, 255, .20), transparent 28rem),
+        radial-gradient(circle at 78% 92%, rgba(255, 197, 214, .20), transparent 28rem),
+        linear-gradient(145deg, #f8fdfd 0%, #eefafa 48%, #f6fbff 100%) !important;
+    background-attachment: fixed !important;
+}
+
+body::before {
+    opacity: .45 !important;
+    background-image:
+        radial-gradient(ellipse at 10% 75%, rgba(49, 183, 170, .11), transparent 17rem),
+        linear-gradient(118deg, transparent 49%, rgba(255, 255, 255, .48) 50%, transparent 51%) !important;
+}
+
+body :is(
+    .panel, .card, .kpi, .filters, .metric-card, .summary-card,
+    .analytics-summary-panel, .analytics-summary-card, .ai-summary-panel,
+    .ai-priority-card, .form-card, .quick-card, .scheduler-head,
+    .field-operation-card, .weather-card, .alert-card, .report-kpis article,
+    .farm-row, .review, .step, .modal-content, .dialog, .empty,
+    .business-summary-pdf-card
+) {
+    color: var(--lagoon-ink) !important;
+    background: var(--lagoon-glass) !important;
+    border: 1px solid var(--lagoon-border) !important;
+    box-shadow: var(--lagoon-shadow) !important;
+    -webkit-backdrop-filter: blur(var(--lagoon-blur)) saturate(1.18);
+    backdrop-filter: blur(var(--lagoon-blur)) saturate(1.18);
+}
+
+body :is(.panel, .card, .form-card, .scheduler-head, .field-operation-card, .weather-card, .alert-card, .step, .modal-content, .dialog) {
+    border-radius: 22px !important;
+}
+
+body :is(.kpi, .metric-card, .summary-card, .analytics-summary-card, .report-kpis article, .quick-card) {
+    border-radius: 19px !important;
+}
+
+body :is(.panel, .card, .kpi, .quick-card, .weather-card, .alert-card, .business-summary-pdf-card) {
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease !important;
+}
+
+body :is(.card, .kpi, .quick-card, .weather-card, .business-summary-pdf-card):hover {
+    transform: translateY(-2px);
+    border-color: rgba(65, 190, 182, .44) !important;
+    box-shadow: 0 22px 56px rgba(18, 91, 92, .16), inset 0 1px 0 rgba(255, 255, 255, .9) !important;
+}
+
+/* Colorful glass KPI family */
+body .kpi { position: relative; overflow: hidden; border-top: 0 !important; }
+body .kpi::after {
+    content: "";
+    position: absolute;
+    width: 88px;
+    height: 88px;
+    right: -34px;
+    bottom: -42px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .42);
+    pointer-events: none;
+}
+body .kpi:nth-child(5n + 1) { background: linear-gradient(145deg, rgba(214, 245, 239, .9), rgba(255, 255, 255, .67)) !important; }
+body .kpi:nth-child(5n + 2) { background: linear-gradient(145deg, rgba(255, 240, 200, .9), rgba(255, 255, 255, .68)) !important; }
+body .kpi:nth-child(5n + 3) { background: linear-gradient(145deg, rgba(220, 234, 255, .92), rgba(255, 255, 255, .68)) !important; }
+body .kpi:nth-child(5n + 4) { background: linear-gradient(145deg, rgba(252, 224, 232, .9), rgba(255, 255, 255, .68)) !important; }
+body .kpi:nth-child(5n) { background: linear-gradient(145deg, rgba(238, 227, 255, .9), rgba(255, 255, 255, .68)) !important; }
+body .kpi .kpi-icon {
+    display: grid;
+    min-width: 38px;
+    min-height: 38px;
+    padding: 7px !important;
+    place-items: center;
+    color: var(--lagoon-900) !important;
+    background: rgba(255, 255, 255, .67) !important;
+    border: 1px solid rgba(255, 255, 255, .8);
+    border-radius: 12px !important;
+    box-shadow: 0 7px 18px rgba(18, 91, 92, .08);
+}
+body .kpi :is(small, span) { color: var(--lagoon-muted) !important; }
+body .kpi strong { color: var(--lagoon-ink) !important; }
+body .kpi.loss strong { color: #b73e58 !important; }
+
+/* Light glass navigation */
+body :is(.sidebar, aside.sidebar, .app-sidebar) {
+    color: var(--lagoon-ink) !important;
+    background: linear-gradient(180deg, rgba(244, 255, 254, .88), rgba(236, 249, 251, .79)) !important;
+    border-right: 1px solid rgba(255, 255, 255, .88) !important;
+    box-shadow: 14px 0 42px rgba(18, 91, 92, .11) !important;
+    -webkit-backdrop-filter: blur(26px) saturate(1.12);
+    backdrop-filter: blur(26px) saturate(1.12);
+}
+body .sidebar :is(.brand, .brand-copy strong, .brand-copy span, .menu-label, .menu-link, .submenu-summary, .user-card) {
+    color: var(--lagoon-ink) !important;
+}
+body .sidebar .brand { border-color: var(--lagoon-line) !important; background: rgba(255, 255, 255, .3) !important; }
+body .sidebar .brand-mark {
+    color: #fff !important;
+    background: linear-gradient(135deg, var(--lagoon-700), var(--lagoon-500)) !important;
+    box-shadow: 0 10px 24px rgba(22, 143, 145, .24) !important;
+}
+body .sidebar .menu-label { color: #769091 !important; }
+body .sidebar :is(.menu-link, .submenu-summary) { border: 1px solid transparent !important; }
+body .sidebar :is(.menu-link, .submenu-summary):hover,
+body .sidebar .menu-link.active {
+    color: var(--lagoon-900) !important;
+    background: rgba(255, 255, 255, .75) !important;
+    border-color: rgba(255, 255, 255, .86) !important;
+    box-shadow: 0 8px 20px rgba(18, 91, 92, .08), inset 3px 0 0 var(--lagoon-500) !important;
+}
+body .sidebar :is(.menu-icon, .submenu-chevron) { color: var(--lagoon-700) !important; filter: none !important; }
+body .sidebar .sidebar-footer { border-color: var(--lagoon-line) !important; }
+body .sidebar .user-card { background: rgba(255, 255, 255, .55) !important; border-color: rgba(255, 255, 255, .84) !important; }
+
+/* Header and controls */
+body :is(.topbar, .messis-page-toolbar, header.toolbar, .page-header) {
+    background: rgba(255, 255, 255, .72) !important;
+    border: 1px solid rgba(255, 255, 255, .88) !important;
+    border-bottom-color: rgba(21, 112, 113, .1) !important;
+    color: var(--lagoon-ink) !important;
+    box-shadow: 0 12px 34px rgba(18, 91, 92, .10) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(1.18);
+    backdrop-filter: blur(24px) saturate(1.18);
+}
+body .topbar .page-title strong { color: var(--lagoon-ink) !important; }
+body .topbar .page-title span { color: var(--lagoon-muted) !important; }
+body .messis-page-toolbar,
+body .messis-page-toolbar :is(a, button, strong, span) { color: var(--lagoon-ink) !important; }
+body .topbar :is(.top-link, .period-pill, .messis-account-trigger, .sidebar-toggle) {
+    color: var(--lagoon-ink) !important;
+    background: rgba(255, 255, 255, .75) !important;
+    border-color: rgba(21, 112, 113, .12) !important;
+    box-shadow: 0 7px 18px rgba(18, 91, 92, .07) !important;
+}
+
+body :is(button[type="submit"], .button.primary, .btn.primary, .primary, .messis-nav-button-primary) {
+    color: #fff !important;
+    background: linear-gradient(135deg, var(--lagoon-700), var(--lagoon-500)) !important;
+    border-color: rgba(255, 255, 255, .35) !important;
+    box-shadow: 0 10px 25px rgba(22, 143, 145, .24), inset 0 1px 0 rgba(255, 255, 255, .3) !important;
+}
+body :is(button[type="submit"], .button.primary, .btn.primary, .primary, .messis-nav-button-primary):hover {
+    transform: translateY(-1px);
+    filter: saturate(1.07) brightness(1.02);
+}
+body :is(a, button, input, select, textarea):focus-visible {
+    outline: 3px solid rgba(32, 166, 164, .3) !important;
+    outline-offset: 2px;
+}
+
+body :is(input, select, textarea) {
+    color: var(--lagoon-ink) !important;
+    background: rgba(255, 255, 255, .76) !important;
+    border: 1px solid rgba(21, 112, 113, .16) !important;
+    border-radius: 12px !important;
+    box-shadow: inset 0 1px 2px rgba(18, 91, 92, .035) !important;
+}
+body :is(input, select, textarea):focus {
+    background: rgba(255, 255, 255, .94) !important;
+    border-color: var(--lagoon-600) !important;
+    box-shadow: 0 0 0 4px rgba(32, 166, 164, .12), 0 8px 22px rgba(18, 91, 92, .07) !important;
+}
+
+/* Hero, data, and special cards */
+body .welcome {
+    color: var(--lagoon-ink) !important;
+    background:
+        radial-gradient(circle at 94% 8%, rgba(143, 180, 255, .22), transparent 16rem),
+        linear-gradient(120deg, rgba(214, 245, 239, .86), rgba(255, 255, 255, .72)) !important;
+    border: 1px solid rgba(255, 255, 255, .9) !important;
+    border-left: 0 !important;
+    border-radius: 20px !important;
+    box-shadow: var(--lagoon-shadow) !important;
+}
+body .welcome :is(h1, h2, strong) { color: var(--lagoon-ink) !important; }
+body .welcome :is(p, span) { color: var(--lagoon-muted) !important; }
+body .welcome::after { opacity: .07 !important; }
+
+body .weather-summary-panel {
+    color: var(--lagoon-ink) !important;
+    background:
+        radial-gradient(circle at 92% 4%, rgba(255, 255, 255, .56), transparent 30%),
+        linear-gradient(135deg, rgba(203, 241, 244, .92), rgba(188, 225, 255, .87), rgba(204, 246, 232, .9)) !important;
+    border-color: rgba(255, 255, 255, .82) !important;
+    box-shadow: var(--lagoon-shadow) !important;
+}
+body .weather-summary-panel :is(h2, strong) { color: var(--lagoon-ink) !important; }
+body .weather-summary-panel :is(p, small, span) { color: var(--lagoon-muted) !important; }
+body .weather-summary-panel .weather-open-link { color: #fff !important; background: var(--lagoon-700) !important; }
+
+body table {
+    background: rgba(255, 255, 255, .48) !important;
+    border-color: rgba(255, 255, 255, .84) !important;
+    border-radius: 17px !important;
+    box-shadow: var(--lagoon-shadow-soft);
+}
+body thead th { color: var(--lagoon-900) !important; background: rgba(65, 190, 182, .11) !important; }
+body tbody tr:hover { background: rgba(214, 245, 239, .45) !important; }
+body :is(tbody td, thead th) { border-color: rgba(21, 112, 113, .09) !important; }
+
+body .farm-type-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, .85), rgba(222, 248, 245, .7)) !important;
+    border-color: rgba(255, 255, 255, .92) !important;
+    box-shadow: var(--lagoon-shadow-soft) !important;
+}
+body .farm-type-card:hover,
+body .farm-type-card:has(input:checked) {
+    border-color: rgba(65, 190, 182, .6) !important;
+    box-shadow: 0 18px 42px rgba(18, 91, 92, .15), 0 0 0 4px rgba(65, 190, 182, .11) !important;
+}
+body .farm-icon-frame { background: linear-gradient(145deg, var(--lagoon-mint), #bfeae3) !important; }
+body .farm-type-card[data-farm-type="paddy"] .farm-icon-frame { background: linear-gradient(145deg, #fff4c9, #f4dda0) !important; }
+body .farm-type-card[data-farm-type="dairy"] .farm-icon-frame { background: linear-gradient(145deg, var(--lagoon-blue), #c6def6) !important; }
+body .select-mark { color: var(--lagoon-700) !important; }
+body .progress { background: rgba(21, 112, 113, .1) !important; }
+body .progress i { background: linear-gradient(90deg, var(--lagoon-700), var(--lagoon-500), #8fb4ff) !important; }
+
+body .messis-mobile-more-sheet,
+body .messis-mobile-navigation {
+    color: var(--lagoon-ink) !important;
+    background: rgba(245, 253, 253, .88) !important;
+    border-color: rgba(255, 255, 255, .9) !important;
+    box-shadow: 0 -12px 34px rgba(18, 91, 92, .12) !important;
+    -webkit-backdrop-filter: blur(25px) saturate(1.15);
+    backdrop-filter: blur(25px) saturate(1.15);
+}
+body .messis-mobile-nav-item.active,
+body .messis-mobile-nav-item[aria-current="page"] { color: var(--lagoon-700) !important; }
+
+body ::selection { color: var(--lagoon-950); background: rgba(65, 190, 182, .26); }
+
+@media (max-width: 760px) {
+    :root { --lagoon-blur: 16px; }
+    body { background-attachment: scroll !important; }
+    body :is(.panel, .card, .form-card, .scheduler-head, .weather-card, .alert-card) { border-radius: 18px !important; }
+    body .topbar { background: rgba(250, 255, 255, .87) !important; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    body :is(.panel, .card, .kpi, .filters, .form-card, .weather-card, .alert-card),
+    body .messis-mobile-navigation,
+    body .messis-mobile-more-sheet,
+    body :is(.sidebar, aside.sidebar, .app-sidebar) {
+        background: #f8fdfd !important;
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+    }
+}
